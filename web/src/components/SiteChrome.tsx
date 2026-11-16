@@ -22,7 +22,7 @@ export function Header() {
         <Link href="/" aria-label="Veedor, inicio" className="text-ink">
           <Wordmark />
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Suspense fallback={<NavLinks pathname={null} />}>
             <Nav />
           </Suspense>

@@ -44,6 +44,18 @@ export default function Home() {
           <EvaluationCard />
         </div>
       </Section>
+      <Section title="Cómo funciona" id="como-funciona">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Link href="/metodologia" className="group rounded-lg border border-line bg-surface p-5 hover:border-accent">
+            <h3 className="font-semibold text-ink group-hover:underline">Metodología</h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted">Cómo se calcula el puntaje, qué significa cada señal y qué no puede decir.</p>
+          </Link>
+          <Link href="/agentes" className="group rounded-lg border border-line bg-surface p-5 hover:border-accent">
+            <h3 className="font-semibold text-ink group-hover:underline">Agentes de investigación</h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted">Un supervisor y cuatro especialistas consultan fuentes públicas de solo lectura. Qué pueden hacer, sus límites y resultados medidos.</p>
+          </Link>
+        </div>
+      </Section>
       <Suspense fallback={<Skeleton className="mt-12 h-72" />}>
         <Charts />
       </Suspense>

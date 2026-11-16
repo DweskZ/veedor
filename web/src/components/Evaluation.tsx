@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { Card } from "./ui";
 
-/** Static copy. Numbers are taken verbatim from docs/EVALUATION.md (run 2026-11-16, seed 20260101). */
+/** Static copy. Numbers are taken verbatim from docs/EVALUATION.md (eval/backtest.json, run 2026-11-16 07:48 UTC, seed 20260101). */
 export function EvaluationText() {
   return (
     <>
       <p>
         Se probó si el puntaje coloca más arriba a las empresas del listado de &quot;empresas fantasmas&quot; publicado por el SRI:
         9 empresas listadas que ganaron procesos públicos frente a 19.837 empresas adjudicatarias no listadas, sin usar las reglas que
-        dependen del propio listado. El AUC fue 0,474 (intervalo de confianza del 95 %: 0,315 a 0,661); el intervalo incluye 0,5, el
+        dependen del propio listado. El AUC fue 0,447 (intervalo de confianza del 95 %: 0,303 a 0,598); el intervalo incluye 0,5, el
         nivel del azar.
       </p>
       <p>

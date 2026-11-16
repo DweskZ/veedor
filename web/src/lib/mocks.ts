@@ -5,6 +5,7 @@
 import type {
   BuyerDetail,
   Dossier,
+  Investigation,
   Paginated,
   PartyKind,
   ProcessDetail,
@@ -12,6 +13,7 @@ import type {
   ProcessSummary,
   Review,
   SignalDef,
+  SimilarProcesses,
   Stats,
   SupplierDetail,
 } from "./types";
@@ -268,3 +270,57 @@ export function buyer(ruc: string): BuyerDetail {
 
 export const meta = { reviews_enabled: false };
 export const reviews = (): Review[] => [];
+
+/** Sample investigation (fictional): only the first two sample processes have one. */
+export function investigation(ocid: string): Investigation | null {
+  if (!["sample-ocid-0001", "sample-ocid-0002"].includes(ocid)) return null;
+  const t0 = "2025-11-28T10:00:00Z";
+  const look = (specialist: string, tool: string, target: string, duration_ms: number, outcome = "ok", reason: string | null = null) => ({
+    specialist, tool, target, started_at: t0, duration_ms, outcome, attempts: 1, reason,
+  });
+  const failed = ocid.endsWith("0002");
+  return {
+    ocid,
+    started_at: t0,
+    finished_at: "2025-11-28T10:00:07Z",
+    specialists: [
+      { specialist: "company", dispatch_reason: "company_size_signal", decided_by: "policy", action_plan_by: "policy", n_tool_calls: 2, outcomes: { ok: 2 },
+        facts_added: ["investigation.company.legal_status", "investigation.company.incorporation", "investigation.company.capital", "investigation.financials.latest"] },
+      { specialist: "history", dispatch_reason: "buyer_concentration_signal", decided_by: "policy", action_plan_by: "policy", n_tool_calls: 2, outcomes: { ok: 2 },
+        facts_added: ["investigation.pair.others", "investigation.similar.window"] },
+      { specialist: "audit", dispatch_reason: "baseline_check", decided_by: "policy", action_plan_by: "policy", n_tool_calls: 2, outcomes: failed ? { ok: 1, upstream_error: 1 } : { ok: 2 },
+        facts_added: [failed ? "investigation.audit.unavailable" : "investigation.audit.count"] },
+    ],
+    lookups: [
+      look("company", "get_compania_info", "winner", 1.4),
+      look("company", "get_financials", "winner", 2.1),
+      look("history", "pair_awards", "buyer", 85),
+      look("history", "similar_processes", "process", 41),
+      look("audit", "list_catalogo", "buyer", 310),
+      failed ? look("audit", "get_contraloria_informe", "buyer", 4200, "upstream_error", "server_unavailable") : look("audit", "get_contraloria_informe", "buyer", 920),
+    ],
+    facts_added: [],
+    model_usage: { model: null, calls: 0, prompt_tokens: 0, completion_tokens: 0, invalid_choices: 0 },
+  };
+}
+
+export function similar(ocid: string, sameBuyer: boolean, k: number): SimilarProcesses {
+  const base = find(ocid);
+  const items = processes
+    .filter((p) => p.ocid !== ocid && (!sameBuyer || p.buyer_ruc === base.buyer_ruc))
+    .slice(0, k)
+    .map((p, i) => ({
+      ocid: p.ocid,
+      similarity: Math.max(0.5, 0.93 - i * 0.04),
+      year: p.year,
+      buyer_ruc: p.buyer_ruc,
+      buyer_name: p.buyer_name,
+      method: p.method,
+      award_total: p.award_total,
+      main_cpc: "0000000",
+    }));
+  return {
+    ocid, k, same_buyer: sameBuyer, items,
+    notice_es: "Datos de ejemplo: la similitud es ficticia.",
+  };
+}

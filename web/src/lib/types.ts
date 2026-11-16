@@ -274,3 +274,66 @@ export interface ProcessQuery {
   page_size?: string;
   sort?: string;
 }
+
+/** One row of `GET /processes/{ocid}/similar`. `similarity` is cosine similarity in [-1, 1]. */
+export interface SimilarProcess {
+  ocid: string;
+  similarity: number;
+  year: number | null;
+  buyer_ruc: string | null;
+  buyer_name: string | null;
+  method: string | null;
+  award_total: number | null;
+  main_cpc: string | null;
+}
+
+export interface SimilarProcesses {
+  ocid: string;
+  k: number;
+  same_buyer: boolean;
+  items: SimilarProcess[];
+  notice_es: string;
+}
+
+/**
+ * Stored multi-agent investigation (`GET /processes/{ocid}/investigation`). The API schema leaves the nested
+ * records open, so every field is optional here and `normalizeInvestigation` coerces what it receives.
+ */
+export interface InvestigationSpecialist {
+  specialist: string;
+  dispatch_reason: string | null;
+  decided_by: string | null;
+  action_plan_by: string | null;
+  n_tool_calls: number | null;
+  outcomes: Record<string, number>;
+  facts_added: string[];
+}
+
+export interface InvestigationLookup {
+  specialist: string;
+  tool: string;
+  target: string | null;
+  started_at: string | null;
+  duration_ms: number | null;
+  outcome: string;
+  attempts: number | null;
+  reason: string | null;
+}
+
+export interface InvestigationModelUsage {
+  model: string | null;
+  calls: number;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  invalid_choices: number | null;
+}
+
+export interface Investigation {
+  ocid: string;
+  started_at: string | null;
+  finished_at: string | null;
+  specialists: InvestigationSpecialist[];
+  lookups: InvestigationLookup[];
+  facts_added: string[];
+  model_usage: InvestigationModelUsage | null;
+}

@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ApiError, getDossier, getMeta, getProcess, getReviews, getSignals } from "@/lib/api";
+import { ApiError, getDossier, getInvestigation, getMeta, getProcess, getReviews, getSignals } from "@/lib/api";
 import { fmtDate, fmtDateTime, fmtInt, fmtNum, fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessFacts, SignalDef } from "@/lib/types";
 import { SignalCard } from "@/components/SignalCard";
+import { DossierIndex, DossierSectionView } from "@/components/DossierSections";
+import { InvestigationPanel } from "@/components/Investigation";
+import { SameBuyerToggle } from "@/components/SameBuyerToggle";
+import { SimilarBody } from "@/components/SimilarProcesses";
 import { canLinkBuyer, canLinkSupplier, isOcid } from "@/lib/validate";
 import { REVIEW_LABELS } from "@/lib/reviews";
 import { Card, EmptyState, ErrorState, Mono, PageSkeleton, partyName, RiskScore, Section, Skeleton } from "@/components/ui";
@@ -19,13 +23,24 @@ const EMPTY_FACTS: ProcessFacts = {
   award_total: null, first_award_date: null, date_signed: null, main_cpc: null, main_cpc_description: null,
 };
 
-export default function ProcessPage({ params }: PageProps<"/procesos/[ocid]">) {
+export default function ProcessPage({ params, searchParams }: PageProps<"/procesos/[ocid]">) {
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <Dossier params={params} />
+      <Dossier params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
+
+const PAGE_INDEX: [string, string][] = [
+  ["hechos", "Hechos"],
+  ["senales", "Señales"],
+  ["investigacion", "Investigación"],
+  ["similares", "Similares"],
+  ["texto", "Texto del expediente"],
+  ["fuentes", "Fuentes"],
+  ["verificar", "Cómo verificar"],
+  ["revision", "Revisión humana"],
+];
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -36,8 +51,16 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-async function Dossier({ params }: { params: PageProps<"/procesos/[ocid]">["params"] }) {
+async function Dossier({
+  params,
+  searchParams,
+}: {
+  params: PageProps<"/procesos/[ocid]">["params"];
+  searchParams: PageProps<"/procesos/[ocid]">["searchParams"];
+}) {
   const ocid = decodeURIComponent((await params).ocid);
+  const sb = (await searchParams).same_buyer;
+  const sameBuyer = (Array.isArray(sb) ? sb[0] : sb) === "1";
   if (!isOcid(ocid)) notFound();
   let detail;
   let defs: SignalDef[] = [];
@@ -89,6 +112,14 @@ async function Dossier({ params }: { params: PageProps<"/procesos/[ocid]">["para
           ) : null}
         </Card>
       </div>
+
+      <nav aria-label="En esta página" className="-mt-2 mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        {PAGE_INDEX.map(([id, label]) => (
+          <a key={id} href={`#${id}`} className="text-accent underline underline-offset-2">
+            {label}
+          </a>
+        ))}
+      </nav>
 
       <Section title="Hechos del proceso" id="hechos">
         <dl>
@@ -207,6 +238,26 @@ async function Dossier({ params }: { params: PageProps<"/procesos/[ocid]">["para
         </Section>
       ) : null}
 
+      <Section title="Investigación" id="investigacion">
+        <Suspense fallback={<Skeleton className="h-64" />}>
+          <InvestigationSection ocid={ocid} />
+        </Suspense>
+      </Section>
+
+      <Section
+        title="Procesos similares"
+        id="similares"
+        aside={<SameBuyerToggle checked={sameBuyer} />}
+      >
+        <p className="mb-4 max-w-3xl text-sm text-muted">
+          La similitud se calcula según la clasificación y la descripción del objeto; no implica relación entre los procesos.
+          Es una ayuda de búsqueda y no una señal de riesgo.
+        </p>
+        <Suspense fallback={<Skeleton className="h-72" />}>
+          <SimilarBody ocid={ocid} sameBuyer={sameBuyer} />
+        </Suspense>
+      </Section>
+
       <Suspense fallback={<Skeleton className="mt-12 h-64" />}>
         <DossierText ocid={ocid} />
       </Suspense>
@@ -233,6 +284,16 @@ async function Dossier({ params }: { params: PageProps<"/procesos/[ocid]">["para
       </Section>
     </>
   );
+}
+
+async function InvestigationSection({ ocid }: { ocid: string }) {
+  const r = await getInvestigation(ocid).then(
+    (v) => ({ ok: true as const, v }),
+    (e: unknown) => ({ ok: false as const, e }),
+  );
+  if (!r.ok) return <ErrorState title="No se pudo cargar la investigación" detail={r.e instanceof Error ? r.e.message : undefined} />;
+  if (!r.v) return <p className="text-sm text-muted">No hay una investigación registrada para este proceso.</p>;
+  return <InvestigationPanel inv={r.v} />;
 }
 
 async function DossierText({ ocid }: { ocid: string }) {
@@ -280,11 +341,11 @@ async function DossierText({ ocid }: { ocid: string }) {
             {d.generated_at ? <span className="text-muted">Generado: {fmtDateTime(d.generated_at)}</span> : null}
           </div>
           {d.summary_es ? <p className="mt-4 text-base leading-relaxed text-ink">{d.summary_es}</p> : null}
+          <div className="mt-4">
+            <DossierIndex sections={d.sections} />
+          </div>
           {d.sections.map((s) => (
-            <div key={s.title} className="mt-5">
-              <h3 className="text-sm font-semibold text-ink">{s.title}</h3>
-              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted">{s.body}</p>
-            </div>
+            <DossierSectionView key={s.title} section={s} />
           ))}
         </Card>
       </Section>

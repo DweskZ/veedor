@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const ITEMS = [
   { href: "/", label: "Panorama" },
   { href: "/procesos", label: "Procesos" },
+  { href: "/agentes", label: "Agentes" },
   { href: "/metodologia", label: "Metodología" },
 ];
 
@@ -15,7 +16,7 @@ export function Nav() {
 
 export function NavLinks({ pathname }: { pathname: string | null }) {
   return (
-    <nav aria-label="Principal" className="flex items-center gap-1">
+    <nav aria-label="Principal" className="flex flex-wrap items-center gap-0.5 sm:gap-1">
       {ITEMS.map((it) => {
         const active = it.href === "/" ? pathname === "/" : !!pathname?.startsWith(it.href);
         return (
@@ -23,7 +24,7 @@ export function NavLinks({ pathname }: { pathname: string | null }) {
             key={it.href}
             href={it.href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+            className={`rounded-md px-2 py-1.5 text-sm font-medium sm:px-3 ${
               active ? "bg-surface-2 text-ink" : "text-muted hover:bg-surface-2 hover:text-ink"
             }`}
           >

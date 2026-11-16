@@ -1,7 +1,9 @@
+import { normalizeInvestigation } from "./investigation";
 import * as mocks from "./mocks";
 import type {
   BuyerDetail,
   Dossier,
+  Investigation,
   Paginated,
   ProcessDetail,
   ProcessQuery,
@@ -9,6 +11,7 @@ import type {
   Review,
   ApiMeta,
   SignalDef,
+  SimilarProcesses,
   Stats,
   SupplierDetail,
 } from "./types";
@@ -125,3 +128,20 @@ export async function getSignalIndex(): Promise<SignalIndex> {
     return { labels: {}, context: [] };
   }
 }
+
+/** Stored investigation, or null when none exists (the API never starts one). Other failures throw. */
+export async function getInvestigation(ocid: string): Promise<Investigation | null> {
+  if (USE_MOCKS) return mocks.investigation(ocid);
+  try {
+    return normalizeInvestigation(await request<unknown>(`/processes/${enc(ocid)}/investigation`));
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+/** Throws ApiError: 404 with code `not_indexed` (catalogue or no safe text), 503 `vectors_unavailable`. */
+export const getSimilar = (ocid: string, sameBuyer: boolean, k = 10): Promise<SimilarProcesses> =>
+  USE_MOCKS
+    ? Promise.resolve(mock(() => mocks.similar(ocid, sameBuyer, k)))
+    : request(`/processes/${enc(ocid)}/similar${qs({ k: String(k), same_buyer: sameBuyer ? "true" : undefined })}`);
