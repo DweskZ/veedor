@@ -1,0 +1,97 @@
+# Local full stack: `docker compose up -d --build`
+#   web  http://localhost:3000   api  http://localhost:8000 (docs at /docs)   db  localhost:5433
+# Ports are bound to 127.0.0.1 only; put a reverse proxy in front for any other exposure (see
+# docs/DEPLOYMENT.md).
+# The API never calls an LLM (dossiers served over HTTP are always template mode), so no LLM
+# variable is passed to any container. LLM-written dossiers are produced only with the CLI.
+# Nothing secret is stored in this file or in the images.
+
+x-api-env: &api-env
+  VEEDOR_DATA_DIR: /app/data
+  VEEDOR_DATABASE_URL: postgresql+psycopg://veedor:${POSTGRES_PASSWORD:-veedor_dev}@db:5432/veedor
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: veedor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veedor_dev}
+      POSTGRES_DB: veedor
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - veedor_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veedor -d veedor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: .
+    image: veedor-api:local
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment: *api-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: .
+    image: veedor-api:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *api-env
+      VEEDOR_CORS_ORIGINS: '["http://localhost:3000"]'
+      # Reviews are off unless both are set. The token is a secret: pass it from the environment.
+      VEEDOR_REVIEWS_ENABLED: ${VEEDOR_REVIEWS_ENABLED:-false}
+      VEEDOR_REVIEWS_TOKEN: ${VEEDOR_REVIEWS_TOKEN:-}
+      VEEDOR_DOCS_ENABLED: ${VEEDOR_DOCS_ENABLED:-true}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # The lake and marts are read-only; only generated dossiers and traces are writable.
+      - ./data/lake:/app/data/lake:ro
+      - ./data/marts:/app/data/marts:ro
+      - veedor_dossiers:/app/data/dossiers
+      - veedor_traces:/app/data/traces
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    image: veedor-web:local
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_INTERNAL_URL: http://api:8000/api/v1
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+volumes:
+  veedor_pgdata:
+  veedor_dossiers:
+  veedor_traces:
