@@ -166,3 +166,29 @@ export function SourcesToggle() {
     </button>
   );
 }
+
+const SOURCE_FALLBACK: Record<string, string> = {
+  veedor_indicators: "Indicadores calculados por Veedor",
+  sercop_ocds: "SERCOP, datos abiertos (OCDS)",
+};
+
+/**
+ * Where one sentence of an answer comes from. When its fact exists in the process provenance this is the usual marker
+ * (it opens the same panel); otherwise the source name and the original field are printed next to the sentence.
+ */
+export function AnswerSource({ keys, sourceId, field }: { keys: string[]; sourceId: string; field: string }) {
+  const ctx = useContext(Context);
+  if (ctx?.find(keys)) return <SourceMarker keys={keys} />;
+  const name = (ctx?.prov ? sourceById(ctx.prov, sourceId)?.name : undefined) ?? SOURCE_FALLBACK[sourceId] ?? sourceId;
+  return (
+    <span className="ask__src">
+      Fuente: {name}
+      {field ? (
+        <>
+          {" · campo "}
+          <span className="num">{field}</span>
+        </>
+      ) : null}
+    </span>
+  );
+}

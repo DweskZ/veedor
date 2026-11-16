@@ -101,18 +101,19 @@ export const getBuyer = (ruc: string): Promise<BuyerDetail> =>
 export const getReviews = (ocid: string): Promise<Review[]> =>
   USE_MOCKS ? Promise.resolve(mocks.reviews()) : request(`/processes/${enc(ocid)}/reviews`);
 
-/** Whether review registration is enabled. Unknown (field absent or request failed) counts as disabled. */
+/** Whether review registration and the question box are enabled. Unknown (field absent or request failed) counts as disabled. */
 export async function getMeta(): Promise<ApiMeta> {
   if (USE_MOCKS) return mocks.meta;
   for (const path of ["/meta", "/health"]) {
     try {
-      const body = await request<{ reviews_enabled?: unknown }>(path);
-      if (typeof body.reviews_enabled === "boolean") return { reviews_enabled: body.reviews_enabled };
+      const body = await request<{ reviews_enabled?: unknown; ask_enabled?: unknown }>(path);
+      if (typeof body.reviews_enabled === "boolean")
+        return { reviews_enabled: body.reviews_enabled, ask_enabled: typeof body.ask_enabled === "boolean" ? body.ask_enabled : null };
     } catch {
       /* try the next endpoint */
     }
   }
-  return { reviews_enabled: null };
+  return { reviews_enabled: null, ask_enabled: null };
 }
 
 export interface SignalIndex {

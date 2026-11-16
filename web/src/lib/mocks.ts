@@ -317,7 +317,7 @@ export function quotes(ocid: string): Quotes | null {
   return { ocid, items: [], available_total: 0, omitted: { personal_data: 0, unsafe: 0, below_relevance: 0 }, note_es: null };
 }
 
-export const meta = { reviews_enabled: false };
+export const meta = { reviews_enabled: false, ask_enabled: true };
 export const reviews = (): Review[] => [];
 
 /** Sample investigation (fictional): only the first two sample processes have one. */
@@ -427,5 +427,48 @@ export function context(ocid: string): ProcessContext | null {
     tenderers: { counts: [260, 410, 280, 150, 80, 54], position: { value: 1, percentile: 0.21 } },
     ratio: { median: 0.93, q1: 0.88, q3: 0.97, position: { value: 0.995, percentile: 0.96 } },
     window: { median: 9, q1: 7, q3: 12, position: { value: 6, percentile: 0.12 } },
+  };
+}
+
+/**
+ * Fictional answers for the question box (mock mode only). Triggers: "culpable", "corrup" or "juicio" give a question the
+ * data does not answer; "límite" gives a rate-limit; "falla" gives a server error. Anything else is answered.
+ */
+export function ask(ocid: string, question: string): unknown {
+  const q = question.toLowerCase();
+  if (/límite|limite/.test(q)) return { __status: 429, retryAfter: 45 };
+  if (/falla/.test(q)) return { __status: 503 };
+  if (/culpable|corrup|juicio/.test(q))
+    return {
+      ocid,
+      answerable: false,
+      mode: "retrieval",
+      reason: "judgement",
+      sentences: [],
+      quotes: [],
+      note_es: "Texto de ejemplo: Veedor describe registros y no emite juicios sobre las personas ni sobre las entidades.",
+    };
+  return {
+    ocid,
+    answerable: true,
+    mode: q.includes("modelo") ? "model" : "retrieval",
+    reason: "answered",
+    sentences: [
+      { text: "Texto ficticio: este proceso registra 4 oferentes.", fact_id: "process.tenderers", source_id: "ejemplo-ocds", source_field: "tender.numberOfTenderers" },
+      { text: "Texto ficticio: se adjudicó un monto de ejemplo frente a un presupuesto referencial de ejemplo.", fact_id: "process.amounts", source_id: "ejemplo-ocds", source_field: "awards[].value.amount" },
+      { text: "Texto ficticio sin marcador de procedencia en la página.", fact_id: "context.count", source_id: "veedor_indicators", source_field: "processes (mismo método y año)" },
+    ],
+    quotes: [
+      {
+        quote_id: "q1",
+        text: "Texto ficticio de una cita: ¿el plazo para entregar las ofertas puede ampliarse unos días? " + "Esta frase se repite para comprobar cómo se ve una cita larga. ".repeat(6),
+        kind: "enquiry_question",
+        date: "2019-03-12",
+        source_field: "tender.enquiries[0].description",
+        truncated: false,
+      },
+      { quote_id: "q2", text: "Texto ficticio de una respuesta: el plazo se mantiene.", kind: "enquiry_answer", date: "2019-03-14", source_field: "tender.enquiries[0].answer", truncated: false },
+    ],
+    note_es: "Respuesta de ejemplo, no real.",
   };
 }

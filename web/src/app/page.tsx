@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { cache, Suspense } from "react";
+import { PageFrame } from "@/components/PageFrame";
+import { cache } from "react";
 import { getProcesses, getRegions, getSignalIndex, getStats } from "@/lib/api";
 import { fmtDate, fmtInt, fmtPct, NA } from "@/lib/format";
 import { SPECIALISTS } from "@/lib/investigation";
@@ -10,13 +11,13 @@ import { RandomProcessButton } from "@/components/RandomProcessButton";
 import { RegionExplorer } from "@/components/RegionExplorer";
 import { Term } from "@/components/Term";
 import { ProcessTable } from "@/components/ProcessTable";
-import { BarList, ErrorState, Fig, RiskLegend, Skeleton } from "@/components/ui";
+import { BarList, ErrorState, Fig, RiskLegend } from "@/components/ui";
 
 const loadStats = cache(getStats);
 
 export default function Home() {
   return (
-    <>
+    <PageFrame>
       <Hero />
       <WhatItIs />
       <HowToRead />
@@ -28,12 +29,8 @@ export default function Home() {
               Lo que Veedor <em>ha leído.</em>
             </h2>
           </header>
-          <Suspense fallback={<Skeleton style={{ height: 150 }} />}>
-            <Headline />
-          </Suspense>
-          <Suspense fallback={<Skeleton style={{ height: 380, marginTop: 56 }} />}>
-            <Charts />
-          </Suspense>
+          <Headline />
+          <Charts />
         </div>
       </section>
       <section className="sec sec--ice" aria-labelledby="mapa-h" style={{ paddingTop: 0 }}>
@@ -45,9 +42,7 @@ export default function Home() {
             </h2>
             <p className="lead">Por provincia, qué parte de los procesos competitivos tiene alguna señal. Pasa el cursor o toca una provincia para ver las cifras.</p>
           </header>
-          <Suspense fallback={<Skeleton style={{ height: 420 }} />}>
-            <HomeMap />
-          </Suspense>
+          <HomeMap />
         </div>
       </section>
       <Agents />
@@ -66,9 +61,7 @@ export default function Home() {
               <RiskLegend large />
             </div>
           </header>
-          <Suspense fallback={<Skeleton style={{ height: 420 }} />}>
-            <TopProcesses />
-          </Suspense>
+          <TopProcesses />
           <div className="actions">
             <Link href="/procesos" className="btn btn--tc">
               Ver todos los procesos
@@ -76,7 +69,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </>
+    </PageFrame>
   );
 }
 

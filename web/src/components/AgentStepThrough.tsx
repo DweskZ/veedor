@@ -67,7 +67,7 @@ export function AgentStepThrough({ steps }: { steps: Step[] }) {
           }}
           disabled={!started}
         >
-          Ver todo
+          Ver todos los pasos
         </button>
         <p className="stepper__hint small muted">Reproducción acelerada: cada paso dura unos segundos; el tiempo real de cada consulta está en el paso.</p>
       </div>

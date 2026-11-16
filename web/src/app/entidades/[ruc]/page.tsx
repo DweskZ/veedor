@@ -1,20 +1,18 @@
 import type { Metadata } from "next";
+import { PageShell } from "@/components/PageFrame";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { ApiError, getBuyer, getProcesses, getSignalIndex } from "@/lib/api";
 import { fmtInt, fmtNum, fmtPct, fmtUsd, NA } from "@/lib/format";
 import { ProcessTable } from "@/components/ProcessTable";
 import { canLinkSupplier, isRuc } from "@/lib/validate";
-import { BarList, Card, EmptyState, ErrorState, Fig, Name, Num, PageHeader, PageSkeleton, partyName, Section } from "@/components/ui";
+import { BarList, Card, EmptyState, ErrorState, Fig, Name, Num, PageHeader, partyName, Section } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Entidad contratante" };
 
 export default function BuyerPage({ params }: PageProps<"/entidades/[ruc]">) {
   return (
-    <Suspense fallback={<PageSkeleton />}>
-      <Content params={params} />
-    </Suspense>
+    <Content params={params} />
   );
 }
 
@@ -32,16 +30,18 @@ async function Content({ params }: { params: PageProps<"/entidades/[ruc]">["para
   if (!r.ok) {
     if (r.e instanceof ApiError && r.e.status === 404) notFound();
     return (
-      <div className="wrap" style={{ paddingBlock: 56 }}>
-        <ErrorState detail={r.e instanceof Error ? r.e.message : undefined} />
-      </div>
+      <PageShell>
+        <div className="wrap" style={{ paddingBlock: 56 }}>
+          <ErrorState detail={r.e instanceof Error ? r.e.message : undefined} />
+        </div>
+      </PageShell>
     );
   }
   const [b, index, recent] = r.v;
   const labels = index.labels;
   const mix = [...b.signal_mix].sort((x, y) => y.count - x.count);
   return (
-    <>
+    <PageShell>
       <PageHeader
         eyebrow="Entidad contratante"
         small
@@ -124,6 +124,6 @@ async function Content({ params }: { params: PageProps<"/entidades/[ruc]">["para
         </Section>
         <div className="page-end" />
       </div>
-    </>
+    </PageShell>
   );
 }

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { Suspense } from "react";
-import { Footer, Header, MockBanner } from "@/components/SiteChrome";
+import { Header, MockBanner } from "@/components/SiteChrome";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import "./globals.css";
 import "./features.css";
@@ -34,10 +33,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="es-EC" className={`${jakarta.variable} h-full antialiased`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
-        {/* Without JavaScript React cannot move streamed content out of its hidden holding boxes: show them, and drop the loading skeletons. Inside the base layer because Tailwind's important [hidden] rule lives there and layered important rules beat unlayered ones. */}
-        <noscript>
-          <style>{'@layer base{div[hidden][id^="S:"]{display:block!important}.skeleton,[aria-label="Cargando"]{display:none!important}}'}</style>
-        </noscript>
       </head>
       <body className="flex min-h-full flex-col">
         <a href="#contenido" className="skip">
@@ -45,13 +40,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <MockBanner />
         <Header />
-        <main id="contenido" className="flex-1">
-          {children}
-        </main>
-        <Footer />
-        <Suspense fallback={null}>
-          <ScrollReveal />
-        </Suspense>
+        {/* Each page renders its own <main> and the footer (see PageFrame). */}
+        {children}
+        <ScrollReveal />
       </body>
     </html>
   );

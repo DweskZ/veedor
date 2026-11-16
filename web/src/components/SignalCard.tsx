@@ -68,7 +68,7 @@ export function SignalCard({ signal, def, quiet = false, quoteHref }: { signal: 
       ) : null}
       {evidence.length ? (
         <details>
-          <summary>Evidencia usada ({evidence.length} campos)</summary>
+          <summary>Datos que se usaron ({evidence.length})</summary>
           <div className="ev-wrap">
             <table className="ev">
               <caption className="sr-only">Evidencia de la señal {label}</caption>

@@ -31,8 +31,9 @@ const csp = [
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
-  cacheComponents: true,
-  partialPrefetching: true,
+  // No Cache Components / streaming boundaries around page content: a page is sent once it is complete, in document order.
+  // (Streamed blocks that arrive out of place are only moved into position by JavaScript, so without it the footer and the
+  // bodies of sections would end up in the wrong place.)
   async headers() {
     return [
       {

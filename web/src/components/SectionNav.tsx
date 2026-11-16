@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useAskOff } from "@/lib/ask-state";
 
 export interface NavItem {
   id: string;
@@ -13,7 +14,10 @@ export interface NavItem {
  * Sticky section navigation for a long page. Plain anchor links (they work without JavaScript); with JavaScript the
  * group being read is marked with aria-current="location" and kept in view in the scrolling bar.
  */
-export function SectionNav({ items, label = "Secciones de esta página" }: { items: NavItem[]; label?: string }) {
+export function SectionNav({ items: all, label = "Secciones de esta página" }: { items: NavItem[]; label?: string }) {
+  // The question box can turn itself off (the API answered 404): its entry leaves the bar with it.
+  const askOff = useAskOff();
+  const items = useMemo(() => all.filter((i) => !(askOff && i.id === "preguntar")), [all, askOff]);
   const [current, setCurrent] = useState(items[0]?.id ?? "");
   const bar = useRef<HTMLUListElement>(null);
 

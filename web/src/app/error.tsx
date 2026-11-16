@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { PageShell } from "@/components/PageFrame";
 
 export default function ErrorPage({ retry }: { error: unknown; retry: () => void }) {
   return (
+    <PageShell>
     <section className="nf" aria-labelledby="err-h">
       <div className="wrap">
         <div role="alert" className="phead__text">
@@ -26,5 +28,6 @@ export default function ErrorPage({ retry }: { error: unknown; retry: () => void
         </div>
       </div>
     </section>
+    </PageShell>
   );
 }

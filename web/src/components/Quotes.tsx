@@ -3,17 +3,29 @@ import { pickQuotes, type QuoteItem, type QuotePart, type Quotes } from "@/lib/p
 import { Icon } from "./Icon";
 
 const HEAD: Record<QuotePart["kind"], (it: { author_kind?: QuoteItem["author_kind"] }) => string> = {
-  enquiry_question: (it) => (it.author_kind === "entidad" ? "Pregunta de la entidad" : "Pregunta de un oferente"),
+  enquiry_question: (it) => (it.author_kind === "entidad" ? "Pregunta de la entidad" : it.author_kind === "oferente" ? "Pregunta de un oferente" : "Pregunta del proceso"),
   enquiry_answer: () => "Respuesta de la entidad",
   award_text: () => "Texto de la adjudicación",
 };
 
+/** Passages longer than this show five lines and a native "Ver cita completa" disclosure; the text itself is never cut. */
+export const LONG_QUOTE = 320;
+
 /** One passage. The text is a React child (escaped), never HTML, and never turned into links. */
-function Passage({ part, date, author_kind, truncated }: { part: QuotePart; date: string | null; author_kind?: QuoteItem["author_kind"]; truncated?: boolean }) {
+export function Passage({ part, date, author_kind, truncated }: { part: QuotePart; date: string | null; author_kind?: QuoteItem["author_kind"]; truncated?: boolean }) {
   const head = HEAD[part.kind]({ author_kind });
+  const long = part.text.length > LONG_QUOTE;
   return (
     <figure className="qt__p">
-      <blockquote className="qt__text">{part.text}{truncated ? " […]" : ""}</blockquote>
+      <blockquote className={`qt__text ${long ? "qt__text--clamp" : ""}`}>{part.text}{truncated ? " […]" : ""}</blockquote>
+      {long ? (
+        <details className="qt__full">
+          <summary>
+            <span className="qt__full-open">Ver cita completa</span>
+            <span className="qt__full-close">Ocultar cita completa</span>
+          </summary>
+        </details>
+      ) : null}
       <figcaption className="qt__by">
         <b>{head}</b>
         {date ? ` · ${fmtDate(date)}` : ""}

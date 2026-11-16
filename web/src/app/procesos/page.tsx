@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
+import { PageShell } from "@/components/PageFrame";
 import Link from "next/link";
-import { Suspense } from "react";
 import { getProcesses, getRegions, getSignals, getStats } from "@/lib/api";
 import { fmtInt } from "@/lib/format";
 import type { ProcessQuery, SignalDef } from "@/lib/types";
 import { ProcessTable } from "@/components/ProcessTable";
 import { ExplorerShell, type ActiveFilter, type QuickChip } from "@/components/ExplorerShell";
 import { Term } from "@/components/Term";
-import { EmptyState, ErrorState, PageHeader, RiskLegend, Skeleton } from "@/components/ui";
+import { EmptyState, ErrorState, PageHeader, RiskLegend } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Procesos" };
 
@@ -49,7 +49,13 @@ const SORTS: [string, string][] = [
 
 export default function ProcesosPage({ searchParams }: PageProps<"/procesos">) {
   return (
-    <>
+    <Explorer searchParams={searchParams} />
+  );
+}
+
+function ExplorerPage({ children }: { children: React.ReactNode }) {
+  return (
+    <PageShell>
       <PageHeader
         eyebrow="Explorador"
         title={
@@ -65,12 +71,10 @@ export default function ProcesosPage({ searchParams }: PageProps<"/procesos">) {
         }
       />
       <div className="wrap">
-        <Suspense fallback={<Skeleton style={{ height: 544 }} />}>
-          <Explorer searchParams={searchParams} />
-        </Suspense>
+        {children}
         <div className="page-end" />
       </div>
-    </>
+    </PageShell>
   );
 }
 
@@ -125,7 +129,11 @@ async function Explorer({ searchParams }: { searchParams: PageProps<"/procesos">
   const bigOn = sort === "-award_total";
   chips.push({ id: "big", label: "Montos más altos primero", on: bigOn, count: null, href: href(q, { sort: bigOn ? undefined : "-award_total", page: undefined }) });
 
+  // Loaded before rendering (see PageFrame): a list still pending while the page is sent would arrive after the footer.
+  const results = await Results({ q, signals, regionLabel });
+
   return (
+    <ExplorerPage>
     <ExplorerShell
       values={{ year: q.year ?? "", method: q.method ?? "", signal: q.signal ?? "", region: q.region ?? "", min_score: q.min_score ?? "", min_amount: q.min_amount ?? "", max_amount: q.max_amount ?? "", q: q.q ?? "", sort: SORTS.some(([v]) => v === sort) ? sort : "-risk_score" }}
       years={years.map((y) => ({ value: y, label: y }))}
@@ -137,10 +145,9 @@ async function Explorer({ searchParams }: { searchParams: PageProps<"/procesos">
       active={active}
       clearHref="/procesos"
     >
-      <Suspense fallback={<Skeleton style={{ height: 420 }} />}>
-        <Results q={q} signals={signals} regionLabel={regionLabel} />
-      </Suspense>
+      {results}
     </ExplorerShell>
+    </ExplorerPage>
   );
 }
 

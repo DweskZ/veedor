@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
+import { PageShell } from "@/components/PageFrame";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { ApiError, getSignalIndex, getSupplier } from "@/lib/api";
 import { fmtDate, fmtInt, fmtNum, fmtPct, fmtUsd, NA } from "@/lib/format";
 import { ProcessTable } from "@/components/ProcessTable";
 import { isRuc } from "@/lib/validate";
 import type { SriFacts } from "@/lib/types";
-import { Card, EmptyState, ErrorState, Fig, Name, Num, PageHeader, PageSkeleton, partyName, Section } from "@/components/ui";
+import { Card, EmptyState, ErrorState, Fig, Name, Num, PageHeader, partyName, Section } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Proveedor" };
 
@@ -25,9 +25,7 @@ const REGISTRY_LABELS: [keyof SriFacts, string][] = [
 
 export default function SupplierPage({ params }: PageProps<"/proveedores/[ruc]">) {
   return (
-    <Suspense fallback={<PageSkeleton />}>
-      <Content params={params} />
-    </Suspense>
+    <Content params={params} />
   );
 }
 
@@ -41,9 +39,11 @@ async function Content({ params }: { params: PageProps<"/proveedores/[ruc]">["pa
   if (!r.ok) {
     if (r.e instanceof ApiError && r.e.status === 404) notFound();
     return (
-      <div className="wrap" style={{ paddingBlock: 56 }}>
-        <ErrorState detail={r.e instanceof Error ? r.e.message : undefined} />
-      </div>
+      <PageShell>
+        <div className="wrap" style={{ paddingBlock: 56 }}>
+          <ErrorState detail={r.e instanceof Error ? r.e.message : undefined} />
+        </div>
+      </PageShell>
     );
   }
   const [{ profile: s, registry, recent_processes }, index] = r.v;
@@ -51,7 +51,7 @@ async function Content({ params }: { params: PageProps<"/proveedores/[ruc]">["pa
   const sri = registry.sri;
   const sriRows = sri ? REGISTRY_LABELS.filter(([k]) => sri[k] != null && sri[k] !== "") : [];
   return (
-    <>
+    <PageShell>
       <PageHeader
         eyebrow="Proveedor"
         small
@@ -149,7 +149,7 @@ async function Content({ params }: { params: PageProps<"/proveedores/[ruc]">["pa
         </Section>
         <div className="page-end" />
       </div>
-    </>
+    </PageShell>
   );
 }
 

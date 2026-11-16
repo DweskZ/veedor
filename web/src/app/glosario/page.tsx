@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageFrame } from "@/components/PageFrame";
 import Link from "next/link";
 import { GLOSSARY, termId } from "@/lib/glossary";
 import { PageHeader } from "@/components/ui";
@@ -15,7 +16,7 @@ const sorted = [...GLOSSARY].sort((a, b) => a.term.localeCompare(b.term, "es", {
 export default function GlossaryPage() {
   const letters = Array.from(new Set(sorted.map((e) => e.term[0].toLocaleUpperCase("es"))));
   return (
-    <>
+    <PageFrame>
       <PageHeader
         eyebrow="Glosario"
         title={
@@ -62,6 +63,6 @@ export default function GlossaryPage() {
         </p>
         <div className="page-end" />
       </div>
-    </>
+    </PageFrame>
   );
 }

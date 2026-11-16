@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { PageShell } from "@/components/PageFrame";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cache, Suspense } from "react";
+import { cache } from "react";
 import { ApiError, getContext, getDossier as fetchDossier, getInvestigation, getMeta, getProcess, getProvenance, getQuotes, getReviews, getSignals } from "@/lib/api";
 import { citationFor, pickQuotes, sourceById, type Provenance } from "@/lib/provenance";
 import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
@@ -15,11 +16,13 @@ import { SameBuyerToggle } from "@/components/SameBuyerToggle";
 import { SimilarBody } from "@/components/SimilarProcesses";
 import { canLinkBuyer, canLinkSupplier, isOcid } from "@/lib/validate";
 import { REVIEW_LABELS } from "@/lib/reviews";
-import { Card, EmptyState, ErrorState, Name, Num, PageSkeleton, partyName, RiskScore, Section, Skeleton } from "@/components/ui";
+import { Card, EmptyState, ErrorState, Name, Num, partyName, RiskScore, Section } from "@/components/ui";
 import { displayName } from "@/lib/names";
 import { SectionNav, type NavItem } from "@/components/SectionNav";
 import { ProvenanceProvider, SourceMarker, SourcesToggle } from "@/components/Provenance";
 import { QuotesBlock, quoteAnchor } from "@/components/Quotes";
+import { AskSection } from "@/components/AskProcess";
+import { suggestQuestions } from "@/lib/ask";
 import { CopyButton } from "@/components/CopyButton";
 import { BackToTop } from "@/components/BackToTop";
 
@@ -36,9 +39,7 @@ const EMPTY_FACTS: ProcessFacts = {
 
 export default function ProcessPage({ params, searchParams }: PageProps<"/procesos/[ocid]">) {
   return (
-    <Suspense fallback={<PageSkeleton />}>
-      <Dossier params={params} searchParams={searchParams} />
-    </Suspense>
+    <Dossier params={params} searchParams={searchParams} />
   );
 }
 
@@ -72,9 +73,11 @@ async function Dossier({
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) notFound();
     return (
-      <div className="wrap" style={{ paddingBlock: 56 }}>
-        <ErrorState detail={e instanceof Error ? e.message : undefined} />
-      </div>
+      <PageShell>
+        <div className="wrap" style={{ paddingBlock: 56 }}>
+          <ErrorState detail={e instanceof Error ? e.message : undefined} />
+        </div>
+      </PageShell>
     );
   }
   const f = detail.facts ?? EMPTY_FACTS;
@@ -84,10 +87,29 @@ async function Dossier({
   const isContext = (s: { code: string; kind?: string }) => (s.kind ?? defByCode.get(s.code)?.kind) === "context";
   const riskSignals = detail.signals.filter((s) => !isContext(s));
   const contextSignals = detail.signals.filter(isContext);
-  const [prov, quotes] = await Promise.all([
-    getProvenance(ocid).catch(() => null),
+  // Every part is loaded here, before anything is rendered: a part still pending while the page is being sent would be
+  // streamed after the footer, which is the wrong reading order without JavaScript (see PageFrame).
+  const provPromise = getProvenance(ocid).catch(() => null);
+  const [prov, quotes, apiMeta, comparison, investigation, similar, reviewsBlock, dossierText] = await Promise.all([
+    provPromise,
     getQuotes(ocid).catch(() => null),
+    getMeta(),
+    ComparisonSection({ ocid }),
+    InvestigationSection({ ocid }),
+    SimilarBody({ ocid, sameBuyer }),
+    Reviews({ ocid }),
+    provPromise.then((p) => DossierText({ ocid, prov: p })),
   ]);
+  // The question box exists only when the API says the route is on (absent or unknown counts as off).
+  const askEnabled = apiMeta.ask_enabled === true;
+  const suggestions = suggestQuestions({
+    nRiskSignals: riskSignals.length,
+    hasTenderers: f.n_tenderers != null || detail.tenderers.length > 0,
+    hasAmounts: f.budget != null || f.award_total != null,
+    hasBuyer: Boolean(f.buyer_name),
+    hasWinner: Boolean(w && (w.ruc || w.name)),
+    hasObject: Boolean(f.description || f.main_cpc_description),
+  });
   const quoteFor = new Map<string, string>();
   (quotes ? pickQuotes(quotes) : []).forEach((q, i) => {
     if (q.related_signal && !quoteFor.has(q.related_signal)) quoteFor.set(q.related_signal, `#${quoteAnchor(i)}`);
@@ -96,10 +118,12 @@ async function Dossier({
     { id: "hechos", label: "Datos" },
     { id: "senales", label: "Señales", also: ["comparacion", ...(contextSignals.length ? ["contexto"] : [])] },
     { id: "citas", label: "Citas" },
+    ...(askEnabled ? [{ id: "preguntar", label: "Preguntar" }] : []),
     { id: "investigacion", label: "Investigación" },
     { id: "similares", label: "Parecidos" },
     { id: "texto", label: "Expediente" },
-    { id: "fuentes", label: "Fuentes", also: ["verificar", "revision"] },
+    { id: "verificar", label: "Verificar", also: ["revision"] },
+    { id: "fuentes", label: "Fuentes" },
   ];
   const winnerNode =
     w && (w.ruc || w.name) ? (w.kind === "natural_person" || !w.name ? partyName(w.name, w.kind) : <Name value={w.name} />) : null;
@@ -109,6 +133,7 @@ async function Dossier({
 
   return (
     <ProvenanceProvider prov={prov}>
+      <PageShell>
       <header className="phead phead--page">
         <div className="wrap">
           <div className="phead__circle" aria-hidden="true" />
@@ -282,8 +307,8 @@ async function Dossier({
                     NA
                   )}
                 </Fact>
-                <Fact label="Identificador OCDS">
-                  <Num>{ocid}</Num> <CopyButton text={ocid} label="Copiar identificador OCDS" iconOnly />
+                <Fact label="Identificador del proceso">
+                  <Num>{ocid}</Num> <CopyButton text={ocid} label="Copiar identificador del proceso" iconOnly />
                 </Fact>
               </dl>
             </Section>
@@ -309,9 +334,7 @@ async function Dossier({
             </Section>
 
             <Section title="Cómo se compara" id="comparacion" note="Para cada dato que se puede comparar, dónde queda este proceso entre los parecidos.">
-              <Suspense fallback={<Skeleton style={{ height: 260 }} />}>
-                <ComparisonSection ocid={ocid} />
-              </Suspense>
+              {comparison}
             </Section>
 
             {contextSignals.length ? (
@@ -332,10 +355,10 @@ async function Dossier({
               <QuotesBlock quotes={quotes} />
             </Section>
 
+            {askEnabled ? <AskSection ocid={ocid} suggestions={suggestions} /> : null}
+
             <Section title="Investigación con agentes" id="investigacion">
-              <Suspense fallback={<Skeleton style={{ height: 256 }} />}>
-                <InvestigationSection ocid={ocid} />
-              </Suspense>
+              {investigation}
             </Section>
 
             <Section
@@ -344,21 +367,17 @@ async function Dossier({
               aside={<SameBuyerToggle checked={sameBuyer} />}
               note="Se parecen por el tipo de bien o servicio y por su descripción. Que se parezcan no significa que estén relacionados: es una ayuda para buscar, no una señal de riesgo."
             >
-              <Suspense fallback={<Skeleton style={{ height: 288 }} />}>
-                <SimilarBody ocid={ocid} sameBuyer={sameBuyer} />
-              </Suspense>
+              {similar}
             </Section>
 
-            <Suspense fallback={<Skeleton style={{ height: 256, marginTop: 64 }} />}>
-              <DossierText ocid={ocid} prov={prov} />
-            </Suspense>
+            {dossierText.texto}
 
             <Section title="Cómo verificar" id="verificar" note="Veedor no es la última palabra. Estos pasos te llevan a la fuente oficial.">
               <Card>
                 <ol className="stack">
                   {[
                     <>
-                      Copia el identificador OCDS (<Num>{ocid}</Num>) y búscalo en el portal de datos abiertos del SERCOP o en el archivo de liberaciones OCDS de la fuente.
+                      Copia el identificador del proceso (<Num>{ocid}</Num>) y búscalo en el portal de datos abiertos del SERCOP o en el archivo de datos abiertos de la fuente.
                     </>,
                     <>Compara los campos de «Los datos del proceso» con el registro original: presupuesto, monto adjudicado, número de oferentes y fechas. El botón de documento junto a cada dato dice de dónde sale.</>,
                     <>Revisa el valor observado y el umbral de cada señal; la evidencia lista los campos usados en el cálculo.</>,
@@ -379,15 +398,15 @@ async function Dossier({
             </Section>
 
             <Section title="Revisión humana" id="revision">
-              <Suspense fallback={<Skeleton style={{ height: 192 }} />}>
-                <Reviews ocid={ocid} />
-              </Suspense>
+              {reviewsBlock}
             </Section>
+            {dossierText.fuentes}
             <div className="page-end" />
           </div>
         </div>
       </div>
       <BackToTop />
+      </PageShell>
     </ProvenanceProvider>
   );
 }
@@ -438,14 +457,17 @@ async function InvestigationSection({ ocid }: { ocid: string }) {
   return <InvestigationPanel inv={r.v} />;
 }
 
-async function DossierText({ ocid, prov }: { ocid: string; prov: Provenance | null }) {
+/** The dossier text and the sources: two blocks, placed by the page (the sources close the page). */
+async function DossierText({ ocid, prov }: { ocid: string; prov: Provenance | null }): Promise<{ texto: React.ReactNode; fuentes: React.ReactNode }> {
   const r = await getDossier(ocid).then(
     (v) => ({ ok: true as const, v }),
     (e: unknown) => ({ ok: false as const, e }),
   );
   if (!r.ok) {
     const pending = r.e instanceof ApiError && r.e.status === 503;
-    return (
+    return {
+      fuentes: null,
+      texto: (
       <Section title="Texto del expediente" id="texto">
         {pending ? (
           <EmptyState>
@@ -456,7 +478,8 @@ async function DossierText({ ocid, prov }: { ocid: string; prov: Provenance | nu
           <ErrorState title="No pudimos cargar el texto del expediente" detail={r.e instanceof Error ? r.e.message : undefined} />
         )}
       </Section>
-    );
+      ),
+    };
   }
   const d = r.v;
   const grounded = d.grounding_report?.passed === true;
@@ -466,8 +489,8 @@ async function DossierText({ ocid, prov }: { ocid: string; prov: Provenance | nu
       : d.mode === "template_minimal"
         ? "Plantilla mínima: solo los datos del proceso"
         : "Escrito por una plantilla fija a partir de los datos";
-  return (
-    <>
+  return {
+    texto: (
       <Section
         title="Texto del expediente"
         id="texto"
@@ -489,6 +512,8 @@ async function DossierText({ ocid, prov }: { ocid: string; prov: Provenance | nu
           ))}
         </Card>
       </Section>
+    ),
+    fuentes: (
       <Section title="Fuentes" id="fuentes" note="De dónde sale cada dato de este expediente y qué registros se usaron.">
         <ProvenanceList prov={prov} />
         <h3 className="h4" style={{ margin: "28px 0 12px" }}>Registros usados para el expediente</h3>
@@ -518,8 +543,8 @@ async function DossierText({ ocid, prov }: { ocid: string; prov: Provenance | nu
           </ul>
         )}
       </Section>
-    </>
-  );
+    ),
+  };
 }
 
 /** Server-rendered, so it reads without JavaScript: each datum with its source, original field and how it was obtained. */

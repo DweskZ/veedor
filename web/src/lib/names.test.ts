@@ -18,6 +18,20 @@ const CASES: [string, string][] = [
   ["DIRECCIÓN DISTRITAL 10D01-IBARRA-PIMAMPIRO-SAN MIGUEL DE URCUQUÍ-MTOP", "Dirección Distrital 10D01-Ibarra-Pimampiro-San Miguel de Urcuquí-MTOP"],
   ["PILEGGI CONSTRUCCIONES C.LTDA.", "Pileggi Construcciones C.LTDA."],
   ["EMPRESA PUBLICA UNIDAD NACIONAL DE ALMACENAMIENTO UNA EP", "Empresa Publica Unidad Nacional de Almacenamiento Una EP"],
+  // Real names (SERCOP buyers). A word after a dash or parenthesis is never lower-cased; known acronyms stay; accents are never added.
+  ["DIRECCION DISTRITAL 22D01- LA JOYA DE LOS SACHAS-SALUD", "Direccion Distrital 22D01- La Joya de los Sachas-Salud"],
+  ["DIRECCION DISTRITAL 17D12 - PEDRO VICENTE MALDONADO - PUERTO QUITO - SAN MIGUEL DE LOS BANCOS  - SALUD", "Direccion Distrital 17D12 - Pedro Vicente Maldonado - Puerto Quito - San Miguel de los Bancos  - Salud"],
+  ["GOBIERNO PROVINCIAL DE LOS RIOS", "Gobierno Provincial de Los Rios"],
+  ["SALUD - LOS RIOS", "Salud - Los Rios"],
+  ["HOSPITAL BASICO (LOS BANCOS) - DEL IESS", "Hospital Basico (Los Bancos) - Del IESS"],
+  ["HOSPITAL GENERAL DEL NORTE DE GUAYAQUIL LOS CEIBOS", "Hospital General del Norte de Guayaquil Los Ceibos"],
+  ["DIGMAT", "DIGMAT"],
+  ["CARRERA DE INGENIERIA AGROPECUARIA IASA I - ESPE", "Carrera de Ingenieria Agropecuaria IASA I - ESPE"],
+  ["ASTILLEROS NAVALES ECUATORIANOS - ASTINAVE EP -", "Astilleros Navales Ecuatorianos - ASTINAVE EP -"],
+  ["CENTRO DE SALUD A - LOS ESTEROS", "Centro de Salud A - Los Esteros"],
+  ["AGENCIA Y/O CONSORCIO DIGMAT-EP", "Agencia y/o Consorcio DIGMAT-EP"],
+  ["CONSEJO NACIONAL ELECTORAL DELEGACION DE LOS RIOS", "Consejo Nacional Electoral Delegacion de Los Rios"],
+  ["UNIDAD DE EQUITACION Y REMONTA SANTA ANA DE LOS CUATRO RIOS", "Unidad de Equitacion y Remonta Santa Ana de los Cuatro Rios"],
 ];
 
 for (const [input, expected] of CASES) {

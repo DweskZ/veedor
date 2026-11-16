@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { PageFrame } from "@/components/PageFrame";
 import { getSignals } from "@/lib/api";
 import { RISK_LEVELS } from "@/lib/risk";
 import { EvaluationText } from "@/components/Evaluation";
 import { Term } from "@/components/Term";
-import { Card, ErrorState, Num, PageHeader, RiskLegend, Section, Skeleton } from "@/components/ui";
+import { Card, ErrorState, Num, PageHeader, RiskLegend, Section } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Metodología" };
 
@@ -25,7 +25,7 @@ const SOURCES = [
 
 export default function MethodologyPage() {
   return (
-    <>
+    <PageFrame>
       <PageHeader
         eyebrow="Metodología"
         title={
@@ -73,9 +73,7 @@ export default function MethodologyPage() {
         </Section>
 
         <Section title="Catálogo de señales" id="senales" note="Todas las reglas, con su umbral y su alcance.">
-          <Suspense fallback={<Skeleton style={{ height: 256 }} />}>
-            <Catalogue />
-          </Suspense>
+          <Catalogue />
         </Section>
 
         <Section title="Límites" id="limitaciones" note="Lo que Veedor no puede decir.">
@@ -113,7 +111,7 @@ export default function MethodologyPage() {
         </Section>
         <div className="page-end" />
       </div>
-    </>
+    </PageFrame>
   );
 }
 

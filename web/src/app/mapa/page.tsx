@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { PageFrame } from "@/components/PageFrame";
 import { getRegions } from "@/lib/api";
 import { RegionExplorer } from "@/components/RegionExplorer";
 import { Term } from "@/components/Term";
-import { ErrorState, PageHeader, Skeleton } from "@/components/ui";
+import { ErrorState, PageHeader } from "@/components/ui";
 
 const TITLE = "Dónde aparecen más señales";
 const DESCRIPTION =
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function MapPage() {
   return (
-    <>
+    <PageFrame>
       <PageHeader
         eyebrow="Mapa"
         title={
@@ -32,12 +32,10 @@ export default function MapPage() {
         }
       />
       <div className="wrap">
-        <Suspense fallback={<Skeleton style={{ height: 640 }} />}>
-          <MapBody />
-        </Suspense>
+        <MapBody />
         <div className="page-end" />
       </div>
-    </>
+    </PageFrame>
   );
 }
 

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { PageFrame } from "@/components/PageFrame";
 import { getYears } from "@/lib/api";
 import { TrendCharts } from "@/components/TrendCharts";
 import { Term } from "@/components/Term";
-import { ErrorState, PageHeader, Skeleton } from "@/components/ui";
+import { ErrorState, PageHeader } from "@/components/ui";
 
 const DESCRIPTION =
   "Cómo cambió con los años la parte de subastas con un solo oferente y la forma en que el Estado compra, con las advertencias de los datos al lado de cada gráfico.";
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function TrendsPage() {
   return (
-    <>
+    <PageFrame>
       <PageHeader
         eyebrow="Tendencias"
         title={
@@ -31,12 +31,10 @@ export default function TrendsPage() {
         }
       />
       <div className="wrap">
-        <Suspense fallback={<Skeleton style={{ height: 560 }} />}>
-          <TrendsBody />
-        </Suspense>
+        <TrendsBody />
         <div className="page-end" />
       </div>
-    </>
+    </PageFrame>
   );
 }
 

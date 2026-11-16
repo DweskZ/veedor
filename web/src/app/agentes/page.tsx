@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageFrame } from "@/components/PageFrame";
 import Link from "next/link";
 import { AgentDiagram } from "@/components/AgentDiagram";
 import { Card, Num, PageHeader, Section } from "@/components/ui";
@@ -237,7 +238,7 @@ function Results() {
 
 export default function AgentsPage() {
   return (
-    <>
+    <PageFrame>
       <PageHeader
         eyebrow="Investiga con agentes"
         title={
@@ -312,6 +313,6 @@ export default function AgentsPage() {
         </Section>
         <div className="page-end" />
       </div>
-    </>
+    </PageFrame>
   );
 }

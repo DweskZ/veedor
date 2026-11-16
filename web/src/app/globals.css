@@ -2670,3 +2670,8 @@ select.control {
 .agents__panel .mini {
   margin-top: 18px;
 }
+
+/* Loading shell of the layout: invisible wrapper (hidden without JavaScript by the noscript rule in layout.tsx). */
+.shell-fallback {
+  display: contents;
+}

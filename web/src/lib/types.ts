@@ -261,6 +261,8 @@ export interface Review {
 
 export interface ApiMeta {
   reviews_enabled: boolean | null;
+  /** The question box is shown only when this is exactly true (absent or unknown counts as off). */
+  ask_enabled: boolean | null;
 }
 
 export interface ProcessQuery {

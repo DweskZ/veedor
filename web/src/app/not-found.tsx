@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { PageShell } from "@/components/PageFrame";
 import { Art } from "@/components/Art";
 
 export const metadata = { title: "No encontrado" };
 
 export default function NotFound() {
   return (
+    <PageShell>
     <section className="nf" aria-labelledby="nf-h">
       <div className="wrap nf__grid">
         <div>
@@ -31,5 +33,6 @@ export default function NotFound() {
         <Art name="vacio" sizes="(min-width: 900px) 40vw, 90vw" alt="Dibujo isométrico de un terreno vacío con una cerca y un letrero en blanco." />
       </div>
     </section>
+    </PageShell>
   );
 }

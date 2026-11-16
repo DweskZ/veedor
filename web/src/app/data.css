@@ -850,3 +850,215 @@ dialog.spanel::backdrop {
 .js .toggle.needs-js {
   display: inline-flex;
 }
+
+/* ---------- Long quotes: five lines and a native disclosure (the full text stays in the page) ---------- */
+.qt__text--clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
+}
+.qt__p:has(> .qt__full[open]) .qt__text--clamp {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+.qt__full {
+  margin-top: 4px;
+  padding-left: 16px;
+}
+.qt__full > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-decoration-color: var(--tc);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.qt__full-close,
+.qt__full[open] .qt__full-open {
+  display: none;
+}
+.qt__full[open] .qt__full-close {
+  display: inline;
+}
+
+/* ---------- Ask: "Pregunta sobre este proceso" ---------- */
+.ask {
+  max-width: 52rem;
+  display: grid;
+  gap: 20px;
+}
+.ask__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ask__chips-t {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  margin-right: 4px;
+}
+.ask__chip {
+  min-height: 44px;
+  padding: 6px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font: 800 var(--fs-sm) / 1.2 var(--font-sans);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  text-align: left;
+}
+.ask__chip:hover {
+  background: var(--ice-deep);
+}
+.ask__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+}
+.ask__row .control {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+.ask__row .btn {
+  flex: none;
+}
+.ask__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 600;
+}
+.ask__count--hot {
+  color: var(--ink);
+  font-weight: 800;
+}
+.ask__err {
+  margin-top: 6px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.ask__ans {
+  background: var(--white);
+  border: 3px solid var(--ink);
+  border-radius: 28px;
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  gap: 16px;
+}
+.ask__ans--soft {
+  border-color: var(--muted);
+  border-style: dashed;
+}
+.ask__q {
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.ask__qtext {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ask__h {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.ask__h:focus-visible {
+  outline-offset: 4px;
+}
+.ask__sent {
+  display: grid;
+  gap: 14px;
+}
+.ask__sent li {
+  padding-left: 14px;
+  border-left: 4px solid var(--tc);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.ask__src {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ask__quotes {
+  display: grid;
+  gap: 12px;
+}
+.ask__quotes .qt__item {
+  gap: 10px;
+}
+.ask__mode,
+.ask__fixed {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.ask__fixed {
+  color: var(--muted);
+  font-weight: 600;
+  padding-top: 12px;
+  border-top: 2px solid var(--ice-deep);
+}
+.ask__tag {
+  font-weight: 800;
+}
+.ask__ex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ask__old > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.ask__old[open] > summary {
+  margin-bottom: 12px;
+}
+.ask__prev {
+  display: grid;
+  gap: 12px;
+}
+.ask__prevh {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+.ask__sk {
+  display: grid;
+  gap: 12px;
+}
+.ask__nojs {
+  font-weight: 600;
+}
+@media (max-width: 520px) {
+  .ask__row .btn {
+    width: 100%;
+  }
+}

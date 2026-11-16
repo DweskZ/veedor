@@ -1,3 +1,4 @@
+import { AskError, normalizeAsk, parseRetryAfter, type AskAnswer } from "./ask";
 import type { BuyerHit } from "./types";
 
 /** Browser-side calls to the API (CSP allows only this origin). No server-only code or mock layer is pulled in. */
@@ -45,4 +46,56 @@ export async function randomProcess(withSignals: boolean): Promise<string | null
   const body: unknown = await res.json();
   const item = isRec(body) && isRec(body.item) ? body.item : body;
   return isRec(item) && typeof item.ocid === "string" ? item.ocid : null;
+}
+
+/**
+ * Asks one question about one process. The question travels only in the POST body (never in a URL), with no cookies and no
+ * referrer. Throws `AskError` (limit, invalid, disabled, error) and lets an abort propagate as is.
+ */
+export async function askProcess(ocid: string, question: string, signal: AbortSignal): Promise<AskAnswer> {
+  let status = 200;
+  let body: unknown;
+  let retryAfter: number | null = null;
+  if (MOCKS) {
+    await new Promise<void>((resolve, reject) => {
+      const t = setTimeout(resolve, 900);
+      signal.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
+    });
+    const mocks = await import("./mocks");
+    const m = mocks.ask(ocid, question) as { __status?: number; retryAfter?: number };
+    if (m.__status) { status = m.__status; retryAfter = m.retryAfter ?? null; } else body = m;
+  } else {
+    let res: Response;
+    try {
+      res = await fetch(`${API}/processes/${encodeURIComponent(ocid)}/ask`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ question }),
+        cache: "no-store",
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+        signal,
+      });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") throw e;
+      throw new AskError({ kind: "error", message: "No se pudo conectar con el servicio de datos." });
+    }
+    status = res.status;
+    retryAfter = parseRetryAfter(res.headers.get("retry-after"));
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+  }
+  if (status === 404) throw new AskError({ kind: "disabled" });
+  if (status === 429) throw new AskError({ kind: "limit", retryAfterSeconds: retryAfter });
+  if (status === 422) {
+    const msg = isRec(body) && isRec(body.error) && typeof body.error.message === "string" ? body.error.message : "La pregunta no es válida.";
+    throw new AskError({ kind: "invalid", message: msg });
+  }
+  if (status < 200 || status >= 300) throw new AskError({ kind: "error", message: "El servicio de datos no pudo responder ahora." });
+  const answer = normalizeAsk(body);
+  if (!answer) throw new AskError({ kind: "error", message: "La respuesta del servicio no tiene el formato esperado." });
+  return answer;
 }
