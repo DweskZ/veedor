@@ -1,0 +1,276 @@
+/** Shapes of the Veedor API, mirroring src/veedor/schemas (FastAPI). Keys are exact. */
+
+export type PartyKind = "natural_person" | "company" | "public_entity" | "other" | "unknown";
+
+export interface Paginated<T> {
+  items: T[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface Party {
+  ruc: string | null;
+  name: string | null;
+  kind: PartyKind;
+}
+
+export interface ScoreBucket {
+  lower: number;
+  /** Exclusive upper bound; the last bucket includes 100. */
+  upper: number;
+  count: number;
+}
+
+export interface SignalCount {
+  code: string;
+  label_es: string | null;
+  count: number;
+}
+
+export interface Stats {
+  processes_total: number | null;
+  processes_by_method_group: Record<string, number>;
+  processes_scored: number | null;
+  processes_with_signals: number | null;
+  mean_risk_score: number | null;
+  score_distribution: ScoreBucket[];
+  signal_counts: SignalCount[];
+  first_year: number | null;
+  last_year: number | null;
+  last_data_date: string | null;
+  available_tables: Record<string, boolean>;
+}
+
+export interface ProcessSummary {
+  ocid: string;
+  risk_score: number;
+  n_signals: number;
+  signal_codes: string[];
+  anomaly_score: number | null;
+  award_total: number | null;
+  year: number | null;
+  buyer_ruc: string | null;
+  buyer_name: string | null;
+  method: string | null;
+  winner_ruc: string | null;
+  winner_name: string | null;
+  winner_kind: PartyKind | null;
+}
+
+export type SignalKind = "risk" | "context";
+
+export interface FiredSignal {
+  code: string;
+  /** Absent on older API versions: treated as "risk". */
+  kind?: SignalKind;
+  label_es: string | null;
+  value: number | null;
+  threshold: number | null;
+  evidence: Record<string, unknown>;
+}
+
+export interface ProcessFacts {
+  process_code: string | null;
+  release_date: string | null;
+  year: number | null;
+  buyer_ruc: string | null;
+  buyer_name: string | null;
+  buyer_region: string | null;
+  buyer_locality: string | null;
+  method: string | null;
+  method_group: string | null;
+  category: string | null;
+  status: string | null;
+  description: string | null;
+  /** True when the description was omitted because it contained personal data. */
+  description_withheld?: boolean;
+  budget: number | null;
+  tender_start: string | null;
+  tender_end: string | null;
+  n_tenderers: number | null;
+  n_bids: number | null;
+  n_awards: number | null;
+  award_total: number | null;
+  first_award_date: string | null;
+  date_signed: string | null;
+  main_cpc: string | null;
+  main_cpc_description: string | null;
+}
+
+export interface Score {
+  risk_score: number;
+  n_signals: number;
+  anomaly_score: number | null;
+}
+
+export interface Award {
+  award_id: string | null;
+  award_date: string | null;
+  supplier_ruc: string | null;
+  supplier_name: string | null;
+  amount: number | null;
+}
+
+export interface SupplierProfile {
+  ruc: string | null;
+  name: string | null;
+  kind: PartyKind;
+  n_processes: number | null;
+  n_wins: number | null;
+  total_awarded: number | null;
+  first_award_date: string | null;
+  last_award_date: string | null;
+  n_buyers: number | null;
+  top_buyer_ruc: string | null;
+  top_buyer_share: number | null;
+  single_bidder_wins: number | null;
+  mean_risk_score: number | null;
+}
+
+export interface ProcessDetail {
+  ocid: string;
+  facts: ProcessFacts | null;
+  score: Score | null;
+  signals: FiredSignal[];
+  winner: SupplierProfile | null;
+  tenderers: Party[];
+  awards: Award[];
+  notice_es: string;
+}
+
+export interface SriFacts {
+  ruc: string | null;
+  legal_name: string | null;
+  status: string | null;
+  taxpayer_type: string | null;
+  activity_start_date: string | null;
+  suspension_date: string | null;
+  restart_date: string | null;
+  ciiu_code: string | null;
+  activity: string | null;
+  province: string | null;
+}
+
+export interface SuperciasFacts {
+  ruc: string | null;
+  expediente: string | null;
+  legal_name: string | null;
+  company_type: string | null;
+  province: string | null;
+}
+
+export interface FinancialYear {
+  year: number;
+  revenue: number | null;
+  assets: number | null;
+  equity: number | null;
+  employees: number | null;
+}
+
+export interface RegistryFacts {
+  sri: SriFacts | null;
+  ghost_company_listed: boolean | null;
+  supercias: SuperciasFacts | null;
+  financials: FinancialYear[];
+}
+
+export interface SupplierDetail {
+  profile: SupplierProfile;
+  registry: RegistryFacts;
+  recent_processes: ProcessSummary[];
+}
+
+export interface BuyerSupplier {
+  ruc: string | null;
+  name: string | null;
+  kind: PartyKind;
+  n_awards: number;
+  total_awarded: number | null;
+  share_of_awarded: number | null;
+  mean_risk_score: number | null;
+}
+
+export interface BuyerDetail {
+  ruc: string;
+  name: string | null;
+  n_processes: number;
+  n_flagged: number;
+  total_awarded: number | null;
+  mean_risk_score: number | null;
+  first_year: number | null;
+  last_year: number | null;
+  top_suppliers: BuyerSupplier[];
+  signal_mix: SignalCount[];
+}
+
+export interface DossierSection {
+  title: string;
+  body: string;
+}
+
+export interface DossierSource {
+  dataset: string;
+  licence: string | null;
+  retrieved_at: string | null;
+  record_id: string | null;
+}
+
+export interface GroundingReport {
+  passed: boolean;
+  n_checked: number;
+  supported: unknown[];
+  unsupported: unknown[];
+  forbidden: unknown[];
+}
+
+export interface Dossier {
+  ocid: string;
+  generated_at: string | null;
+  mode: "template" | "template_minimal" | "llm" | null;
+  summary_es: string | null;
+  sections: DossierSection[];
+  sources: DossierSource[];
+  grounding_report: GroundingReport | null;
+  fallback_reason?: string | null;
+  llm_attempts?: number;
+}
+
+export interface SignalDef {
+  code: string;
+  kind?: SignalKind;
+  label_es: string;
+  description_es: string;
+  scope: string;
+  fields: string[];
+  threshold_rule_es: string;
+  statistical: boolean;
+  needs_registry: boolean;
+}
+
+export type ReviewStatus = "pending" | "confirmed_signal" | "dismissed";
+
+export interface Review {
+  id: number;
+  ocid: string;
+  status: ReviewStatus;
+  note: string | null;
+  reviewer: string | null;
+  created_at: string;
+}
+
+export interface ApiMeta {
+  reviews_enabled: boolean | null;
+}
+
+export interface ProcessQuery {
+  year?: string;
+  method?: string;
+  signal?: string;
+  min_score?: string;
+  q?: string;
+  buyer_ruc?: string;
+  page?: string;
+  page_size?: string;
+  sort?: string;
+}

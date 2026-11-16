@@ -1,0 +1,10 @@
+node_modules
+.next
+.screenshots
+.playwright-mcp
+.git
+Dockerfile
+.dockerignore
+README.md
+*.log
+.env*

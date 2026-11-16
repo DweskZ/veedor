@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/* Veedor design tokens. See docs/BRAND.md. Light = "Papel", dark = "Tinta". */
+:root {
+  --bg: #f4f0e6;
+  --surface: #fbf9f4;
+  --surface-2: #ece6d8;
+  --ink: #1b1a17;
+  --muted: #58544b;
+  --line: #d6cfbd;
+  --accent: #1d5b6a;
+  --accent-ink: #f6f3ea;
+  --focus: #1d5b6a;
+
+  --risk-0-bg: #e8e4d8;
+  --risk-0-fg: #3d392f;
+  --risk-1-bg: #ecd98f;
+  --risk-1-fg: #3f3205;
+  --risk-2-bg: #dca43c;
+  --risk-2-fg: #33230a;
+  --risk-3-bg: #a8531f;
+  --risk-3-fg: #fff8ee;
+  --risk-4-bg: #5e2347;
+  --risk-4-fg: #fbf1f6;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #161412;
+  --surface: #1e1b18;
+  --surface-2: #28241f;
+  --ink: #ece5d6;
+  --muted: #ada594;
+  --line: #3c372f;
+  --accent: #7cc0cc;
+  --accent-ink: #0f1a1d;
+  --focus: #7cc0cc;
+
+  --risk-0-bg: #2c2822;
+  --risk-0-fg: #cfc7b6;
+  --risk-1-bg: #4a4326;
+  --risk-1-fg: #eadfb0;
+  --risk-2-bg: #a8862a;
+  --risk-2-fg: #140e02;
+  --risk-3-bg: #d98a4a;
+  --risk-3-fg: #1f1204;
+  --risk-4-bg: #f0b8d2;
+  --risk-4-fg: #2b0f1f;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+html {
+  background: var(--bg);
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.theme-icon-sun { display: none; }
+:root[data-theme="dark"] .theme-icon-sun { display: inline; }
+:root[data-theme="dark"] .theme-icon-moon { display: none; }
+
+@keyframes pulse-soft { 50% { opacity: 0.55; } }
+.skeleton { animation: pulse-soft 1.6s ease-in-out infinite; background: var(--surface-2); border-radius: var(--radius-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  html { scroll-behavior: auto; }
+}
