@@ -58,12 +58,28 @@ def stage3_routes(ocids: list[str]) -> list[tuple[str, str]]:
     ]
 
 
-def build_route_mix(only_stage3: bool = False) -> list[tuple[str, str]]:
+def quotes_routes(ocids: list[str]) -> list[tuple[str, str]]:
+    """Quotes, provenance and the awarded-amount filter (stage 4)."""
+    routes = [("quotes", f"/processes/{ocid}/quotes") for ocid in ocids[:5]]
+    routes += [("provenance", f"/processes/{ocid}/provenance") for ocid in ocids[:5]]
+    routes += [
+        ("amount_min", "/processes?min_amount=1000000&page_size=25"),
+        ("amount_band", "/processes?min_amount=10000&max_amount=500000&sort=-award_total&page_size=25"),
+        ("amount_signal", "/processes?min_amount=100000&signal=SINGLE_BIDDER&page_size=10"),
+        ("quotes_404", f"/processes/{MISSING_OCID}/quotes"),
+        ("amount_422", "/processes?min_amount=-1"),
+    ]
+    return routes
+
+
+def build_route_mix(only_stage3: bool = False, only_quotes: bool = False) -> list[tuple[str, str]]:
     """``(label, path)`` pairs; ocids come from the API itself so the mix works on any dataset."""
     items = _fetch_json("/processes?page_size=10&sort=-risk_score")["items"]
     ocids = [item["ocid"] for item in items]
     if only_stage3:
         return stage3_routes(ocids)
+    if only_quotes:
+        return quotes_routes(ocids)
     mix: list[tuple[str, str]] = [
         ("stats", "/stats"),
         ("list_default", "/processes?page_size=25"),
@@ -121,8 +137,8 @@ def worker(jobs: list[tuple[str, str]], results: list[tuple[str, float, int]], l
         results.extend(local)
 
 
-def run(total: int, concurrency: int, only_stage3: bool = False) -> dict:
-    mix = build_route_mix(only_stage3)
+def run(total: int, concurrency: int, only_stage3: bool = False, only_quotes: bool = False) -> dict:
+    mix = build_route_mix(only_stage3, only_quotes)
     plan = list(islice(cycle(mix), total))
     shards = [plan[index::concurrency] for index in range(concurrency)]
     results: list[tuple[str, float, int]] = []
@@ -172,9 +188,14 @@ def main() -> None:
         action="store_true",
         help="Send only the stage-3 routes (aggregates, random, search, context).",
     )
+    parser.add_argument(
+        "--quotes",
+        action="store_true",
+        help="Send only the quotes, provenance and amount-filter routes.",
+    )
     parser.add_argument("--json-only", action="store_true", help="Print only the JSON report.")
     args = parser.parse_args()
-    report = run(max(1, args.requests), max(1, args.concurrency), args.stage3)
+    report = run(max(1, args.requests), max(1, args.concurrency), args.stage3, args.quotes)
     if not args.json_only:
         print_table(report)
     print(json.dumps(report, indent=None if args.json_only else 2))

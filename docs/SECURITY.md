@@ -87,8 +87,19 @@ Real lake (2.25 M processes), two uvicorn workers with two DuckDB threads each, 
 
 200 requests at concurrency 8 over a mix of the new routes: 183 requests per second, p50 7 ms, p95 126 ms, no errors. 1,000 requests at concurrency 8 over only random and search: 590 requests per second, p95 19 ms, no errors.
 
+## Quotes, provenance and the amount filter
+
+All three are `GET`, unauthenticated, masked like every other response and answer only 200, 404, 422 or 503. Details of the quote pipeline and its measurements are in `docs/QUOTES.md`.
+
+| Route | Controls | Tests |
+|---|---|---|
+| `GET /processes/{ocid}/quotes` | Same strict `ocid` pattern. Reads two bound `SELECT ... WHERE ocid = ?` statements (stored quotes and per-process counts), never a table scan, cached per data build. The quotes were screened when the mart was built (`veedor quotes build`) and every stored passage is screened **again** here with the process's current person names: names of natural-person and RUC-less parties and of natural-person enquiry askers, honorifics (any case), natural-person RUCs and valid cédulas in any written form, e-mail addresses, telephone numbers, signatures, salutations, accusation and inference wording (also hidden by look-alike characters, digits or separators), links, markup and instruction-like text. A passage that fails is dropped and counted in `omitted`; it is never rewritten, so no quote contains a placeholder. The mart is the only source: the unmasked `process_texts` table is not readable by the API reader and its folder is not mounted. | `tests/api/test_api_quotes.py`, `tests/domain/test_quotes_screen.py`, `tests/test_deployment_data_boundaries.py` |
+| `GET /processes/{ocid}/provenance` | Same strict `ocid` pattern. Every value is built from the validated, masked detail models (`ProcessDetail`), the whole payload goes through `MaskedModel` again, and registry facts are looked up only for a company or public-entity winner with a real RUC (never for a natural person or an unidentified party). Signal inputs are shown as numbers, flags and dates only; no string from the evidence (names, RUCs) is copied. A test fails when a field of the detail response has no catalogue entry. | `tests/api/test_api_provenance.py` |
+| `GET /processes?min_amount=&max_amount=` | Finite numbers from 0 to 1e12 (`nan`, `inf`, negatives and text are 422), `min_amount` above `max_amount` is 422. Both are bound parameters on `award_total`; a process without an amount matches neither bound. | `tests/api/test_api_provenance.py` (amount filter), `tests/api/test_api_security.py` |
+
 ## Residual limits
 
+- Quotes are text written by third parties and shown verbatim. The screens are heuristics: a person who is not a party, not an enquiry asker and is named without an honorific can still appear in a quote (measured and documented in `docs/QUOTES.md`). The unmasked text table is `data/texts/process_texts.parquet`: never publish or mount it.
 - Free-text name masking is heuristic. A person who is not a party of the process and has no honorific can still appear in a description shown by the process detail endpoint.
 - The forbidden-wording list is a safety net, not a guarantee. New phrasings will pass until they are added to the vocabulary.
 - Reviews use one shared bearer token, not per-user identities. Failed token attempts are not rate limited separately.

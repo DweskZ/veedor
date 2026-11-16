@@ -16,6 +16,7 @@ _SUB_APPS = {
     "lake": "Build the Parquet lake from the SERCOP bulk file.",
     "registries": "Download and load SRI / Supercias registries.",
     "signals": "Compute indicators, scores and marts.",
+    "quotes": "Select quotes from each flagged process's own published text.",
     "dossier": "Build evidence dossiers.",
     "investigate": "Run multi-agent investigations with read-only tools.",
     "vectors": "Build and query the vector index of processes.",

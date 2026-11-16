@@ -453,9 +453,17 @@ def _lookups_text(pack: EvidencePack) -> str:
     for item in _inv(pack).lookups:
         reason = f" ({REASON_PHRASE_ES[item.reason]})" if item.reason in REASON_PHRASE_ES else ""
         calls = f"; {item.calls} consultas" if item.calls > 1 else ""
-        retries = "" if item.retries == 0 else "; un reintento" if item.retries == 1 else f"; {item.retries} reintentos"
+        retries = (
+            ""
+            if item.retries == 0
+            else "; un reintento"
+            if item.retries == 1
+            else f"; {item.retries} reintentos"
+        )
         label = SOURCE_LABEL_ES.get(item.source, item.source)
-        lines.append(f"- {label}: {OUTCOME_PHRASE_ES.get(item.outcome, item.outcome)}{reason}{calls}{retries}.")
+        lines.append(
+            f"- {label}: {OUTCOME_PHRASE_ES.get(item.outcome, item.outcome)}{reason}{calls}{retries}."
+        )
     return "Fuentes consultadas y resultado de cada consulta:\n" + "\n".join(lines)
 
 

@@ -314,7 +314,7 @@ def iter_releases(path: Path) -> Iterator[dict[str, Any]]:
                 yield orjson.loads(line)
 
 
-class _Writer:
+class BatchWriter:
     def __init__(self, path: Path, schema: pa.Schema, batch_size: int) -> None:
         self._writer = pq.ParquetWriter(path, schema, compression="zstd")
         self._schema = schema
@@ -339,13 +339,25 @@ class _Writer:
 
 
 def build_lake(
-    source: Path, lake_dir: Path, batch_size: int = 50_000, limit: int | None = None
+    source: Path,
+    lake_dir: Path,
+    batch_size: int = 50_000,
+    limit: int | None = None,
+    *,
+    with_texts: bool = False,
+    texts_dir: Path | None = None,
 ) -> dict[str, int]:
-    """Stream the bulk file once and write processes/tenderers/awards Parquet files."""
+    """Stream the bulk file once and write processes/tenderers/awards Parquet files.
+
+    With `with_texts` the same pass also writes `process_texts.parquet` (see `ocds.texts`) into
+    `texts_dir` (default: a ``texts`` folder next to the lake folder, never inside it)."""
+    from veedor.infrastructure.ocds.texts import TextSink  # texts.py imports this module
+
     lake_dir.mkdir(parents=True, exist_ok=True)
-    processes = _Writer(lake_dir / "processes.parquet", PROCESS_SCHEMA, batch_size)
-    tenderers = _Writer(lake_dir / "tenderers.parquet", TENDERER_SCHEMA, batch_size)
-    awards = _Writer(lake_dir / "awards.parquet", AWARD_SCHEMA, batch_size)
+    processes = BatchWriter(lake_dir / "processes.parquet", PROCESS_SCHEMA, batch_size)
+    tenderers = BatchWriter(lake_dir / "tenderers.parquet", TENDERER_SCHEMA, batch_size)
+    awards = BatchWriter(lake_dir / "awards.parquet", AWARD_SCHEMA, batch_size)
+    texts = TextSink(texts_dir or lake_dir.parent / "texts", batch_size) if with_texts else None
     try:
         for index, release in enumerate(iter_releases(source)):
             if limit is not None and index >= limit:
@@ -354,11 +366,20 @@ def build_lake(
             processes.extend([process_row])
             tenderers.extend(tenderer_rows)
             awards.extend(award_rows)
+            if texts is not None:
+                texts.add(release)
+    except BaseException:
+        if texts is not None:
+            texts.abort()
+        raise
     finally:
         processes.close()
         tenderers.close()
         awards.close()
-    return {"processes": processes.count, "tenderers": tenderers.count, "awards": awards.count}
+    counts = {"processes": processes.count, "tenderers": tenderers.count, "awards": awards.count}
+    if texts is not None:
+        counts["texts"] = texts.close()["rows"]
+    return counts
 
 
 if __name__ == "__main__":

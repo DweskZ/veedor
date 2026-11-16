@@ -52,6 +52,8 @@ class ProcessFilters:
     min_score: float | None = None
     q: str | None = None
     region: str | None = None  # canonical key of the buyer's province, or SIN_REGION
+    min_amount: float | None = None  # awarded amount (process_scores.award_total), inclusive
+    max_amount: float | None = None
 
 
 def parse_sort(sort: str) -> tuple[str, bool]:
@@ -92,6 +94,12 @@ def _where(lake: LakePort, f: ProcessFilters) -> tuple[str, list[Any], tuple[str
     if f.min_score is not None:
         clauses.append("risk_score >= ?")
         params.append(f.min_score)
+    if f.min_amount is not None:
+        clauses.append("award_total >= ?")
+        params.append(f.min_amount)
+    if f.max_amount is not None:
+        clauses.append("award_total <= ?")
+        params.append(f.max_amount)
     if f.region:
         clause, region_params = _region_clause(lake, f.region)
         clauses.append(clause)

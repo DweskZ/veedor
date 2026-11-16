@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from fastapi.exceptions import RequestValidationError
 
 from veedor.api.deps import Lake, Paging
 from veedor.api.params import (
     BuyerRucQuery,
+    MaxAmountQuery,
     MethodQuery,
+    MinAmountQuery,
     MinScoreQuery,
     OcidPath,
     QueryText,
@@ -46,7 +49,19 @@ def list_processes(
     q: QueryText = None,
     sort: SortQuery = DEFAULT_SORT,
     region: RegionQuery = None,
+    min_amount: MinAmountQuery = None,
+    max_amount: MaxAmountQuery = None,
 ) -> dict:
+    if min_amount is not None and max_amount is not None and min_amount > max_amount:
+        raise RequestValidationError(
+            [
+                {
+                    "loc": ("query", "min_amount"),
+                    "msg": "min_amount must not exceed max_amount",
+                    "type": "value_error",
+                }
+            ]
+        )
     filters = ProcessFilters(
         year=year,
         method=method,
@@ -55,6 +70,8 @@ def list_processes(
         min_score=min_score,
         q=q,
         region=region.value if region else None,
+        min_amount=min_amount,
+        max_amount=max_amount,
     )
     return use_case.list_processes(lake, filters, page=paging.page, page_size=paging.page_size, sort=sort)
 

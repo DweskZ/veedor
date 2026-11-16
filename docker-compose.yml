@@ -69,6 +69,8 @@ services:
       # The lake and marts are read-only; only generated dossiers and traces are writable.
       - ./data/lake:/app/data/lake:ro
       - ./data/marts:/app/data/marts:ro
+      # data/texts (unmasked process texts, input of `veedor quotes build`) is deliberately NOT mounted:
+      # the API serves only the screened quotes in data/marts.
       # Stored investigations are produced by the CLI on the host and only read by the API.
       - ./data/investigations:/app/data/investigations:ro
       # `GET /glossary` serves the web team's content file (the folder is mounted, never one file).

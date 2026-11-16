@@ -1,0 +1,278 @@
+{
+  "seed": 42,
+  "similarity_floor": 0.35,
+  "build": {
+    "flagged_processes_with_text": 86936,
+    "texts": 716246,
+    "quotes": 68553,
+    "quotes_with_pair": 42068,
+    "near_duplicates_skipped": 1090,
+    "exclusions_by_reason": {
+      "personal:asker_person": 88918,
+      "personal:email": 2437,
+      "personal:honorific": 1017,
+      "personal:identifier": 79,
+      "personal:name_or_identifier": 5808,
+      "personal:phone": 557,
+      "personal:placeholder": 4,
+      "personal:probable_person_name": 1756,
+      "personal:question_excluded": 70103,
+      "personal:salutation": 1697,
+      "personal:self_or_address_line": 19,
+      "personal:signature": 595,
+      "unsafe:obfuscated_wording": 1527,
+      "unsafe:question_excluded": 8798,
+      "unsafe:unsafe_text": 23350
+    },
+    "exclusions_by_category": {
+      "personal": 172990,
+      "unsafe": 33675
+    },
+    "wall_seconds": 252.1,
+    "embed_seconds": 11.1,
+    "processes_per_second": 344.9,
+    "texts_per_second": 2841.5,
+    "bytes": {
+      "process_quotes": 11016605,
+      "process_quote_stats": 830949
+    },
+    "stats_rows": 86936,
+    "quote_rows": 68553,
+    "quote_rows_by_kind": {
+      "award_text": 12799,
+      "enquiry_answer": 5841,
+      "enquiry_question": 49913
+    },
+    "quote_rows_by_rank": {
+      "1": 36345,
+      "2": 19053,
+      "3": 13155
+    },
+    "rows_truncated": 13232
+  },
+  "coverage": {
+    "all_flagged": {
+      "flagged": 87617,
+      "with_text": 86936,
+      "with_eligible_text": 85145,
+      "with_quote": 36345,
+      "share_with_quote": 0.4148,
+      "share_with_quote_among_with_text": 0.4181
+    },
+    "by_signal": {
+      "BUYER_CONCENTRATION": {
+        "flagged": 3231,
+        "with_text": 3229,
+        "with_eligible_text": 3156,
+        "with_quote": 1196,
+        "share_with_quote": 0.3702,
+        "share_with_quote_among_with_text": 0.3704
+      },
+      "CONTRACT_VS_COMPANY_SIZE": {
+        "flagged": 5957,
+        "with_text": 5957,
+        "with_eligible_text": 5902,
+        "with_quote": 3136,
+        "share_with_quote": 0.5264,
+        "share_with_quote_among_with_text": 0.5264
+      },
+      "CONTRACT_VS_COMPANY_SIZE_SAME_YEAR": {
+        "flagged": 614,
+        "with_text": 614,
+        "with_eligible_text": 609,
+        "with_quote": 257,
+        "share_with_quote": 0.4186,
+        "share_with_quote_among_with_text": 0.4186
+      },
+      "GHOST_COMPANY_LISTED_LATER": {
+        "flagged": 44,
+        "with_text": 43,
+        "with_eligible_text": 42,
+        "with_quote": 23,
+        "share_with_quote": 0.5227,
+        "share_with_quote_among_with_text": 0.5349
+      },
+      "LOW_SAVING": {
+        "flagged": 4289,
+        "with_text": 4285,
+        "with_eligible_text": 4191,
+        "with_quote": 1852,
+        "share_with_quote": 0.4318,
+        "share_with_quote_among_with_text": 0.4322
+      },
+      "NEW_SUPPLIER": {
+        "flagged": 1307,
+        "with_text": 1304,
+        "with_eligible_text": 1278,
+        "with_quote": 626,
+        "share_with_quote": 0.479,
+        "share_with_quote_among_with_text": 0.4801
+      },
+      "RECURRING_COBIDDERS": {
+        "flagged": 11417,
+        "with_text": 11415,
+        "with_eligible_text": 11331,
+        "with_quote": 5751,
+        "share_with_quote": 0.5037,
+        "share_with_quote_among_with_text": 0.5038
+      },
+      "REPEATED_DIRECT_AWARDS": {
+        "flagged": 3361,
+        "with_text": 3334,
+        "with_eligible_text": 3254,
+        "with_quote": 438,
+        "share_with_quote": 0.1303,
+        "share_with_quote_among_with_text": 0.1314
+      },
+      "SHORT_TENDER_WINDOW": {
+        "flagged": 3092,
+        "with_text": 3088,
+        "with_eligible_text": 3059,
+        "with_quote": 451,
+        "share_with_quote": 0.1459,
+        "share_with_quote_among_with_text": 0.146
+      },
+      "SINGLE_BIDDER": {
+        "flagged": 59268,
+        "with_text": 58628,
+        "with_eligible_text": 57206,
+        "with_quote": 24444,
+        "share_with_quote": 0.4124,
+        "share_with_quote_among_with_text": 0.4169
+      },
+      "SUPPLIER_NOT_ACTIVE": {
+        "flagged": 16,
+        "with_text": 15,
+        "with_eligible_text": 15,
+        "with_quote": 2,
+        "share_with_quote": 0.125,
+        "share_with_quote_among_with_text": 0.1333
+      }
+    }
+  },
+  "calibration": {
+    "processes": 6000,
+    "eligible_passages": 23429,
+    "best_similarity_percentiles": {
+      "5": 0.02,
+      "25": 0.154,
+      "50": 0.306,
+      "75": 0.422,
+      "90": 0.5,
+      "95": 0.539,
+      "99": 0.601
+    },
+    "stem_passage_pairs": 1766,
+    "base_stem_rate": 0.1212,
+    "by_floor": {
+      "0.1": {
+        "passages": 1221,
+        "stem_rate": 0.1433,
+        "lift": 1.18
+      },
+      "0.15": {
+        "passages": 1097,
+        "stem_rate": 0.1513,
+        "lift": 1.25
+      },
+      "0.2": {
+        "passages": 927,
+        "stem_rate": 0.1532,
+        "lift": 1.26
+      },
+      "0.25": {
+        "passages": 692,
+        "stem_rate": 0.1705,
+        "lift": 1.41
+      },
+      "0.3": {
+        "passages": 469,
+        "stem_rate": 0.2132,
+        "lift": 1.76
+      },
+      "0.35": {
+        "passages": 234,
+        "stem_rate": 0.3077,
+        "lift": 2.54
+      },
+      "0.4": {
+        "passages": 93,
+        "stem_rate": 0.5376,
+        "lift": 4.44
+      },
+      "0.45": {
+        "passages": 37,
+        "stem_rate": 0.7297,
+        "lift": 6.02
+      },
+      "0.5": {
+        "passages": 12,
+        "stem_rate": 0.8333,
+        "lift": 6.88
+      }
+    },
+    "rule": "smallest floor on the 0.05 grid whose stem rate is at least twice the base rate"
+  },
+  "retrieval_check": {
+    "evaluated_processes_exclude_calibration": true,
+    "bootstrap_resamples": 2000,
+    "SHORT_TENDER_WINDOW": {
+      "processes": 222,
+      "selected_quote_stem_rate": 0.3874,
+      "selected_ci95": [
+        0.3243,
+        0.4506
+      ],
+      "random_eligible_item_stem_rate": 0.1667,
+      "random_ci95": [
+        0.1171,
+        0.2162
+      ],
+      "difference": 0.2207,
+      "difference_ci95": [
+        0.1532,
+        0.2884
+      ]
+    },
+    "LOW_SAVING": {
+      "processes": 1561,
+      "selected_quote_stem_rate": 0.5176,
+      "selected_ci95": [
+        0.4933,
+        0.5426
+      ],
+      "random_eligible_item_stem_rate": 0.296,
+      "random_ci95": [
+        0.2729,
+        0.319
+      ],
+      "difference": 0.2217,
+      "difference_ci95": [
+        0.1954,
+        0.2479
+      ]
+    }
+  },
+  "privacy_sweep": {
+    "quote_passages_scanned": 110621,
+    "processes_with_quotes": 36345,
+    "processes_with_person_names_searched": 15760,
+    "person_names_searched": 67806,
+    "hits": {
+      "identifier_scan": 0,
+      "name_search": 0,
+      "email": 1,
+      "phone": 0,
+      "senor_followed_by_a_name": 0
+    },
+    "rarer_name_pair_candidates": 17,
+    "hit_locations": [
+      {
+        "ocid": "ocds-5wno2w-MCO-GADMP-01-2020.-45119",
+        "rank": 2,
+        "part": "text",
+        "check": "email"
+      }
+    ]
+  }
+}

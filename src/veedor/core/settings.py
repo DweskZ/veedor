@@ -54,6 +54,12 @@ class Settings(BaseSettings):
         return self.data_dir / "marts"
 
     @property
+    def texts_dir(self) -> Path:
+        """Unmasked process texts (`veedor lake build-texts`). A sibling of `lake_dir`, not inside it: the
+        compose stack mounts the lake and marts folders into the API container and must never mount this."""
+        return self.data_dir / "texts"
+
+    @property
     def ocds_bulk_path(self) -> Path:
         return self.raw_dir / "sercop_ocds_full.jsonl.gz"
 

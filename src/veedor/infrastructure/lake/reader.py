@@ -41,7 +41,14 @@ def _check_read_only(sql: str) -> None:
         raise ValueError("Only a single SELECT statement is allowed")
 
 
-MART_TABLES = ("process_signals", "process_scores", "supplier_profiles")
+MART_TABLES = (
+    "process_signals",
+    "process_scores",
+    "supplier_profiles",
+    "process_quotes",
+    "process_quote_stats",
+    "person_name_tokens",
+)
 
 
 class LakeReader:

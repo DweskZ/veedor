@@ -42,10 +42,17 @@ All three published ports (`db` 5433, `api` 8000, `web` 3000) are bound to `127.
 | `POST .../reviews` rate | 30 per minute per client IP, per process | `veedor/api/security.py` |
 | Review note / reviewer length | 2000 / 120 characters | `veedor/schemas/reviews.py` |
 | Database connect timeout | 3 s | `veedor/infrastructure/db/session.py` |
+| `GET /processes?min_amount=&max_amount=` | finite numbers from 0 to 1e12; minimum above maximum is 422 | `veedor/api/params.py` |
+| Quotes per process / displayed length / similarity floor | 3 / 600 characters / 0.35 | `veedor/use_cases/build_quotes.py` |
+| Stored process text | at most 2,000 characters per text, then cut at a word and flagged `truncated` | `veedor/infrastructure/ocds/texts.py` |
 
 ## Common commands
 
 ```
+veedor lake build-texts    # data/texts/process_texts.parquet (unmasked: never mounted into the API)
+veedor quotes build        # data/marts/process_quotes.parquet, process_quote_stats.parquet, person_name_tokens.parquet
+veedor quotes show <ocid>  # the stored quotes of one process
+veedor quotes evaluate     # eval/quotes.json
 make db-up         # start PostgreSQL (waits for the healthcheck)
 make db-migrate    # alembic upgrade head
 make serve         # API on http://127.0.0.1:8000 (docs at /docs)

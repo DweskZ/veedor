@@ -28,6 +28,17 @@ YearQuery = Annotated[int | None, Query(ge=MIN_YEAR, le=MAX_YEAR)]
 MethodQuery = Annotated[str | None, Query(pattern=METHOD_PATTERN, description="Método de contratación.")]
 BuyerRucQuery = Annotated[str | None, Query(pattern=RUC_PATTERN)]
 MinScoreQuery = Annotated[float | None, Query(ge=0, le=100)]
+# Awarded amount in USD. The upper bound is far above any real contract (the largest awarded total in the
+# data is under 1e10) and keeps every value a finite, comparable DOUBLE.
+MAX_AMOUNT = 1e12
+MinAmountQuery = Annotated[
+    float | None,
+    Query(ge=0, le=MAX_AMOUNT, allow_inf_nan=False, description="Monto adjudicado mínimo (USD, desde 0)."),
+]
+MaxAmountQuery = Annotated[
+    float | None,
+    Query(ge=0, le=MAX_AMOUNT, allow_inf_nan=False, description="Monto adjudicado máximo (USD, desde 0)."),
+]
 RegionQuery = Annotated[
     RegionKey | None,
     Query(

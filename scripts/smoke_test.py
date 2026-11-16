@@ -130,6 +130,7 @@ def main() -> int:
     )
 
     check_stage3_endpoints(ocid)
+    check_quotes_and_provenance(ocid)
 
     for path in ("/", "/procesos", "/metodologia", f"/procesos/{ocid}"):
         code, body = request(f"{WEB}{path}")
@@ -204,6 +205,66 @@ def check_stage3_endpoints(ocid: str) -> None:
         status == 200 and len(terms) > 0 and all(t.get("term") and t.get("definition_es") for t in terms),
         f"{len(terms)} terms",
     )
+
+
+def check_quotes_and_provenance(ocid: str) -> None:
+    """Quotes from the process's own text, provenance of every fact, and the awarded-amount filter."""
+    status, quotes = get_json(f"/processes/{ocid}/quotes")
+    items = quotes.get("items", [])
+    omitted = quotes.get("omitted", {})
+    check(
+        "api /processes/{ocid}/quotes",
+        status == 200
+        and quotes.get("ocid") == ocid
+        and len(items) <= 3
+        and set(omitted) == {"personal_data", "unsafe", "below_relevance"}
+        and "no son palabras de veedor" in quotes.get("note_es", "").lower()
+        and all(it.get("text") and it.get("source_field") and it.get("related_signal") for it in items),
+        f"{len(items)} quotes, available_total={quotes.get('available_total')}",
+    )
+    status, _ = get_json("/processes/ocds-5wno2w-NO-EXISTE-0001/quotes")
+    check("api quotes: unknown process is 404", status == 404, f"http {status}")
+
+    status, provenance = get_json(f"/processes/{ocid}/provenance")
+    facts = provenance.get("facts", [])
+    keys = {fact.get("key") for fact in facts}
+    source_ids = {source.get("id") for source in provenance.get("sources", [])}
+    check(
+        "api /processes/{ocid}/provenance",
+        status == 200
+        and provenance.get("ocid") == ocid
+        and {"facts.budget", "facts.n_tenderers", "score.risk_score"} <= keys
+        and all(f.get("source_id") in source_ids and f.get("verify_es") for f in facts)
+        and any(k.startswith("signal.") for k in keys)
+        and all(not f.get("derived") or f.get("derivation_es") for f in facts),
+        f"{len(facts)} facts, {len(source_ids)} sources",
+    )
+    sercop = next((s for s in provenance.get("sources", []) if s.get("id") == "sercop_ocds"), {})
+    check(
+        "api provenance cites the SERCOP licence",
+        sercop.get("licence", "").startswith("CC BY 3.0 EC") and bool(sercop.get("retrieved_at")),
+        sercop.get("licence", ""),
+    )
+    status, _ = get_json("/processes/ocds-5wno2w-NO-EXISTE-0001/provenance")
+    check("api provenance: unknown process is 404", status == 404, f"http {status}")
+
+    status, everything = get_json("/processes?page_size=1")
+    status_min, over = get_json("/processes?min_amount=1000000&page_size=1")
+    status_max, under = get_json("/processes?max_amount=999999.99&page_size=1")
+    status_band, band = get_json("/processes?min_amount=1000&max_amount=1000000&page_size=1")
+    total = everything.get("total", 0)
+    check(
+        "api /processes amount filter",
+        status == status_min == status_max == status_band == 200
+        and 0 < over.get("total", 0) < total
+        and over["total"] + under["total"] <= total  # processes without an amount match neither bound
+        and band.get("total", 0) <= under["total"]
+        and all(row.get("award_total", 0) >= 1_000_000 for row in over.get("items", [])),
+        f"min 1e6 -> {over.get('total')}, max <1e6 -> {under.get('total')}, of {total}",
+    )
+    for bad in ("min_amount=-1", "max_amount=abc", "min_amount=nan", "min_amount=5&max_amount=1"):
+        status, _ = get_json(f"/processes?{bad}")
+        check(f"api amount filter rejects {bad}", status == 422, f"http {status}")
 
 
 def first_stored_investigation() -> str | None:

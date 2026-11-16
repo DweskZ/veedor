@@ -7,7 +7,7 @@
 #
 # Output: OUT_DIR/veedor-data-<UTC date>.tar.gz containing lake/*.parquet, marts/*.parquet and
 # manifest.json; the manifest is also written next to the tarball. Raw files, build_summary.json,
-# dossiers and traces are deliberately excluded. Requires: uv (or PYTHON=<interpreter with pyarrow>).
+# dossiers, traces and the unmasked data/texts/process_texts.parquet are deliberately excluded. Requires: uv (or PYTHON=<interpreter with pyarrow>).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,7 +15,7 @@ DATA="${VEEDOR_DATA_DIR:-$ROOT/data}"
 OUT="${1:-$ROOT/dist}"
 STAMP="$(date -u +%Y%m%d)"
 LAKE_TABLES=(processes tenderers awards suppliers_sri ghost_companies companies_supercias company_financials)
-MART_TABLES=(process_signals process_scores supplier_profiles)
+MART_TABLES=(process_signals process_scores supplier_profiles process_quotes process_quote_stats person_name_tokens)
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT

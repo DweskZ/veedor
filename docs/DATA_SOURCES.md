@@ -132,6 +132,13 @@ Caveats:
 - The ranking file contains many further ratio columns (liquidity, leverage, margins); they are not
   loaded.
 
+## 5. Process texts (derived from the SERCOP file)
+
+The SERCOP open data has **no documents and no document links**. It carries three kinds of free text, which
+`veedor lake build-texts` writes to `data/texts/process_texts.parquet` (unmasked, never published, outside the
+folder that compose mounts): `tender.enquiries[].description` (a bidder's question), `tender.enquiries[].answer`
+(the buying entity's answer) and `awards[].description`. No author name or RUC is stored. See `docs/QUOTES.md`.
+
 ## Match rates against the lake (2026-11-16)
 
 Distinct supplier RUCs in `awards.parquet` or `tenderers.parquet`: 90,893. Distinct awarded RUCs:
