@@ -1,6 +1,7 @@
 import Link from "next/link";
 import snapshot from "@/data/eval-snapshot.json";
 import { fmtInt } from "@/lib/format";
+import { Term } from "./Term";
 
 const dec3 = new Intl.NumberFormat("es-EC", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
@@ -18,23 +19,52 @@ function backtestFigures() {
   };
 }
 
-/** The evaluation in plain words, for the methodology page. Same numbers as docs/EVALUATION.md. */
+/** The evaluation with its figures, for the methodology page. Same numbers as docs/EVALUATION.md. */
 export function EvaluationText() {
   const f = backtestFigures();
   if (!f) return <p>La evaluación no está disponible en esta compilación.</p>;
   return (
     <>
       <p>
-        Probamos si el puntaje pone más arriba a las empresas del listado de «empresas fantasmas» que publicó el SRI: {f.positives}{" "}
-        empresas del listado que ganaron procesos públicos, frente a {f.unlabelled} empresas adjudicatarias que no figuran en él, sin
-        usar las reglas que dependen del propio listado. El AUC fue {f.auc} (intervalo de confianza del 95 %: {f.low} a {f.high})
+        Probamos si el puntaje pone más arriba a las empresas del <Term t="listado de empresas fantasmas del SRI">listado de «empresas fantasmas»</Term> que publicó el SRI: {f.positives}{" "}
+        empresas del listado que ganaron procesos públicos, frente a {f.unlabelled} empresas adjudicatarias que no figuran en él, sin usar las reglas que dependen del propio
+        listado. El <Term t="AUC">AUC</Term> fue {f.auc} y su <Term t="intervalo de confianza">intervalo de confianza</Term> del 95 % va de {f.low} a {f.high}
         {f.includesHalf ? "; el intervalo incluye 0,5, que es el nivel del azar" : ""}.
       </p>
-      <p>
-        La evidencia disponible no muestra que el puntaje distinga a los proveedores del listado. Por eso los indicadores son medidas
-        descriptivas de transparencia, no predictores validados. Con tan pocos casos la prueba tampoco descarta un efecto modesto, y
-        figurar en el listado no equivale a un contrato problemático.
+      <ul className="limits" style={{ marginTop: 14 }}>
+        <li>
+          <b>AUC:</b> una medida de 0 a 1. 0,5 equivale a tirar una moneda; 1 sería acertar siempre.
+        </li>
+        <li>
+          <b>Intervalo de confianza:</b> el rango en el que probablemente está la cifra real. Aquí es ancho porque los casos son pocos.
+        </li>
+      </ul>
+      <p style={{ marginTop: 14 }}>
+        La evidencia disponible no muestra que el puntaje distinga a los proveedores del listado. Por eso los indicadores son medidas descriptivas de transparencia, no predictores
+        validados. Con tan pocos casos la prueba tampoco descarta un efecto modesto, y figurar en el listado no equivale a un contrato problemático.
       </p>
+    </>
+  );
+}
+
+/** The home-page block: question, what was tried, what happened and what it means, in plain words. Figures come from the snapshot. */
+export function EvaluationBlock() {
+  const f = backtestFigures();
+  return (
+    <>
+      <h2 className="h2" id="ev-h">
+        ¿El puntaje predice algo? Lo probamos{f?.includesHalf ? <>, <em>y no.</em></> : <em>.</em>}
+      </h2>
+      {f && f.includesHalf ? (
+        <p className="eval__text" style={{ marginTop: 28 }}>
+          Tomamos {f.positives} empresas señaladas por el SRI y miramos si Veedor les ponía puntajes más altos que a las otras {f.unlabelled} empresas ganadoras. No lo hizo: acertó
+          igual que el azar. Por eso un puntaje alto no significa que haya algo malo: solo te dice dónde mirar primero.
+        </p>
+      ) : (
+        <p className="eval__text" style={{ marginTop: 28 }}>
+          Un puntaje alto no significa que haya algo malo: solo te dice dónde mirar primero. Los detalles de la prueba están en la metodología.
+        </p>
+      )}
     </>
   );
 }

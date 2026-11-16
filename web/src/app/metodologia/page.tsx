@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getSignals } from "@/lib/api";
 import { RISK_LEVELS } from "@/lib/risk";
 import { EvaluationText } from "@/components/Evaluation";
+import { Term } from "@/components/Term";
 import { Card, ErrorState, Num, PageHeader, RiskLegend, Section, Skeleton } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Metodología" };
@@ -39,7 +40,7 @@ export default function MethodologyPage() {
           <Card>
             <div className="prose">
               <p>
-                El puntaje va de 0 a 100. Es la suma de los pesos de las señales que activó el proceso, con tope en 100. Los pesos son decisiones de criterio, están
+                El <Term t="puntaje">puntaje</Term> va de 0 a 100. Es la suma de los pesos de las <Term t="señal de riesgo">señales</Term> que activó el proceso, con tope en 100. Los pesos son decisiones de criterio, están
                 documentados y todavía falta calibrarlos: el puntaje sirve para ordenar qué revisar primero, no mide responsabilidad de nadie.
               </p>
               <p>
@@ -63,7 +64,7 @@ export default function MethodologyPage() {
           </Card>
         </Section>
 
-        <Section title="Qué tan bien funciona" id="evaluacion" note="La prueba que le hicimos al puntaje, con sus números.">
+        <Section title="¿El puntaje predice algo?" id="evaluacion" note="La prueba que le hicimos al puntaje, con sus números y qué significa cada uno.">
           <Card>
             <div className="prose">
               <EvaluationText />

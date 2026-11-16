@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { cache, Suspense } from "react";
-import { getProcesses, getSignalIndex, getStats } from "@/lib/api";
+import { getProcesses, getRegions, getSignalIndex, getStats } from "@/lib/api";
 import { fmtDate, fmtInt, fmtPct, NA } from "@/lib/format";
 import { SPECIALISTS } from "@/lib/investigation";
 import type { Stats } from "@/lib/types";
 import { Art } from "@/components/Art";
-import { EvaluationLink, EvaluationSentence } from "@/components/Evaluation";
+import { EvaluationBlock, EvaluationLink } from "@/components/Evaluation";
+import { RandomProcessButton } from "@/components/RandomProcessButton";
+import { RegionExplorer } from "@/components/RegionExplorer";
+import { Term } from "@/components/Term";
 import { ProcessTable } from "@/components/ProcessTable";
 import { BarList, ErrorState, Fig, RiskLegend, Skeleton } from "@/components/ui";
 
@@ -30,6 +33,20 @@ export default function Home() {
           </Suspense>
           <Suspense fallback={<Skeleton style={{ height: 380, marginTop: 56 }} />}>
             <Charts />
+          </Suspense>
+        </div>
+      </section>
+      <section className="sec sec--ice" aria-labelledby="mapa-h" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <header className="sec__head reveal">
+            <p className="eyebrow">Mapa</p>
+            <h2 className="h2" id="mapa-h">
+              Dónde aparecen <em>más señales.</em>
+            </h2>
+            <p className="lead">Por provincia, qué parte de los procesos competitivos tiene alguna señal. Pasa el cursor o toca una provincia para ver las cifras.</p>
+          </header>
+          <Suspense fallback={<Skeleton style={{ height: 420 }} />}>
+            <HomeMap />
           </Suspense>
         </div>
       </section>
@@ -87,6 +104,7 @@ function Hero() {
             <a href="#como" className="btn btn--line">
               Cómo funciona
             </a>
+            <RandomProcessButton className="btn btn--line" label="Proceso al azar" />
           </div>
         </div>
         <div className="stage">
@@ -115,8 +133,8 @@ function WhatItIs() {
             <h3>Qué es</h3>
             <p>Una forma de leer cómo compra el Estado, con los datos abiertos de contratación pública del SERCOP.</p>
             <ul className="ticks">
-              <li>Cada proceso recibe un puntaje de 0 a 100, a partir de reglas públicas.</li>
-              <li>Cada señal te muestra lo que se observó, el umbral de la regla y de dónde salen los datos.</li>
+              <li>Cada proceso recibe un <Term t="puntaje">puntaje</Term> de 0 a 100, a partir de reglas públicas.</li>
+              <li>Cada <Term t="señal de riesgo">señal</Term> te muestra lo que se observó, el umbral de la regla y de dónde salen los datos.</li>
               <li>Tú puedes comprobarlo en la fuente oficial.</li>
             </ul>
           </article>
@@ -128,8 +146,8 @@ function WhatItIs() {
             <p>Una acusación. Ni una conclusión sobre nadie.</p>
             <ul className="ticks">
               <li>Una señal marca algo atípico que merece una segunda mirada; casi siempre tiene explicaciones normales.</li>
-              <li>No muestra personas naturales: aparecen como «Persona natural», con el RUC tapado.</li>
-              <li>No cubre emergencias ni compras por catálogo electrónico.</li>
+              <li>No muestra <Term t="persona natural">personas naturales</Term>: aparecen como «Persona natural», con el RUC tapado.</li>
+              <li>No cubre emergencias ni compras por <Term t="catálogo electrónico">catálogo electrónico</Term>.</li>
             </ul>
             <Link href="/metodologia#limitaciones" className="link">
               Ver todos los límites
@@ -268,18 +286,31 @@ function Evaluation() {
     <section className="sec sec--tc" aria-labelledby="ev-h">
       <div className="wrap">
         <p className="eyebrow">Qué tan bien funciona</p>
-        <h2 className="h2" id="ev-h">
-          Te lo decimos <em>con franqueza.</em>
-        </h2>
-        <p className="eval__text" style={{ marginTop: 28 }}>
-          <EvaluationSentence />
-        </p>
+        <EvaluationBlock />
         <div className="actions">
           <EvaluationLink className="btn btn--ink" />
         </div>
       </div>
     </section>
   );
+}
+
+async function HomeMap() {
+  const r = await getRegions().then(
+    (v) => ({ ok: true as const, v }),
+    () => ({ ok: false as const }),
+  );
+  if (!r.ok || r.v.items.length === 0)
+    return (
+      <p className="muted">
+        El mapa no está disponible ahora.{" "}
+        <Link href="/mapa" className="inline-link">
+          Intentar en su página
+        </Link>
+        .
+      </p>
+    );
+  return <RegionExplorer rows={r.v.items} national={r.v.national} compact />;
 }
 
 async function Headline() {

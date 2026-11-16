@@ -11,11 +11,14 @@ import type {
   ProcessDetail,
   ProcessQuery,
   ProcessSummary,
+  ProcessContext,
+  RegionStats,
   Review,
   SignalDef,
   SimilarProcesses,
   Stats,
   SupplierDetail,
+  YearStats,
 } from "./types";
 
 const BUYERS = [
@@ -322,5 +325,61 @@ export function similar(ocid: string, sameBuyer: boolean, k: number): SimilarPro
   return {
     ocid, k, same_buyer: sameBuyer, items,
     notice_es: "Datos de ejemplo: la similitud es ficticia.",
+  };
+}
+
+/** SAMPLE aggregates for the map and the trends page: fictional figures. */
+const SAMPLE_REGIONS: [string, string, number, number, number][] = [
+  ["AZUAY", "Azuay", 1900, 24, 18], ["BOLIVAR", "Bolívar", 310, 33, 31], ["CARCHI", "Carchi", 400, 29, 22],
+  ["CAÑAR", "Cañar", 520, 31, 26], ["CHIMBORAZO", "Chimborazo", 1000, 28, 20], ["COTOPAXI", "Cotopaxi", 770, 26, 19],
+  ["EL ORO", "El Oro", 940, 27, 21], ["ESMERALDAS", "Esmeraldas", 600, 38, 34], ["GALAPAGOS", "Galápagos", 190, 35, 30],
+  ["GUAYAS", "Guayas", 4000, 25, 17], ["IMBABURA", "Imbabura", 840, 27, 20], ["LOJA", "Loja", 990, 30, 25],
+  ["LOS RIOS", "Los Ríos", 760, 32, 27], ["MANABI", "Manabí", 1700, 31, 24], ["MORONA SANTIAGO", "Morona Santiago", 590, 36, 33],
+  ["NAPO", "Napo", 430, 34, 30], ["ORELLANA", "Orellana", 610, 37, 32], ["PASTAZA", "Pastaza", 390, 35, 31],
+  ["PICHINCHA", "Pichincha", 6200, 23, 15], ["SANTA ELENA", "Santa Elena", 370, 30, 25],
+  ["SANTO DOMINGO DE LOS TSACHILAS", "Santo Domingo de los Tsáchilas", 340, 29, 23], ["SUCUMBIOS", "Sucumbíos", 660, 39, 35],
+  ["TUNGURAHUA", "Tungurahua", 1000, 26, 19], ["ZAMORA CHINCHIPE", "Zamora Chinchipe", 440, 33, 29],
+];
+const regionRow = (region: string, region_label: string, n: number, a: number, b: number) => ({
+  region, region_label, competitive_processes: n, with_signal: Math.round((n * a) / 100), pct_with_signal: a / 100,
+  single_bidder: Math.round((n * b) / 100), pct_single_bidder: b / 100, mean_score: 8 + a / 5, processes_total: n * 6, awarded_total: n * 90000,
+  small_sample: n < 500,
+});
+export const regions: RegionStats = {
+  items: SAMPLE_REGIONS.map((r) => regionRow(...r)),
+  national: regionRow("NACIONAL", "Nacional", 26700, 27, 20),
+  basis: "competitive",
+  notes: ["Datos de ejemplo: la provincia es la de la entidad contratante."],
+  data_built_at: "2025-11-28T00:00:00Z",
+};
+
+export const years: YearStats = {
+  items: Array.from({ length: 12 }, (_, i) => {
+    const year = 2015 + i;
+    const competitive = 55 - i * 2;
+    const direct = 25 + i * 1.5;
+    return {
+      year,
+      processes_total: 9000 + i * 400,
+      competitive_processes: 2000 + i * 100,
+      pct_single_bidder: 18 + Math.sin(i) * 3,
+      pct_with_signal: 25 + i * 0.4,
+      single_bidder_base: 900 + i * 40,
+      awarded_total: 1e9,
+      mix: { competitive, direct, catalogue: 100 - competitive - direct - 2, other: 2 },
+      partial_year: year === 2026,
+    };
+  }),
+  notes: ["Datos de ejemplo: el año 2022 simula tener menos procesos publicados.", "Los nombres de los procedimientos cambiaron alrededor de 2025."],
+  data_built_at: "2025-11-28T00:00:00Z",
+};
+
+export function context(ocid: string): ProcessContext | null {
+  if (!ocid.startsWith("sample-ocid")) return null;
+  return {
+    method: "Subasta Inversa Electrónica", year: 2024, comparable: 1234,
+    tenderers: { counts: [260, 410, 280, 150, 80, 54], position: { value: 1, percentile: 0.21 } },
+    ratio: { median: 0.93, q1: 0.88, q3: 0.97, position: { value: 0.995, percentile: 0.96 } },
+    window: { median: 9, q1: 7, q3: 12, position: { value: 6, percentile: 0.12 } },
   };
 }

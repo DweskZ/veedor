@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { USE_MOCKS } from "@/lib/api";
 import { RurayMark, Wordmark } from "./Logo";
+import { HeaderSearch } from "./HeaderSearch";
 import { Nav, NavLinks } from "./Nav";
 
 export const RURAY_URL = "https://www.instagram.com/ruray.tech/";
@@ -29,6 +30,9 @@ export function Header() {
               ruray.<span className="sr-only"> (se abre en una pestaña nueva)</span>
             </a>
           </p>
+        </div>
+        <div className="header__search">
+          <HeaderSearch />
         </div>
         <Suspense fallback={<NavLinks pathname={null} />}>
           <Nav />
@@ -65,10 +69,19 @@ export function Footer() {
                 <Link href="/procesos">Procesos</Link>
               </li>
               <li>
+                <Link href="/mapa">Mapa de señales</Link>
+              </li>
+              <li>
+                <Link href="/tendencias">Tendencias</Link>
+              </li>
+              <li>
                 <Link href="/agentes">Agentes de investigación</Link>
               </li>
               <li>
                 <Link href="/metodologia">Metodología y límites</Link>
+              </li>
+              <li>
+                <Link href="/glosario">Glosario</Link>
               </li>
             </ul>
           </nav>

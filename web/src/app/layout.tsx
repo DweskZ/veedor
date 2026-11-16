@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Footer, Header, MockBanner } from "@/components/SiteChrome";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import "./globals.css";
+import "./features.css";
 
 // Plus Jakarta Sans, the Ruray typeface, self-hosted (no request to Google).
 const jakarta = localFont({
@@ -29,7 +30,7 @@ export const viewport: Viewport = { themeColor: "#E3EEFF" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es-EC" className={`${jakarta.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="es-EC" className={`${jakarta.variable} h-full antialiased`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
       </head>

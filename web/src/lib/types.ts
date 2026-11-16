@@ -270,6 +270,7 @@ export interface ProcessQuery {
   min_score?: string;
   q?: string;
   buyer_ruc?: string;
+  region?: string;
   page?: string;
   page_size?: string;
   sort?: string;
@@ -336,4 +337,78 @@ export interface Investigation {
   lookups: InvestigationLookup[];
   facts_added: string[];
   model_usage: InvestigationModelUsage | null;
+}
+
+/** One row of `GET /stats/by-region`: province of the BUYING entity. */
+export interface RegionRow {
+  region: string;
+  region_label: string;
+  competitive_processes: number;
+  with_signal: number;
+  pct_with_signal: number | null;
+  single_bidder: number;
+  pct_single_bidder: number | null;
+  mean_score: number | null;
+  processes_total: number;
+  awarded_total: number | null;
+  small_sample?: boolean;
+}
+
+export interface RegionStats {
+  items: RegionRow[];
+  national: Partial<RegionRow> | null;
+  basis: string | null;
+  notes: string[];
+  data_built_at: string | null;
+}
+
+/** Share of the awarded amount by method group. */
+export interface MethodMix {
+  competitive: number | null;
+  direct: number | null;
+  catalogue: number | null;
+  other: number | null;
+}
+
+/** One row of `GET /stats/by-year`, normalised. Shares are fractions in [0, 1]. */
+export interface YearRow {
+  year: number;
+  processes_total: number | null;
+  competitive_processes: number | null;
+  pct_single_bidder: number | null;
+  pct_with_signal: number | null;
+  single_bidder_base: number | null;
+  awarded_total: number | null;
+  mix: MethodMix;
+  partial_year: boolean;
+}
+
+export interface YearStats {
+  items: YearRow[];
+  notes: string[];
+  data_built_at: string | null;
+}
+
+/** Entity suggestion from `GET /buyers/search`. */
+export interface BuyerHit {
+  ruc: string;
+  name: string;
+  region_label: string | null;
+  processes_total: number | null;
+}
+
+/** A position among comparable processes: this process's value and its percentile. */
+export interface Position {
+  value: number | null;
+  percentile: number | null;
+}
+
+/** `GET /processes/{ocid}/context`, normalised. Every part may be absent. */
+export interface ProcessContext {
+  method: string | null;
+  year: number | null;
+  comparable: number | null;
+  tenderers: { counts: number[]; position: Position } | null;
+  ratio: { median: number; q1: number | null; q3: number | null; position: Position } | null;
+  window: { median: number; q1: number | null; q3: number | null; position: Position } | null;
 }

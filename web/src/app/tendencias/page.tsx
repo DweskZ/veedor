@@ -1,0 +1,51 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { getYears } from "@/lib/api";
+import { TrendCharts } from "@/components/TrendCharts";
+import { Term } from "@/components/Term";
+import { ErrorState, PageHeader, Skeleton } from "@/components/ui";
+
+const DESCRIPTION =
+  "Cómo cambió con los años la parte de subastas con un solo oferente y la forma en que el Estado compra, con las advertencias de los datos al lado de cada gráfico.";
+export const metadata: Metadata = {
+  title: "Tendencias por año",
+  description: DESCRIPTION,
+  openGraph: { title: "Tendencias por año · Veedor", description: DESCRIPTION },
+};
+
+export default function TrendsPage() {
+  return (
+    <>
+      <PageHeader
+        eyebrow="Tendencias"
+        title={
+          <>
+            Cómo cambió <em>con los años.</em>
+          </>
+        }
+        lead={
+          <>
+            Tres gráficos para ver cómo compra el Estado año a año. Muestran cambios, no causas: a su lado están las advertencias sobre los datos. Un{" "}
+            <Term t="oferente">oferente</Term> es quien presenta una oferta.
+          </>
+        }
+      />
+      <div className="wrap">
+        <Suspense fallback={<Skeleton style={{ height: 560 }} />}>
+          <TrendsBody />
+        </Suspense>
+        <div className="page-end" />
+      </div>
+    </>
+  );
+}
+
+async function TrendsBody() {
+  const r = await getYears().then(
+    (v) => ({ ok: true as const, v }),
+    (e: unknown) => ({ ok: false as const, e }),
+  );
+  if (!r.ok || r.v.items.length === 0)
+    return <ErrorState title="Las tendencias no están disponibles" detail="Todavía no podemos mostrar los datos por año. Los demás datos del sitio siguen disponibles." />;
+  return <TrendCharts years={r.v.items} notes={r.v.notes} />;
+}

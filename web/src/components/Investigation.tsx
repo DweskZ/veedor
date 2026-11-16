@@ -11,9 +11,11 @@ import {
   outcomeOf,
   SOURCES,
   SPECIALISTS,
+  buildSteps,
   type Outcome,
 } from "@/lib/investigation";
 import type { Investigation, InvestigationLookup, InvestigationSpecialist } from "@/lib/types";
+import { AgentStepThrough } from "./AgentStepThrough";
 import { Card, Num } from "./ui";
 
 const specName = (id: string) => SPECIALISTS[id]?.name ?? id;
@@ -219,6 +221,18 @@ export function InvestigationPanel({ inv }: { inv: Investigation }) {
         .
       </p>
       <RunSummary inv={inv} />
+      {inv.lookups.length ? (
+        <div style={{ marginTop: 28 }}>
+          <h3 className="h4">Cómo investigaron, paso a paso</h3>
+          <p className="muted small" style={{ marginTop: 6, maxWidth: "46em" }}>
+            Cada paso es una consulta de solo lectura a una fuente pública, tal como quedó registrada. No es una conversación: solo quién preguntó, a qué fuente, qué
+            respondió y cuánto tardó.
+          </p>
+          <div style={{ marginTop: 14 }}>
+            <AgentStepThrough steps={buildSteps(inv)} />
+          </div>
+        </div>
+      ) : null}
       <DispatchOrder specialists={inv.specialists} />
       <ol className="specs" style={{ marginTop: 24 }}>
         {inv.specialists.map((s, i) => (

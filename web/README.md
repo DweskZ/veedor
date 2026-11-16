@@ -44,6 +44,21 @@ The image uses Next.js `output: "standalone"` (multi-stage, non-root, `node serv
 - **Responsive**: tables become cards under 880 px; the agent diagram becomes a numbered list under 1100 px; the sticky in-page index appears from 1100 px on process pages.
 - **Plain-language copy for each signal** (what was observed, why it can matter, how it can be normal) is in `src/lib/signal-copy.ts`.
 
+## Map geometry (`/mapa` and the home page)
+
+- Source: **geoBoundaries gbOpen, Ecuador ADM1 (24 provinces)**, `https://github.com/wmgeolab/geoBoundaries/tree/main/releaseData/gbOpen/ECU/ADM1` (file `geoBoundaries-ECU-ADM1.geojson`, boundary year 2011, metadata `boundaryLicense`: **CC0 1.0, public domain dedication**). Retrieved 2026-11-16. Natural Earth admin-1 (public domain) was the alternative; geoBoundaries was chosen because it already has the 24 current provinces including Santa Elena and Santo Domingo de los Tsachilas. No INEC/IGM file was used.
+- The raw file lives in `geo-src/` (git-ignored). `node scripts/build-map.mjs` projects it (equirectangular, 1 degree = 100 units), simplifies it (Douglas-Peucker, about 1 km), draws Galapagos in an inset at 55 % scale and writes `src/data/ecuador-provinces.json` (SVG path strings and label anchors, about 27 KB, committed). It maps geometry names to the API keys explicitly and **fails unless all 24 provinces match once each**.
+- The attribution is printed under the table on `/mapa`. No map library and no tile or other external request at runtime.
+- Colour classes are quintiles of the 24 provinces (five groups with the same number of provinces), recomputed in the browser for the selected metric; the legend shows the observed range of each group. The top group is terracotta with ink stripes.
+
+## Glossary
+
+`src/data/glossary.json` (`{ items: [{ term, aliases, definition_es, source }] }`) is the single source: the web reads it at build time (`<Term t="...">` popovers, `/glosario`) and the API serves it at `/glossary`. Keep exactly those four fields.
+
+## New pages and components (stage 3)
+
+`/mapa`, `/tendencias`, `/glosario`; `HeaderSearch` (combobox over `/buyers/search`), `RandomProcessButton` (`/processes/random`), `ExplorerShell` (URL-synced filters with router transitions), `ContextCharts` (`/processes/{ocid}/context`), `AgentStepThrough` (stored tool log). Browser-side API calls are in `src/lib/client-api.ts`; with `NEXT_PUBLIC_USE_MOCKS=1` every new endpoint has a fictional sample.
+
 ## Notes
 - Real mode never shows mock data: when the API fails, pages show an explicit error state.
 - Filters on `/procesos` live in the URL (`year`, `method`, `signal`, `min_score`, `q`, `sort`, `page`); `sort=-risk_score` means descending.

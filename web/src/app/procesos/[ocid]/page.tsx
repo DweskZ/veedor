@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ApiError, getDossier, getInvestigation, getMeta, getProcess, getReviews, getSignals } from "@/lib/api";
+import { ApiError, getContext, getDossier, getInvestigation, getMeta, getProcess, getReviews, getSignals } from "@/lib/api";
 import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtNum, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessFacts, SignalDef } from "@/lib/types";
 import { SignalCard } from "@/components/SignalCard";
 import { DossierIndex, DossierSectionView } from "@/components/DossierSections";
+import { ContextCharts } from "@/components/ContextCharts";
+import { Term } from "@/components/Term";
 import { InvestigationPanel } from "@/components/Investigation";
 import { SameBuyerToggle } from "@/components/SameBuyerToggle";
 import { SimilarBody } from "@/components/SimilarProcesses";
@@ -31,7 +33,7 @@ export default function ProcessPage({ params, searchParams }: PageProps<"/proces
   );
 }
 
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+function Fact({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="fact">
       <dt>{label}</dt>
@@ -99,6 +101,7 @@ async function Dossier({
   const toc: [string, string][] = [
     ["hechos", "Los datos del proceso"],
     ["senales", "Señales de riesgo"],
+    ["comparacion", "Cómo se compara"],
     ...(contextSignals.length ? ([["contexto", "Contexto del proveedor"]] as [string, string][]) : []),
     ["investigacion", "Investigación con agentes"],
     ["similares", "Procesos parecidos"],
@@ -185,7 +188,7 @@ async function Dossier({
             <p className="summary__sub">Presupuesto referencial: {fmtUsd(f.budget)}</p>
           </div>
           <div className="summary__cell summary__cell--score">
-            <p className="summary__q">Puntaje</p>
+            <p className="summary__q"><Term t="puntaje">Puntaje</Term></p>
             {score ? (
               <>
                 <RiskScore score={score.risk_score} big />
@@ -210,7 +213,7 @@ async function Dossier({
           <div className="doc__main">
             <Section title="Los datos del proceso" id="hechos" note="Estos son los datos tal como los publica el SERCOP. Compáralos con el registro original.">
               <dl className="facts">
-                <Fact label="Entidad contratante">
+                <Fact label={<Term t="entidad contratante">Entidad contratante</Term>}>
                   {canLinkBuyer(f.buyer_ruc) ? (
                     <Link href={`/entidades/${f.buyer_ruc}`} className="cell-link">
                       {f.buyer_name ?? NA}
@@ -250,13 +253,13 @@ async function Dossier({
                 <Fact label="Categoría">{fmtCategory(f.category) ?? NA}</Fact>
                 <Fact label="Estado">{fmtStatus(f.status) ?? NA}</Fact>
                 <Fact label="Fecha de publicación">{fmtDate(f.release_date)}</Fact>
-                <Fact label="Presupuesto referencial">
+                <Fact label={<Term t="presupuesto referencial">Presupuesto referencial</Term>}>
                   <Num>{fmtUsd(f.budget)}</Num>
                 </Fact>
-                <Fact label="Monto adjudicado">
+                <Fact label={<>Monto <Term t="adjudicación">adjudicado</Term></>}>
                   <Num>{fmtUsd(f.award_total)}</Num>
                 </Fact>
-                <Fact label="Empresas que ofertaron">
+                <Fact label={<>Empresas que ofertaron (<Term t="oferente">oferentes</Term>)</>}>
                   {detail.tenderers.length ? (
                     <ul>
                       {detail.tenderers.map((t, i) => (
@@ -284,7 +287,7 @@ async function Dossier({
                   {f.tender_start || f.tender_end ? `${fmtDate(f.tender_start)} a ${fmtDate(f.tender_end)}` : NA}
                 </Fact>
                 <Fact label="Fecha de firma">{fmtDate(f.date_signed)}</Fact>
-                <Fact label="Tipo de bien o servicio (CPC)">
+                <Fact label={<>Tipo de bien o servicio (<Term t="CPC">CPC</Term>)</>}>
                   {f.main_cpc ? (
                     <>
                       <Num>{f.main_cpc}</Num>
@@ -318,6 +321,12 @@ async function Dossier({
                   ))}
                 </div>
               )}
+            </Section>
+
+            <Section title="Cómo se compara" id="comparacion" note="Para cada dato que se puede comparar, dónde queda este proceso entre los parecidos.">
+              <Suspense fallback={<Skeleton style={{ height: 260 }} />}>
+                <ComparisonSection ocid={ocid} />
+              </Suspense>
             </Section>
 
             {contextSignals.length ? (
@@ -387,6 +396,17 @@ async function Dossier({
       </div>
     </>
   );
+}
+
+async function ComparisonSection({ ocid }: { ocid: string }) {
+  const r = await getContext(ocid).then(
+    (v) => ({ ok: true as const, v }),
+    () => ({ ok: false as const, v: null }),
+  );
+  if (!r.ok) return <p className="muted">La comparación no está disponible ahora. Los datos y las señales del proceso sí lo están.</p>;
+  if (!r.v || (!r.v.tenderers && !r.v.ratio && !r.v.window))
+    return <p className="muted">No hay datos para comparar este proceso con otros del mismo tipo.</p>;
+  return <ContextCharts ctx={r.v} />;
 }
 
 async function InvestigationSection({ ocid }: { ocid: string }) {

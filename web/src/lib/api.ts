@@ -1,10 +1,14 @@
 import { normalizeInvestigation } from "./investigation";
+import { normalizeContext, normalizeRegions, normalizeYears } from "./normalize";
 import * as mocks from "./mocks";
 import type {
   BuyerDetail,
   Dossier,
   Investigation,
   Paginated,
+  ProcessContext,
+  RegionStats,
+  YearStats,
   ProcessDetail,
   ProcessQuery,
   ProcessSummary,
@@ -145,3 +149,21 @@ export const getSimilar = (ocid: string, sameBuyer: boolean, k = 10): Promise<Si
   USE_MOCKS
     ? Promise.resolve(mock(() => mocks.similar(ocid, sameBuyer, k)))
     : request(`/processes/${enc(ocid)}/similar${qs({ k: String(k), same_buyer: sameBuyer ? "true" : undefined })}`);
+
+/** New aggregate endpoints. They throw ApiError (the page then shows "no disponible"). */
+export const getRegions = async (): Promise<RegionStats> =>
+  USE_MOCKS ? mocks.regions : normalizeRegions(await request<unknown>("/stats/by-region"));
+
+export const getYears = async (): Promise<YearStats> =>
+  USE_MOCKS ? mocks.years : normalizeYears(await request<unknown>("/stats/by-year"));
+
+/** Comparison data for one process, or null when the API has none (404) or does not offer it. */
+export async function getContext(ocid: string): Promise<ProcessContext | null> {
+  if (USE_MOCKS) return mocks.context(ocid);
+  try {
+    return normalizeContext(await request<unknown>(`/processes/${enc(ocid)}/context`));
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return null;
+    throw e;
+  }
+}

@@ -191,3 +191,48 @@ export function elapsedMs(inv: Investigation): number | null {
   const d = Date.parse(inv.finished_at) - Date.parse(inv.started_at);
   return Number.isFinite(d) && d >= 0 ? d : null;
 }
+
+const TARGETS: Record<string, string> = {
+  winner: "el proveedor ganador",
+  buyer: "la entidad contratante",
+  process: "este proceso",
+};
+
+/** One lookup of the stored tool log, in plain words, for the step-through. Structured fields only. */
+export interface Step {
+  n: number;
+  specialist: string;
+  /** Why the supervisor sent this specialist; set on that specialist's first step only. */
+  dispatch: string | null;
+  source: string;
+  about: string | null;
+  outcome: Outcome;
+  reason: string | null;
+  duration: string;
+  attempts: number | null;
+}
+
+/** The tool log in the order it happened (by start time when every entry has one, otherwise as stored). */
+export function buildSteps(inv: Investigation): Step[] {
+  const all = inv.lookups.map((l, i) => ({ l, i }));
+  if (all.every(({ l }) => l.started_at && Number.isFinite(Date.parse(l.started_at))))
+    all.sort((a, b) => Date.parse(a.l.started_at as string) - Date.parse(b.l.started_at as string) || a.i - b.i);
+  const seen = new Set<string>();
+  return all.map(({ l }, k) => {
+    const first = !seen.has(l.specialist);
+    seen.add(l.specialist);
+    const sp = inv.specialists.find((s) => s.specialist === l.specialist);
+    const reason = sp?.dispatch_reason ? (DISPATCH_REASONS[sp.dispatch_reason] ?? sp.dispatch_reason) : null;
+    return {
+      n: k + 1,
+      specialist: SPECIALISTS[l.specialist]?.name ?? l.specialist,
+      dispatch: first ? reason : null,
+      source: SOURCES[l.tool] ?? l.tool,
+      about: l.target ? (TARGETS[l.target] ?? null) : null,
+      outcome: outcomeOf(l.outcome),
+      reason: l.reason ? (OUTCOME_REASONS[l.reason] ?? l.reason) : null,
+      duration: fmtDuration(l.duration_ms),
+      attempts: l.attempts,
+    };
+  });
+}
