@@ -25,3 +25,18 @@ def test_traces_summary_reads_the_trace_file(tmp_path, monkeypatch):
         )
     finally:
         get_settings.cache_clear()
+
+
+def test_dossier_build_rejects_a_malformed_identifier_in_one_line():
+    from veedor.cli.dossier import app as dossier_app
+    from veedor.cli.investigate import app as investigate_app
+
+    runner = CliRunner()
+    commands = ((dossier_app, ["build"]), (investigate_app, ["run"]), (investigate_app, ["show"]))
+    for command_app, args in commands:
+        for bad in ("", "a\tb", "x" * 301, " padded "):
+            result = runner.invoke(command_app, [*args, bad])
+            assert result.exit_code == 2, (args, bad)
+            assert "Traceback" not in result.output and "│" not in result.output
+            assert "Identificador de proceso no válido" in result.output
+            assert len(result.output.strip().splitlines()) == 1

@@ -165,3 +165,84 @@ def test_cli_rejects_odd_identifiers_with_a_clean_message(tmp_path):
         result = runner.invoke(app, ["show", odd])
         assert result.exit_code == 1 and result.exception is None or isinstance(result.exception, SystemExit)
         assert "Traceback" not in result.output
+
+
+def _batch_env(tmp_path, monkeypatch, recorded=20, run_size=2):
+    """A CLI batch with the heavy parts faked; the 'default' summary file lives under tmp_path."""
+    from contextlib import contextmanager
+
+    from veedor.cli import investigate as cli
+
+    (tmp_path / "eval").mkdir()
+    default = tmp_path / "eval" / "investigations_run.json"
+    default.write_text(json.dumps({"no_llm": {"investigations": recorded}}))
+    monkeypatch.setattr(cli, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(cli, "_top_ocids", lambda n: [f"o{i}" for i in range(n)])
+    started = {"n": 0}
+
+    @contextmanager
+    def backend(live=True):
+        started["n"] += 1
+        yield None
+
+    class Service:
+        def close(self):
+            pass
+
+    def run_batch(service, ocids, on_error=None):
+        summary = use_case.BatchSummary()
+        summary.investigations = run_size
+        return summary, []
+
+    monkeypatch.setattr(use_case, "live_backend", backend)
+    monkeypatch.setattr(use_case, "build_service", lambda **kw: Service())
+    monkeypatch.setattr(use_case, "run_batch", run_batch)
+    return cli, default, started
+
+
+def test_a_smaller_batch_never_replaces_a_larger_recorded_run(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    cli, default, started = _batch_env(tmp_path, monkeypatch)
+    before = default.read_text()
+    result = CliRunner().invoke(cli.app, ["batch", "--top", "3", "--no-llm"])
+    assert result.exit_code == 2 and started["n"] == 0  # refused before any work
+    assert default.read_text() == before
+
+
+def test_a_batch_that_ends_smaller_than_the_record_does_not_write(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    cli, default, _ = _batch_env(tmp_path, monkeypatch, recorded=3, run_size=1)
+    before = default.read_text()
+    result = CliRunner().invoke(cli.app, ["batch", "--top", "3", "--no-llm"])
+    assert result.exit_code == 2 and default.read_text() == before
+
+
+def test_summary_out_and_force_are_explicit_ways_to_write(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    cli, default, _ = _batch_env(tmp_path, monkeypatch)
+    before = default.read_text()
+    other = tmp_path / "other" / "run.json"
+    result = CliRunner().invoke(cli.app, ["batch", "--top", "3", "--no-llm", "--summary-out", str(other)])
+    assert result.exit_code == 0 and json.loads(other.read_text())["no_llm"]["investigations"] == 2
+    assert default.read_text() == before
+    forced = CliRunner().invoke(cli.app, ["batch", "--top", "3", "--no-llm", "--force"])
+    assert forced.exit_code == 0 and json.loads(default.read_text())["no_llm"]["investigations"] == 2
+
+
+@pytest.mark.parametrize("spelling", ["1.710.034.065", "1710034065", "171-0034-065-001", "1710034065 001"])
+def test_a_pack_value_holding_an_identifier_is_withheld_end_to_end(tmp_path, spelling):
+    pack = EvidencePack.model_validate(json.loads((PACKS / "pack_full.json").read_text()))
+    pack = pack.model_copy(
+        update={"process": pack.process.model_copy(update={"buyer_name": f"HOSPITAL DE {spelling}"})}
+    )
+    svc = use_case.InvestigationService(
+        loader=lambda ocid: pack, mcp=FakeBackend(), lake_tools=NoLake(), chat_model=None,
+        store=InvestigationStore(tmp_path / "inv"), today=lambda: TODAY,
+    )  # fmt: skip
+    record = svc.investigate(OCID)
+    assert record.withheld == "personal_data_guard" and record.dossier is None
+    stored = (tmp_path / "inv").iterdir().__next__().read_text()
+    assert "1710034065" not in stored and "034" not in stored.replace("0034", "")

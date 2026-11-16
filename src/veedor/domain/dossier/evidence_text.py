@@ -11,7 +11,7 @@ from collections.abc import Callable
 from typing import Any
 
 from veedor.domain.dossier.allowed import CODE, ISO_DATE, LONG_DIGITS, MASKED_RUC, RUC
-from veedor.domain.dossier.formatting import fmt_date, fmt_num, fmt_pct, fmt_times, fmt_usd, quote
+from veedor.domain.dossier.formatting import fmt_count, fmt_date, fmt_num, fmt_pct, fmt_times, fmt_usd, quote
 from veedor.domain.dossier.models import SignalFact
 from veedor.domain.dossier.safety import is_unsafe_text
 from veedor.domain.dossier.text import norm
@@ -110,7 +110,7 @@ def _format(value: Any, kind: str) -> str | None:
     if kind == "year":
         return str(int(value))
     if kind == "days":
-        return f"{fmt_num(value, 2)} días"
+        return fmt_count(value, "día", "días", 2)
     return fmt_num(value)
 
 
@@ -152,8 +152,9 @@ def _short_window(e: dict[str, Any], s: SignalFact) -> str | None:
     if _date(e, "tender_start") and _date(e, "tender_end"):
         span = f" (del {_date(e, 'tender_start')} al {_date(e, 'tender_end')})"
     return (
-        f"El plazo de ofertas fue de {fmt_num(e['window_days'], 2)} días{span}; el umbral estadístico "
-        f"para el mismo procedimiento y año es de {fmt_num(e['p05_days'], 2)} días."
+        f"El plazo de ofertas fue de {fmt_count(e['window_days'], 'día', 'días', 2)}{span}; "
+        "el umbral estadístico para el mismo procedimiento y año es de "
+        f"{fmt_count(e['p05_days'], 'día', 'días', 2)}."
     )
 
 
@@ -175,7 +176,7 @@ def _new_supplier(e: dict[str, Any], s: SignalFact) -> str | None:
     tail = f" ({_date(e, 'first_award_date')})" if _date(e, "first_award_date") else ""
     return (
         f"El proveedor inició actividades el {_date(e, 'activity_start_date')}, "
-        f"{fmt_num(e['days_between'])} días antes de la primera adjudicación{tail}."
+        f"{fmt_count(e['days_between'], 'día', 'días')} antes de la primera adjudicación{tail}."
     )
 
 
@@ -249,7 +250,8 @@ def _concentration(e: dict[str, Any], s: SignalFact) -> str | None:
     return (
         f"En {int(e['year'])}, el proveedor recibió {fmt_usd(e['supplier_amount'])} de los "
         f"{fmt_usd(e['buyer_total'])} adjudicados por la entidad ({fmt_pct(e['share'])}), "
-        f"en un total de {fmt_num(e['n_awards_buyer_year'])} adjudicaciones de la entidad ese año."
+        "en un total de "
+        f"{fmt_count(e['n_awards_buyer_year'], 'adjudicación', 'adjudicaciones')} de la entidad ese año."
     )
 
 
@@ -259,10 +261,11 @@ def _repeated_direct(e: dict[str, Any], s: SignalFact) -> str | None:
         return None
     cpc = f" ({_q(e.get('cpc_prefix'))})" if _q(e.get("cpc_prefix")) else ""
     return (
-        f"La entidad adjudicó de forma directa {fmt_num(e['n_in_window'])} procesos al mismo proveedor "
+        "La entidad adjudicó de forma directa "
+        f"{fmt_count(e['n_in_window'], 'proceso', 'procesos')} al mismo proveedor "
         f"con el mismo prefijo CPC{cpc} entre el {_date(e, 'window_start')} y el {_date(e, 'window_end')} "
-        f"({fmt_num(e['window_days'])} días); en total el par registra "
-        f"{fmt_num(e['n_same_buyer_supplier_cpc'])} procesos con ese prefijo."
+        f"({fmt_count(e['window_days'], 'día', 'días')}); en total el par registra "
+        f"{fmt_count(e['n_same_buyer_supplier_cpc'], 'proceso', 'procesos')} con ese prefijo."
     )
 
 
@@ -271,8 +274,8 @@ def _cobidders(e: dict[str, Any], s: SignalFact) -> str | None:
         return None
     who = f" y el oferente {_q(e.get('cobidder_name'))}" if _q(e.get("cobidder_name")) else " y otro oferente"
     return (
-        f"El proveedor adjudicado{who} coincidieron en {fmt_num(e['n_meetings'])} procesos "
-        "competitivos de la misma entidad."
+        f"El proveedor adjudicado{who} coincidieron en "
+        f"{fmt_count(e['n_meetings'], 'proceso competitivo', 'procesos competitivos')} de la misma entidad."
     )
 
 
@@ -289,7 +292,7 @@ def _contract_size(e: dict[str, Any], s: SignalFact) -> str | None:
     return (
         f"El monto adjudicado ({fmt_usd(e['award_total'])}) equivale a {fmt_times(e['ratio'])} los "
         f"ingresos reportados por la empresa{year} ({fmt_usd(e['revenue'])}); el umbral de la señal es "
-        f"{fmt_num(e['factor'])} veces.{note}"
+        f"{fmt_count(e['factor'], 'vez', 'veces')}.{note}"
     )
 
 

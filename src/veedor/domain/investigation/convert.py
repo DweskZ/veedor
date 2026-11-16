@@ -189,6 +189,13 @@ def _reference_of(
     )
 
 
+def _report_order(ref: AuditReportRef) -> tuple:
+    """Reports whose audited period includes the process date first, then newest approval first
+    (an unknown approval date last); the last keys make the order deterministic."""
+    approved = date.fromisoformat(ref.approval_date).toordinal() if ref.approval_date else 0
+    return (ref.covers_process is not True, -approved, ref.report_id or "", ref.title or "")
+
+
 def audit_facts(
     buyer_name: str | None,
     files: list[ReportsFile],
@@ -229,6 +236,7 @@ def audit_facts(
             if identity not in seen:
                 seen.add(identity)
                 matches.append(ref)
+    ordered = sorted(matches, key=_report_order)
     return AuditFacts(
         outcome="ok",
         conclusive=bool(reliable and complete),
@@ -238,5 +246,9 @@ def audit_facts(
         rows_examined=examined_rows,
         coverage_complete=complete,
         n_reports=len(matches) if reliable else None,
-        reports=matches[:MAX_LISTED_REPORTS],
+        n_listed=min(len(matches), MAX_LISTED_REPORTS) if reliable else None,
+        n_covering=sum(r.covers_process is True for r in matches) if reliable else None,
+        n_not_covering=sum(r.covers_process is False for r in matches) if reliable else None,
+        n_period_unknown=sum(r.covers_process is None for r in matches) if reliable else None,
+        reports=ordered[:MAX_LISTED_REPORTS],
     )

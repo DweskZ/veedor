@@ -18,7 +18,11 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 RUC_PATTERN = re.compile(r"^[0-9]{13}$")
-REPORT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/\-]{2,39}$")
+# Shape of a Contraloría report number ("Nº Informe"), derived from the 25 captured rows of the source:
+# an office code (2-6 capitals and an optional digit: DPB, DNA3, DR1, DAI), up to three further
+# capital groups (AI, DPM), a 3-5 digit sequence and the four-digit year: DPB-0001-2022, DNA3-0001-2022,
+# DNA1-DPM-AI-0001-2023. Anything else (a cédula, a RUC, free text) is shown as unavailable.
+REPORT_ID_PATTERN = re.compile(r"^[A-Z]{2,6}[0-9]?(?:-[A-Z]{1,6}[0-9]?){0,3}-[0-9]{3,5}-(?:19|20)[0-9]{2}$")
 CATALOGUE_ID_PATTERN = re.compile(r"^[0-9]{1,6}$")
 MAX_TEXT = 400
 MAX_YEARS = 60

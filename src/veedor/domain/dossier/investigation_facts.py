@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from veedor.domain.dossier.formatting import fmt_date, fmt_num, fmt_times, fmt_usd, fmt_year
+from veedor.domain.dossier.formatting import fmt_count, fmt_date, fmt_num, fmt_times, fmt_usd, fmt_year
 from veedor.domain.dossier.models import (
     AuditFacts,
     AuditReportRef,
@@ -151,8 +151,15 @@ def _incorporation_text(pack: EvidencePack) -> str:
         return text
     point = f"({kind}: {fmt_date(ref)})"
     if days >= 0:
-        return f"{text} Entre la constitución y la fecha de referencia del proceso {point} transcurrieron {days} días."
-    return f"{text} La constitución es posterior a la fecha de referencia del proceso {point} por {abs(days)} días."
+        verb = "transcurrió" if days == 1 else "transcurrieron"
+        return (
+            f"{text} Entre la constitución y la fecha de referencia del proceso {point} "
+            f"{verb} {fmt_count(days, 'día', 'días')}."
+        )
+    return (
+        f"{text} La constitución es posterior a la fecha de referencia del proceso {point} "
+        f"por {fmt_count(abs(days), 'día', 'días')}."
+    )
 
 
 def multiple_text(times: float) -> str:
@@ -281,9 +288,13 @@ def _pair_text(pack: EvidencePack) -> str:
             "a este proveedor en ninguna fecha."
         )
     noun = "una adjudicación" if n == 1 else f"{n} adjudicaciones"
+    if n == 1:
+        informed = "con monto informado" if p.n_with_amount else "sin monto informado"
+    else:
+        informed = f"con monto informado en {p.n_with_amount} de ellas"
     return (
         f"Sin contar este proceso, el conjunto de datos registra {noun} de esta entidad a este proveedor "
-        f"en cualquier fecha, con monto informado en {p.n_with_amount} de ellas. "
+        f"en cualquier fecha, {informed}. "
         f"El monto acumulado de esas adjudicaciones es {fmt_usd(p.total_other_amount)}."
     )
 
@@ -297,16 +308,35 @@ def _similar_text(pack: EvidencePack) -> str:
     s = _similar(pack)
     assert s is not None
     basis = "descripción del objeto" if s.basis == "description" else "clasificación del objeto"
+    floor = fmt_num(s.similarity_floor)
+    window = f"{fmt_count(s.window_days, 'día', 'días')} o menos de la fecha de referencia del proceso"
+    if s.neighbours_examined == 0:
+        return f"No hay compras similares de la misma entidad según la {basis} para comparar."
+    if s.neighbours_examined == 1:
+        head = f"La compra más similar de la misma entidad según la {basis} "
+        if not s.n_above_floor:
+            return f"{head}no supera una similitud mínima de {floor}."
+        if not s.n_in_window:
+            return f"{head}supera una similitud mínima de {floor}, pero no está a {window}."
+        amount = f"su monto es {fmt_usd(s.combined_amount)}" + (
+            "" if s.n_with_amount else " (monto no informado)"
+        )
+        return f"{head}supera una similitud mínima de {floor} y está a {window}; {amount}."
     head = f"Entre las {s.neighbours_examined} compras más similares de la misma entidad según la {basis}, "
     if not s.n_above_floor:
-        return f"{head}ninguna supera una similitud mínima de {fmt_num(s.similarity_floor)}."
-    head += f"{s.n_above_floor} superan una similitud mínima de {fmt_num(s.similarity_floor)}"
+        return f"{head}ninguna supera una similitud mínima de {floor}."
+    verb = "supera" if s.n_above_floor == 1 else "superan"
+    head += f"{s.n_above_floor} {verb} una similitud mínima de {floor}"
     if not s.n_in_window:
-        return f"{head}, y ninguna está a {s.window_days} días o menos de la fecha de referencia del proceso."
+        return f"{head}, y ninguna está a {window}."
+    if s.n_in_window == 1:
+        return (
+            f"{head}, y 1 de ellas está a {window}; su monto es {fmt_usd(s.combined_amount)} "
+            f"({'monto informado' if s.n_with_amount else 'monto no informado'})."
+        )
     return (
-        f"{head}, y {s.n_in_window} de ellas están a {s.window_days} días o menos de la fecha de referencia "
-        f"del proceso; su monto combinado es {fmt_usd(s.combined_amount)} "
-        f"(monto informado en {s.n_with_amount} de ellas)."
+        f"{head}, y {s.n_in_window} de ellas están a {window}; su monto combinado es "
+        f"{fmt_usd(s.combined_amount)} (monto informado en {s.n_with_amount} de ellas)."
     )
 
 
@@ -325,8 +355,9 @@ def _audit_text(pack: EvidencePack) -> str:
     assert a is not None
     n = a.n_reports
     scope = (
-        f"Se examinaron {a.rows_examined} filas de {a.files_examined} de los {a.files_in_catalogue} archivos "
-        "de informes aprobados del catálogo; el servicio entrega solo una parte de las filas de cada archivo."
+        f"Se examinaron {fmt_count(a.rows_examined or 0, 'fila', 'filas')} de {a.files_examined} de los "
+        f"{fmt_count(a.files_in_catalogue or 0, 'archivo', 'archivos')} de informes aprobados del catálogo; "
+        "el servicio entrega solo una parte de las filas de cada archivo."
     )
     if a.conclusive:
         return f"{_AUD}: {n} (coincidencia por nombre de entidad normalizado; cobertura completa)."
@@ -337,7 +368,7 @@ def _audit_text(pack: EvidencePack) -> str:
         )
     if n:
         return (
-            f"{_AUD}: se encontraron al menos {n} entre las filas examinadas (coincidencia por nombre de "
+            f"{_AUD}: se {'encontró' if n == 1 else 'encontraron'} al menos {n} entre las filas examinadas (coincidencia por nombre de "
             f"entidad normalizado). {scope} Pueden existir otros informes no examinados."
         )
     return f"{_AUD}: no se pudo establecer. {scope} Que no aparezcan en las filas examinadas no implica que no existan."
@@ -349,7 +380,7 @@ def _report_line(r: AuditReportRef) -> str:
         inside.append(f"aprobado el {fmt_date(r.approval_date)}")
     if r.period_from and r.period_to:
         inside.append(f"período examinado del {fmt_date(r.period_from)} al {fmt_date(r.period_to)}")
-    parts = [r.report_id or "sin número publicado"]
+    parts = [r.report_id or "número de informe no disponible"]
     if inside:
         parts.append(f"({', '.join(inside)})")
     if r.title and not is_unsafe_text(r.title):
@@ -358,14 +389,15 @@ def _report_line(r: AuditReportRef) -> str:
 
 
 _AUDIT_GROUPS = (
-    (True, "Informes identificados cuyo período examinado incluye la fecha del proceso (cita textual de la fuente):"),
+    (True, "n_covering", "Informes identificados cuyo período examinado incluye la fecha del proceso"),
     (
         False,
-        "Informes identificados cuyo período examinado no incluye la fecha del proceso "
-        "(se muestran por completitud; cita textual de la fuente):",
+        "n_not_covering",
+        "Informes identificados cuyo período examinado no incluye la fecha del proceso",
     ),
-    (None, "Informes identificados con período examinado no disponible (cita textual de la fuente):"),
+    (None, "n_period_unknown", "Informes identificados con período examinado no disponible"),
 )
+_QUOTE_NOTE = "cita textual de la fuente"
 
 
 def _has_audit_reports(pack: EvidencePack) -> bool:
@@ -374,13 +406,27 @@ def _has_audit_reports(pack: EvidencePack) -> bool:
 
 
 def _audit_reports_text(pack: EvidencePack) -> str:
+    """Up to the cap, covering reports first then newest approval; the counts are over ALL matches."""
     a = _audit(pack)
     assert a is not None
-    blocks = []
-    for covers, header in _AUDIT_GROUPS:
+    shown = a.n_listed if a.n_listed is not None else len(a.reports)
+    total = a.n_reports if a.n_reports is not None and a.n_reports >= shown else shown
+    blocks = [
+        f"Se muestran {shown} de {total} informes identificados (primero los de período examinado que "
+        "incluye la fecha del proceso, luego por fecha de aprobación, del más reciente al más antiguo)."
+    ]
+    for covers, count_field, header in _AUDIT_GROUPS:
         group = [r for r in a.reports if r.covers_process is covers]
-        if group:
-            blocks.append(header + "\n" + "\n".join(_report_line(r) for r in group))
+        count = getattr(a, count_field)
+        count = len(group) if count is None else count
+        if count:
+            note = f"{count} en total"
+            if covers is False:
+                note += "; se muestran por completitud"
+            if not group:
+                blocks.append(f"{header} ({note}; ninguno se muestra por el límite de informes listados).")
+                continue
+            blocks.append(f"{header} ({note}; {_QUOTE_NOTE}):\n" + "\n".join(_report_line(r) for r in group))
     return "\n".join(blocks)
 
 

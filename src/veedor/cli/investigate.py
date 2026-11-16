@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Annotated
 
 import duckdb
 import typer
 
-from veedor.cli.dossier import render_text
+from veedor.cli.dossier import check_ocid, render_text
 from veedor.core.settings import REPO_ROOT, get_settings
 from veedor.domain.dossier.errors import ProcessNotFoundError
 from veedor.domain.investigation.models import InvestigationRecord
 from veedor.domain.investigation.vocab import SOURCE_BY_TOOL
-from veedor.infrastructure.investigations.store import InvestigationStore, valid_ocid
+from veedor.infrastructure.investigations.store import InvestigationStore
 from veedor.use_cases import investigate as use_case
 
 app = typer.Typer(help="Run multi-agent investigations with read-only tools.", no_args_is_help=True)
@@ -76,15 +77,6 @@ def _describe(record: InvestigationRecord) -> str:
     return "\n".join(lines)
 
 
-def _check_ocid(ocid: str) -> None:
-    if not valid_ocid(ocid):
-        typer.echo(
-            "Identificador de proceso no válido (vacío, demasiado largo o con caracteres de control).",
-            err=True,
-        )
-        raise typer.Exit(2)
-
-
 @app.command("run")
 def run(
     ocid: str,
@@ -93,7 +85,7 @@ def run(
     print_: Annotated[bool, typer.Option("--print", help="Print the dossier text.")] = False,
 ) -> None:
     """Investigate one process and store the result in data/investigations/."""
-    _check_ocid(ocid)
+    check_ocid(ocid)
     with use_case.live_backend(live=not offline) as mcp:
         service = use_case.build_service(mcp=mcp, use_llm=not no_llm)
         try:
@@ -118,9 +110,30 @@ def batch(
     max_model_calls: Annotated[
         int, typer.Option(help="Hard cap on model calls for the whole batch.")
     ] = use_case.DEFAULT_MODEL_CALL_CAP,
+    summary_out: Annotated[
+        Path | None,
+        typer.Option(
+            "--summary-out",
+            help="Where to write the counts-only summary (default: eval/investigations_run.json).",
+        ),
+    ] = None,
+    force: Annotated[
+        bool, typer.Option("--force", help="Replace a larger recorded run in the default summary file.")
+    ] = False,
 ) -> None:
     """Investigate the N highest-risk processes with one long-lived tool session; write counts only."""
+    key = "no_llm" if no_llm else "with_llm"
+    path = summary_out or REPO_ROOT / "eval" / SUMMARY_FILE
+    guarded = summary_out is None and not force
     ocids = _top_ocids(top)
+    recorded = use_case.recorded_investigations(path, key)
+    if guarded and len(ocids) < recorded:
+        typer.echo(
+            f"Se negó a empezar: {path} registra una corrida '{key}' de {recorded} investigaciones y esta "
+            f"tendría {len(ocids)}. Use --summary-out <ruta> o --force.",
+            err=True,
+        )
+        raise typer.Exit(2)
     with use_case.live_backend(live=not offline) as mcp:
         service = use_case.build_service(
             mcp=mcp, use_llm=not no_llm, model_call_cap=None if no_llm else max_model_calls
@@ -131,10 +144,16 @@ def batch(
             )
         finally:
             service.close()
-    key = "no_llm" if no_llm else "with_llm"
-    path = REPO_ROOT / "eval" / SUMMARY_FILE
-    use_case.write_summary(path, {key: summary.as_dict()})
     typer.echo(json.dumps({key: summary.as_dict()}, ensure_ascii=False, indent=2))
+    if guarded and summary.investigations < recorded:
+        typer.echo(
+            f"Resumen NO escrito: {path} registra {recorded} investigaciones y esta corrida terminó con "
+            f"{summary.investigations}. Use --summary-out <ruta> o --force.",
+            err=True,
+        )
+        _flush()
+        raise typer.Exit(2)
+    use_case.write_summary(path, {key: summary.as_dict()})
     typer.echo(f"Resumen escrito en {path}")
     _flush()
 
@@ -145,7 +164,7 @@ def show(
     print_: Annotated[bool, typer.Option("--print/--no-print", help="Print the dossier text.")] = True,
 ) -> None:
     """Show a stored investigation (never runs one)."""
-    _check_ocid(ocid)
+    check_ocid(ocid)
     record = use_case.read_investigation(InvestigationStore(get_settings().data_dir / "investigations"), ocid)
     if record is None:
         typer.echo(f"No hay una investigación almacenada para {ocid}.", err=True)

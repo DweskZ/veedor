@@ -52,6 +52,11 @@ def fmt_times(value: float) -> str:
     return f"{fmt_num(value, 1 if abs(value) >= 10 else 2)} veces"
 
 
+def fmt_count(value: float | int, one: str, many: str, max_decimals: int = 4) -> str:
+    """A count with its noun in the right number: ``1 día``, ``0 días``, ``2 días``."""
+    return f"1 {one}" if value == 1 else f"{fmt_num(value, max_decimals)} {many}"
+
+
 def fmt_pct(ratio: float | None, decimals: int = 1) -> str:
     if ratio is None:
         return NOT_AVAILABLE

@@ -12,6 +12,7 @@ from veedor.agents.investigator.tracing import TraceWriter, summarise
 from veedor.core.settings import get_settings
 from veedor.domain.dossier.errors import ProcessNotFoundError
 from veedor.domain.dossier.models import Dossier
+from veedor.infrastructure.investigations.store import valid_ocid
 from veedor.use_cases.build_dossier import default_service
 
 app = typer.Typer(help="Build evidence dossiers.", no_args_is_help=True)
@@ -37,6 +38,16 @@ def render_text(dossier: Dossier) -> str:
     return "\n".join(lines)
 
 
+def check_ocid(ocid: str) -> None:
+    """One-line message and exit code 2 for an identifier that can never name a process."""
+    if not valid_ocid(ocid):
+        typer.echo(
+            "Identificador de proceso no válido (vacío, demasiado largo o con caracteres de control).",
+            err=True,
+        )
+        raise typer.Exit(2)
+
+
 @app.command("build")
 def build(
     ocid: str,
@@ -45,6 +56,7 @@ def build(
     no_llm: Annotated[bool, typer.Option("--no-llm", help="Force template mode.")] = False,
 ) -> None:
     """Build (or load from cache) the dossier of one process."""
+    check_ocid(ocid)
     try:
         dossier = default_service(use_llm=not no_llm).build(ocid, refresh=refresh)
     except ProcessNotFoundError:

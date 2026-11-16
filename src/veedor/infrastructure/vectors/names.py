@@ -21,15 +21,27 @@ def buyer_names_from(lake: LakePort, rucs: Sequence[str]) -> dict[str, str]:
     table = "process_scores" if lake.has_table("process_scores") else "processes"
     placeholders = ", ".join("?" for _ in rucs)
     sql = (
-        f"SELECT buyer_ruc, any_value(buyer_name) AS buyer_name FROM {table} "
-        f"WHERE buyer_ruc IN ({placeholders}) AND buyer_name IS NOT NULL GROUP BY buyer_ruc"
+        f"SELECT buyer_ruc, buyer_name, count(*) AS n FROM {table} "
+        f"WHERE buyer_ruc IN ({placeholders}) AND buyer_name IS NOT NULL GROUP BY buyer_ruc, buyer_name"
     )
     try:
         rows = lake.fetch(sql, list(rucs), tables=(table,))
     except LakeUnavailableError:
         logger.warning("Lake unavailable: buyer names omitted from similar-process results")
         return {}
-    return {row["buyer_ruc"]: row["buyer_name"] for row in rows}
+    return most_frequent_names(rows)
+
+
+def most_frequent_names(rows: Sequence[Mapping[str, object]]) -> dict[str, str]:
+    """One name per RUC: the most frequent spelling, ties broken by the smallest name (deterministic,
+    so two requests, two workers or two cache states can never disagree)."""
+    best: dict[str, tuple[int, str]] = {}
+    for row in rows:
+        ruc, name, count = str(row["buyer_ruc"]), str(row["buyer_name"]), int(row["n"])  # type: ignore[call-overload]
+        current = best.get(ruc)
+        if current is None or (-count, name) < (-current[0], current[1]):
+            best[ruc] = (count, name)
+    return {ruc: name for ruc, (_, name) in best.items()}
 
 
 def lake_buyer_names(rucs: Sequence[str]) -> Mapping[str, str]:

@@ -55,7 +55,7 @@ def text(p: EvidencePack) -> str:
     [
         {"matched": "1234567890123.4567"},  # a float artifact: digits next to a decimal mark
         {"matched": "0.1234567890123"},
-        {"amount": 1234567890123.0},  # a number, not a string
+        {"amount": 1234567890123.45},  # a fractional number (an integral one is scanned: see test_identifier_scan)
         {"matched": "9999999999999999.0"},
         {"text": "USD 1.234.567.890.123,00"},
         {

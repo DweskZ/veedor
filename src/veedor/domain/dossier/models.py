@@ -207,7 +207,13 @@ class AuditFacts(BaseModel):
     rows_examined: int | None = None
     coverage_complete: bool | None = None
     n_reports: int | None = None
-    reports: list[AuditReportRef] = Field(default_factory=list)
+    # Counts over ALL matches (the list below is capped): audited period includes / excludes the process
+    # date / is not available. None in records written before the counts existed.
+    n_listed: int | None = None  # how many of them are listed below (the cap)
+    n_covering: int | None = None
+    n_not_covering: int | None = None
+    n_period_unknown: int | None = None
+    reports: list[AuditReportRef] = Field(default_factory=list)  # capped, covering reports first
 
 
 class SpecialistSummary(BaseModel):

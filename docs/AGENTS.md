@@ -6,7 +6,9 @@ dossier. Investigations are produced by the CLI and stored; the HTTP API only se
 
 ```bash
 veedor investigate run <ocid> [--no-llm] [--offline] [--print]
-veedor investigate batch --top 20 [--no-llm] [--offline] [--max-model-calls 60]   # writes eval/investigations_run.json
+veedor investigate batch --top 20 [--no-llm] [--offline] [--max-model-calls 60] [--summary-out PATH] [--force]
+#   default summary file: eval/investigations_run.json; a smaller run never replaces a larger recorded one
+#   unless --summary-out or --force is given
 veedor investigate show <ocid>
 GET /api/v1/processes/{ocid}/investigation        # stored record, masked; 404 when none; never runs anything
 ```
@@ -97,7 +99,12 @@ writable by third parties).
    used only for comparison in code.
 6. **Natural persons**: no registry lookup for them; names of legal representatives are never
    declared, stored, shown, logged or sent to a model; derived facts hold counts and flags only. The
-   store refuses to write a record containing a natural-person RUC.
+   store refuses to write a record containing a natural-person RUC or a cédula (the record is stored
+   as `withheld`). The scan (`domain/investigation/identifiers.py`) walks every value and every key,
+   normalises NFKC, Unicode digits and zero-width characters, accepts single separators between
+   digits, and skips only the keys in `NON_IDENTIFIER_KEYS` (numeric counters and offsets). Company
+   and public-entity RUCs are allowed. Contraloría report numbers must match `REPORT_ID_PATTERN`
+   (office code, sequence, year), otherwise they render as "número de informe no disponible".
 7. **Logs and telemetry** hold ocid, specialist, tool, outcome, counts and durations only; MCP server
    logs are sent to `/dev/null`; error texts are read only to choose a closed reason and are dropped.
 8. The grounding verifier still checks every sentence; new facts have bindings for their labelled
