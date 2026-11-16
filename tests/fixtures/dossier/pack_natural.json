@@ -1,0 +1,15 @@
+{
+  "process": {
+    "ocid": "ocds-5wno2w-TST-EC-MC-2024-02-7",
+    "process_code": "TST-EC-MC-2024-02-7",
+    "year": 2024,
+    "buyer_name": "GAD MUNICIPAL DE EJEMPLO",
+    "method": "Menor Cuantía",
+    "award_total": 5000.0,
+    "first_award_date": "2024-03-04"
+  },
+  "signals_available": true,
+  "signals": [],
+  "winner": {"ruc": "0912*********", "name": "Persona natural", "kind": "natural_person"},
+  "sources": []
+}

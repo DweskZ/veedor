@@ -1,0 +1,95 @@
+{
+  "process": {
+    "ocid": "ocds-5wno2w-TST-EC-SIE-2023-05-12345",
+    "process_code": "TST-EC-SIE-2023-05-12345",
+    "year": 2023,
+    "buyer_ruc": "1760001040001",
+    "buyer_name": "HOSPITAL GENERAL DE EJEMPLO",
+    "buyer_region": "MANABI",
+    "buyer_locality": "PORTOVIEJO",
+    "method": "Subasta Inversa Electrónica",
+    "method_group": "competitive",
+    "category": "services",
+    "status": "active",
+    "description": "CONTRATACION DEL SERVICIO DE LIMPIEZA PARA 12 AREAS DEL HOSPITAL, INCLUYE INSUMOS",
+    "budget": 27318.51,
+    "award_total": 24490.0,
+    "award_budget_ratio": 0.8965,
+    "n_tenderers": 1,
+    "n_awards": 1,
+    "tender_start": "2023-08-02",
+    "tender_end": null,
+    "first_award_date": "2023-08-25",
+    "date_signed": "2023-09-01",
+    "main_cpc": "8533001111",
+    "main_cpc_description": "LIMPIEZA Y DESINFECCION DE CENTROS MEDICOS"
+  },
+  "signals_available": true,
+  "signals": [
+    {
+      "code": "SINGLE_BIDDER",
+      "label_es": "Oferente único",
+      "value": 1.0,
+      "threshold": 1.0,
+      "evidence": {
+        "n_tenderers": 1,
+        "method": "Subasta Inversa Electrónica",
+        "year": 2023
+      }
+    },
+    {
+      "code": "NEW_SUPPLIER",
+      "label_es": "Proveedor de reciente creación",
+      "value": 95.0,
+      "threshold": 180.0,
+      "evidence": {
+        "activity_start_date": "2023-05-22",
+        "first_award_date": "2023-08-25",
+        "days": 95
+      }
+    }
+  ],
+  "risk_score": 42.5,
+  "winner": {
+    "ruc": "1790012345001",
+    "name": "COMERCIAL ANDES S.A.",
+    "kind": "company",
+    "n_award_suppliers": 1,
+    "registry": {
+      "status": "ACTIVO",
+      "taxpayer_type": "SOCIEDADES",
+      "activity_start_date": "2023-05-22",
+      "ciiu_code": "N8121.01",
+      "activity": "ACTIVIDADES DE LIMPIEZA GENERAL DE EDIFICIOS",
+      "province": "PICHINCHA",
+      "legal_name": "COMERCIAL ANDES S.A.",
+      "ghost_listed": false,
+      "company_type": "ANONIMA",
+      "latest_revenue": 150000.5,
+      "latest_revenue_year": 2022,
+      "award_year": 2023,
+      "revenue_award_year": 98000.25
+    }
+  },
+  "history": {
+    "reference_date": "2023-08-25",
+    "reference_date_kind": "fecha de adjudicación",
+    "n_previous_awards": 3,
+    "n_with_amount": 3,
+    "total_previous_amount": 61234.75,
+    "first_award_date": "2022-02-10",
+    "last_award_date": "2023-03-15",
+    "n_pair_awards": 5,
+    "pair_first_year": 2022,
+    "pair_last_year": 2024
+  },
+  "comparison": {
+    "method": "Subasta Inversa Electrónica",
+    "year": 2023,
+    "n_processes": 4821,
+    "median_tenderers": 3.0,
+    "single_bidder_share": 0.1234,
+    "median_award_budget_ratio": 0.9456
+  },
+  "sources": []
+}

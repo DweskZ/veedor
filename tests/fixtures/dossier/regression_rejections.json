@@ -1,0 +1,33 @@
+{
+  "note": "Sentences rebuilt from the rejected tokens of data/traces/investigator.jsonl lines 195-214 (the trace stores tokens, not sentences). Packs are synthetic; entity names are placeholders.",
+  "pack_overrides": {
+    "ratio_one": {"process": {"budget": 1000.0, "award_total": 1000.0, "award_budget_ratio": 1.0},
+                  "comparison": {"median_award_budget_ratio": 1.0, "single_bidder_share": 0.5192, "median_tenderers": 1.0}},
+    "ratio_decimals": {"process": {"award_budget_ratio": 0.9964},
+                       "comparison": {"median_award_budget_ratio": 0.9706}}
+  },
+  "cases": [
+    {"pack": "ratio_one", "pass": true, "text": "La relación entre monto adjudicado y presupuesto fue 1,0."},
+    {"pack": "ratio_one", "pass": true, "text": "La relación entre monto adjudicado y presupuesto fue 1,00."},
+    {"pack": "ratio_one", "pass": true, "text": "La mediana de la relación entre monto adjudicado y presupuesto fue 1.0."},
+    {"pack": "ratio_one", "pass": true, "text": "La mediana de oferentes fue 1,0."},
+    {"pack": "ratio_one", "pass": false, "text": "El presupuesto referencial fue de USD 1,0."},
+    {"pack": "ratio_one", "pass": false, "text": "El monto adjudicado fue 1,0."},
+    {"pack": "ratio_decimals", "pass": true, "text": "La relación entre monto adjudicado y presupuesto fue 0,9964."},
+    {"pack": "ratio_decimals", "pass": true, "text": "La mediana de la relación entre monto adjudicado y presupuesto fue 0,9706."},
+    {"pack": "ratio_decimals", "pass": true, "text": "La mediana de la relación entre monto adjudicado y presupuesto fue 0.9706."},
+    {"pack": "ratio_decimals", "pass": true, "text": "La mediana de la relación entre monto adjudicado y presupuesto fue 97,06 %."},
+    {"pack": "ratio_decimals", "pass": false, "text": "La mediana de la relación entre monto adjudicado y presupuesto fue 0,9707."},
+    {"pack": "ratio_decimals", "pass": false, "text": "La relación entre monto adjudicado y presupuesto fue 0,9706."},
+    {"pack": "ratio_decimals", "pass": false, "text": "La relación entre monto adjudicado y presupuesto fue 512,43 %."},
+    {"pack": "ratio_decimals", "pass": false, "text": "La mediana de la relación entre monto adjudicado y presupuesto fue 0,98."},
+    {"pack": "ratio_one", "pass": true, "text": "Consta que el proceso recibió un solo oferente."},
+    {"pack": "ratio_one", "pass": true, "text": "Figura como proveedor adjudicado COMERCIAL ANDES S.A."},
+    {"pack": "ratio_one", "pass": true, "text": "Registra un monto adjudicado de USD 1.000,00."},
+    {"pack": "ratio_one", "pass": true, "text": "Este proceso fue publicado. Ambos procedimientos son comparables. El resultado consta."},
+    {"pack": "ratio_one", "pass": false, "text": "Solicotex recibió la adjudicación."},
+    {"pack": "ratio_one", "pass": false, "text": "Consta que Solicotex recibió la adjudicación."},
+    {"pack": "ratio_one", "pass": false, "text": "Hubo Zentrix como oferente."},
+    {"pack": "ratio_one", "pass": false, "text": "Constructora Andina SA recibió la adjudicación."}
+  ]
+}
