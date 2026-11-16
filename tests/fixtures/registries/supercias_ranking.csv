@@ -1,0 +1,6 @@
+anio,expediente,posicion_general,cia_imvalores,id_estado_financiero,ingresos_ventas,activos,patrimonio,utilidad_an_imp,impuesto_renta,n_empleados,ingresos_totales
+2023,1,10,0,1,1500000.50,900000.00,400000.00,0,0,25.00,1600000.00
+2024,1,9,0,2,,950000.00,-5.00,0,0,,
+2024,2,9,0,3,10.00,20.00,30.00,0,0,2.00,
+2024,3,9,0,3,10.00,20.00,30.00,0,0,2.00,
+2024,99,9,0,3,10.00,20.00,30.00,0,0,2.00,
