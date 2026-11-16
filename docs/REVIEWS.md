@@ -99,6 +99,99 @@ and ended in the deterministic template.
 These items were addressed after review 2. That last round was verified by the project's own
 tests and sweeps, not by a third independent review — treat it accordingly.
 
+## Review 3 — stage 2 (investigation agents, vector search, observability)
+
+Run before anything in stage 2 was reported as working. The reviewer ran its own live
+investigations against the real EcuDataMCP server, re-derived facts from primary sources,
+attacked the tool path with a hostile fake server, and tried to push the agents past their
+budgets. The team's own check at that point was a batch of 20 live investigations, all
+successful.
+
+### What held
+
+- **Facts.** Every investigation fact of six processes was re-derived from the registry tools
+  and the lake: incorporation dates and day counts, subscribed capital and its ratio to the
+  award, prior and total awards between buyer and supplier, and the similar-purchase counts and
+  amounts. All matched.
+- **Privacy.** Legal-representative names, street names and phone numbers returned by the
+  registry for 14 companies were searched for in 35 stored investigations, traces, CLI output at
+  default and debug level, 60 API responses, 15 web pages, trace spans and metric labels: 0 hits.
+- **Tool-result injection.** A fake server placed instruction text, URLs, markup and a fake
+  representative name in every string field of every tool, with a scripted model that obeyed.
+  Nothing reached a stored record, a dossier, a model prompt or a tool argument. Records for a
+  different RUC than requested were rejected.
+- **Agent control.** Unknown specialist names, repeated dispatches, a 100,000-item list and
+  malformed replies never pushed a run past 6 dispatches, 2 per specialist or 4 tool calls per
+  specialist; the deterministic policy took over each time. No HTTP route can start an
+  investigation.
+- **Vector search.** The published retrieval figures were reproduced within noise.
+
+### What was broken
+
+| Severity | Finding |
+|---|---|
+| High | One of the reviewer's 15 live investigations ended in a traceback, and 7 of 80 in an offline sample: the privacy scan matched digits inside floating-point artefacts and aborted the run. The team's batch of 20 had not hit it. |
+| High | The API in the compose stack returned 404 for every stored investigation: the folder was not mounted into the container, and the smoke test did not cover the endpoint. |
+| Medium | Process identifiers with unusual characters produced a traceback in the CLI. |
+| Medium | Financial figures from the fiscal year of the process itself were shown as if known at award time. |
+| Medium | The approval date and audited period of Contraloría reports were dropped, so a report could sit under a process it did not cover without saying so. |
+| Medium | Absurd values from a source (for example a seven-digit employee count or a date in 2099) were rendered as facts. |
+| Medium | Legal status and subscribed capital are current snapshots but read as the status at award time. |
+| Medium | The telemetry attribute allow-list accepted out-of-range numbers and hyphen-joined names. |
+| Low | No similarity floor for "similar purchases"; ratios rounding to zero; retries and files conflated; a specialist could be dispatched twice without cause. |
+
+It also traced a latency problem to the API opening a new database connection and recreating
+its views on every request.
+
+### What changed in response
+
+The privacy scan inspects only string values and a genuine hit stores a withheld record instead
+of aborting; stored files are named by a hash of the identifier so every real process can be
+investigated; financial figures come from the latest fiscal year strictly before the process;
+out-of-range values render as "no disponible"; snapshot facts say so; Contraloría matches carry
+their dates and are grouped by whether the audited period includes the process; similar
+purchases require a minimum similarity; telemetry validates each attribute against its own
+type, range or vocabulary; the API reuses one locked-down database per worker.
+
+## Review 4 — re-test of the stage 2 fixes
+
+A different reviewer re-tested the fixes, concentrating on the riskiest change: the API now
+shares one database per worker process instead of opening one per request.
+
+### Confirmed
+
+- **The crash is gone.** 13 of 13 live investigations and 320 offline ones completed; none
+  aborted and none were withheld.
+- **Shared database.** 65 attacks through the reader (file and URL reads, `COPY`, `ATTACH`,
+  `INSTALL`, `SET`/`PRAGMA`, stacked statements, temporary views, tables and macros, `EXPORT`,
+  `CALL`) were refused or harmless; nothing persisted between requests; 340 payloads over HTTP
+  produced no 500. Sixteen threads making 150 calls each showed no cross-request mix-up, and a
+  replaced data file was picked up.
+- **Stored investigations are served** by the compose stack, and no HTTP route can start one.
+- **Fact logic.** Financial figures come from the latest fiscal year strictly before the
+  process (checked on six processes against the source), zeros render as unavailable, snapshot
+  facts say so, and Contraloría dates and period grouping matched the source rows.
+- **Privacy.** 300 natural-person and RUC-less processes across four endpoints: no identifiers
+  and no names. Legal-representative names fetched live for 32 companies appear in none of the
+  36 stored records.
+- **Load.** 200 requests at concurrency 8: p95 0.64 s, no errors.
+
+### Still open at the time of review 4
+
+| Severity | Finding |
+|---|---|
+| Medium | The stored-record privacy scan had been narrowed too far while fixing the crash: it caught a plain natural-person RUC but no cédula and no RUC written with dots, dashes or spaces, nor identifiers held as integers or dictionary keys. |
+| Medium | The Contraloría report-number field was rendered as received and accepted an identity number in a test. |
+| Medium | One buyer had nine matching reports and the dossier listed six without saying so; two of the omitted ones covered the process date. |
+| Low | The same neighbour could show a different buyer-name spelling across identical requests; a CLI command still printed a traceback for an empty identifier; a stored record was not checked against the identifier it was requested under; a singular/plural mismatch. |
+
+These were fixed afterwards: the scan now normalises digits and separators, inspects values and
+keys, validates cédulas with the checksum, and was run in both directions (21 attack forms
+caught; 400 real offline investigations with no false alarm); report numbers must match the
+shape derived from real values; the list states "se muestran N de M" and orders covering
+reports first. **This last round was verified by the project's own tests and runs, not by a
+fifth independent review.**
+
 ## Residual limits
 
 - **Name masking in free text is heuristic.** A person who is not a party to the process and is
@@ -114,3 +207,13 @@ tests and sweeps, not by a third independent review — treat it accordingly.
   validation rejects; they appear in listings but their detail page cannot be opened.
 - **No model behaviour was reviewed adversarially with a real model.** Reviewers used a scripted
   fake model through the real agent graph.
+- **Investigation facts are snapshots of today's registries.** Legal status and subscribed
+  capital are the values at query time; the text says so, but they are not the values at award.
+- **The audit specialist reads part of the catalogue.** It can show that at least N Contraloría
+  reports mention the buyer; it cannot show that there are no others. Matching is by exact
+  normalised entity name; near-identical entity names were not exercised by a reviewer.
+- **Model-assisted investigation numbers predate the last fixes.** The recorded run with a real
+  model (10 processes) was not repeated after the review-3 and review-4 fixes.
+- **Vector similarity is not relevance.** Almost half of the index is embedded from the CPC
+  classification alone; agreement drops from 63 % to 30 % when the classification text is
+  removed from the embedding.
