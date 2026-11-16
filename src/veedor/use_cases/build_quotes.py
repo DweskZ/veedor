@@ -16,6 +16,7 @@ Similarity is a ranking aid, not a finding: the quote is context for a signal, n
 
 from __future__ import annotations
 
+import re
 import time
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -25,6 +26,7 @@ from typing import Any, Protocol
 import numpy as np
 
 from veedor.domain.masking import is_masked_party, is_natural_person
+from veedor.domain.quotes.deny import passage_key
 from veedor.domain.quotes.screen import PERSONAL, UNSAFE, Verdict, check_passage
 from veedor.domain.quotes.topics import SIGNAL_TOPICS_ES
 
@@ -36,7 +38,9 @@ MAX_QUOTES = 3
 # Items with a paired answer rank slightly higher: a question without its answer is half a statement.
 PAIR_BONUS = 0.03
 NEAR_DUPLICATE = 0.92  # cosine between the primary passages of two items
-QUOTE_MAX_CHARS = 600
+# A shown passage is whole when it has at most this many characters (about 90 % of real enquiry questions
+# and answers); a longer one is cut at the end of a sentence or clause, never in the middle of one.
+QUOTE_MAX_CHARS = 800
 EMBED_MAX_CHARS = 1_000
 # Smallest step of 0.05 at which passages at or above it are at least twice as likely as all passages to
 # contain a deadline or price stem (calibration sample: the first 6,000 flagged processes by ocid; see
@@ -113,13 +117,26 @@ def name_context(
 # ------------------------------------------------------------------------------------ display text
 
 
+_SENTENCE_END = re.compile(r"[.!?][\"'»)\]]*(?=\s|$)")
+_CLAUSE_END = re.compile(r"[;:,](?=\s)")
+_SENTENCE_MIN_SHARE = 0.4  # a sentence cut must keep at least this share of the cap
+_CLAUSE_MIN_SHARE = 0.6
+
+
 def shorten(text: str, limit: int = QUOTE_MAX_CHARS) -> tuple[str, bool]:
-    """The text as shown: whole when short, else cut at a word boundary with an ellipsis."""
+    """The text as shown: whole when it has at most `limit` characters, else cut at the last sentence end
+    inside the limit, else at the last clause end (`;` `:` `,`), else at a word. The cut carries no
+    ellipsis: the flag says it was cut and the page writes the mark. A text is never cut mid-sentence
+    when a sentence end exists in the second part of the window."""
     if len(text) <= limit:
         return text, False
-    cut = text[:limit]
-    boundary = cut.rfind(" ")
-    return (cut[:boundary] if boundary > limit // 2 else cut).rstrip(" ,;:.") + "…", True
+    window = text[:limit]
+    for pattern, share in ((_SENTENCE_END, _SENTENCE_MIN_SHARE), (_CLAUSE_END, _CLAUSE_MIN_SHARE)):
+        ends = [m.end() for m in pattern.finditer(window) if m.end() >= limit * share]
+        if ends:
+            return window[: ends[-1]].rstrip(" ,;:"), True
+    boundary = window.rfind(" ")
+    return (window[:boundary] if boundary > limit // 2 else window).rstrip(" ,;:."), True
 
 
 # ----------------------------------------------------------------------------------- eligibility
@@ -192,27 +209,50 @@ class ProcessResult:
     stats: dict[str, Any] = field(default_factory=dict)
     reasons: Counter[str] = field(default_factory=Counter)
     near_duplicates: int = 0
+    repeated: int = 0
 
 
-def _quote_row(ocid: str, rank: int, item: Item) -> dict[str, Any]:
+@dataclass(frozen=True, slots=True)
+class Shown:
+    """The passages of an item as they would be displayed."""
+
+    text: str
+    cut: bool
+    pair_text: str | None
+    pair_cut: bool
+
+    @property
+    def keys(self) -> tuple[str, ...]:
+        return tuple(passage_key(t) for t in (self.text, self.pair_text) if t)
+
+
+def shown(item: Item) -> Shown:
+    """The displayed passages. An answer that repeats its question word for word is not shown twice."""
     text, cut = shorten(item.primary.text)
-    pair_text = pair_cut = None
-    if item.pair is not None:
-        pair_text, pair_cut = shorten(item.pair.text)
+    pair_text, pair_cut = shorten(item.pair.text) if item.pair is not None else (None, False)
+    if pair_text is not None and passage_key(pair_text) == passage_key(text):
+        pair_text, pair_cut = None, False
+    return Shown(text, cut, pair_text, pair_cut)
+
+
+def _quote_row(ocid: str, rank: int, item: Item, view: Shown) -> dict[str, Any]:
     return {
         "ocid": ocid,
         "rank": rank,
         "kind": item.primary.kind,
-        "text": text,
+        "text": view.text,
         "date": item.primary.date,
         "author_kind": item.primary.author_kind,
         "source_field": item.primary.source_field,
         "related_signal": item.signal,
         "similarity": round(float(item.score), 4),
-        "truncated": bool(item.primary.truncated or cut or (item.pair and item.pair.truncated) or pair_cut),
-        "pair_text": pair_text,
-        "pair_kind": item.pair.kind if item.pair else None,
-        "pair_source_field": item.pair.source_field if item.pair else None,
+        "truncated": bool(item.primary.truncated or view.cut),
+        "pair_text": view.pair_text,
+        "pair_kind": item.pair.kind if view.pair_text is not None and item.pair else None,
+        "pair_source_field": item.pair.source_field if view.pair_text is not None and item.pair else None,
+        "pair_truncated": bool(
+            view.pair_text is not None and item.pair and (item.pair.truncated or view.pair_cut)
+        ),
     }
 
 
@@ -233,7 +273,8 @@ def select_for_process(
     fired = [i for i, code in enumerate(topic_codes) if code in bundle.signals]
     eligible = {(j.row.kind, j.row.seq): j.row for j in judged if j.verdict.eligible}
     below = 0
-    chosen: list[Item] = []
+    chosen: list[tuple[Item, Shown]] = []
+    used: set[str] = set()  # a passage is shown at most once per process, as an item or as a pair
     if eligible and fired:
         keys = list(eligible)
         matrix = np.vstack([vectors[eligible[k].text[:EMBED_MAX_CHARS]] for k in keys])
@@ -251,14 +292,21 @@ def select_for_process(
         for item in above:
             if len(chosen) == MAX_QUOTES:
                 break
+            view = shown(item)
+            if used.intersection(view.keys):
+                result.repeated += 1
+                continue
             vec = vectors[item.primary.text[:EMBED_MAX_CHARS]]
-            if any(float(vec @ vectors[c.primary.text[:EMBED_MAX_CHARS]]) >= NEAR_DUPLICATE for c in chosen):
+            if any(
+                float(vec @ vectors[c.primary.text[:EMBED_MAX_CHARS]]) >= NEAR_DUPLICATE for c, _ in chosen
+            ):
                 result.near_duplicates += 1
                 continue
-            chosen.append(item)
+            used.update(view.keys)
+            chosen.append((item, view))
     elif eligible:
         below = len(eligible)  # no signal with a topic fired: nothing to rank against
-    result.quotes = [_quote_row(bundle.ocid, rank, item) for rank, item in enumerate(chosen, 1)]
+    result.quotes = [_quote_row(bundle.ocid, rank, i, v) for rank, (i, v) in enumerate(chosen, 1)]
     result.stats = {
         "ocid": bundle.ocid,
         "available_total": len(bundle.texts),
@@ -282,6 +330,7 @@ class QuotesReport:
     quotes: int = 0
     pairs: int = 0
     near_duplicates: int = 0
+    repeated: int = 0
     reasons: Counter[str] = field(default_factory=Counter)
     by_signal_processes: Counter[str] = field(default_factory=Counter)
     by_signal_with_quote: Counter[str] = field(default_factory=Counter)
@@ -371,6 +420,7 @@ def _count(report: QuotesReport, bundle: ProcessBundle, result: ProcessResult) -
     report.quotes += len(result.quotes)
     report.pairs += sum(1 for q in result.quotes if q["pair_text"])
     report.near_duplicates += result.near_duplicates
+    report.repeated += result.repeated
     report.reasons.update(result.reasons)
     has_quote = bool(result.quotes)
     report.processes_with_quote += has_quote

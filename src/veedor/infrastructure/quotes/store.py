@@ -27,6 +27,7 @@ QUOTES_SCHEMA = pa.schema(
         ("pair_text", pa.string()),
         ("pair_kind", pa.string()),
         ("pair_source_field", pa.string()),
+        ("pair_truncated", pa.bool_()),
     ]
 )
 STATS_SCHEMA = pa.schema(

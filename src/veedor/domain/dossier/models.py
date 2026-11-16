@@ -58,6 +58,7 @@ class ProcessFacts(BaseModel):
     date_signed: str | None = None
     main_cpc: str | None = None
     main_cpc_description: str | None = None
+    n_enquiries: int | None = None  # questions registered by bidders (a count; no text)
 
 
 class RegistryFacts(BaseModel):
@@ -217,7 +218,7 @@ class AuditFacts(BaseModel):
 
 
 class SpecialistSummary(BaseModel):
-    specialist: str  # closed vocabulary: company, tax_registry, history, audit
+    specialist: str  # closed vocabulary: company, tax_registry, history, audit, enquiries
     n_tool_calls: int
     dispatches: int = 1
 
@@ -232,6 +233,29 @@ class LookupSummary(BaseModel):
     retries: int = 0  # extra attempts after a failure, summed over the calls
 
 
+class EnquiriesFacts(BaseModel):
+    """How the question-and-answer stage went, from counts and dates of the process's own enquiries.
+
+    Computed by code from the stored texts; no text is kept. A question counts as answered only when its
+    answer has published text (a bare formula such as "Aclaración" is not stored), so the answered figures
+    are lower bounds."""
+
+    outcome: LookupOutcome = "skipped"
+    n_registered: int | None = None  # enquiries registered in the process (OCDS count)
+    n_with_text: int | None = None  # questions whose text is published and analysable
+    n_answered: int | None = None  # of those, with a published answer text
+    n_dated_pairs: int | None = None  # of those, with a question date and an answer date
+    median_days_to_answer: float | None = None
+    max_days_to_answer: int | None = None
+    deadline: str | None = None  # end of the offer period, when the process publishes it
+    late_window_days: int | None = None
+    n_late: int | None = None  # questions dated within the window before the deadline
+    topic_deadlines: int | None = None
+    topic_specifications: int | None = None
+    topic_price: int | None = None
+    topic_requirements: int | None = None
+
+
 class InvestigationFacts(BaseModel):
     company: CompanyRegistryFacts | None = None
     financials: CompanyFinancialsFacts | None = None
@@ -239,6 +263,7 @@ class InvestigationFacts(BaseModel):
     pair_history: PairHistoryFacts | None = None
     similar: SimilarPurchasesFacts | None = None
     audit: AuditFacts | None = None
+    enquiries: EnquiriesFacts | None = None
     specialists: list[SpecialistSummary] = Field(default_factory=list)
     lookups: list[LookupSummary] = Field(default_factory=list)
 

@@ -2,9 +2,12 @@
 #   web  http://localhost:3000   api  http://localhost:8000 (docs at /docs)   db  localhost:5433
 # Ports are bound to 127.0.0.1 only; put a reverse proxy in front for any other exposure (see
 # docs/DEPLOYMENT.md).
-# The API never calls an LLM (dossiers served over HTTP are always template mode), so no LLM
-# variable is passed to any container. LLM-written dossiers are produced only with the CLI.
-# Nothing secret is stored in this file or in the images.
+# The API calls a language model in exactly one place: `POST /processes/{ocid}/ask`, off by default. Dossiers
+# served over HTTP are always template mode; LLM-written dossiers are produced only with the CLI.
+# To switch the question route on, export VEEDOR_ASK_ENABLED=true (and, for model mode, VEEDOR_LLM_PROVIDER,
+# VEEDOR_LLM_MODEL and VEEDOR_LLM_API_KEY) in the shell that runs compose: compose reads them from the
+# environment, with `${VAR:-}` interpolation; the model variables reach the container only while
+# VEEDOR_ASK_ENABLED is set. Nothing secret is stored in this file or in the images.
 # Observability (docs/OBSERVABILITY.md): Grafana http://localhost:3001 (user admin, password
 # ${GRAFANA_ADMIN_PASSWORD:-veedor_dev}; loopback only), OTLP/HTTP 127.0.0.1:4318, Prometheus
 # 127.0.0.1:9090, Tempo 127.0.0.1:3200.
@@ -58,6 +61,14 @@ services:
       VEEDOR_REVIEWS_TOKEN: ${VEEDOR_REVIEWS_TOKEN:-}
       VEEDOR_DOCS_ENABLED: ${VEEDOR_DOCS_ENABLED:-true}
       VEEDOR_GLOSSARY_PATH: /app/web/src/data/glossary.json
+      # Question answering (docs/SECURITY.md): off unless VEEDOR_ASK_ENABLED is set. The model variables are
+      # passed only while it is set; without a key the route answers by retrieval.
+      VEEDOR_ASK_ENABLED: ${VEEDOR_ASK_ENABLED:-}
+      VEEDOR_ASK_DAILY_BUDGET: ${VEEDOR_ASK_DAILY_BUDGET:-}
+      VEEDOR_LLM_PROVIDER: ${VEEDOR_ASK_ENABLED:+${VEEDOR_LLM_PROVIDER:-}}
+      VEEDOR_LLM_MODEL: ${VEEDOR_ASK_ENABLED:+${VEEDOR_LLM_MODEL:-}}
+      VEEDOR_LLM_API_KEY: ${VEEDOR_ASK_ENABLED:+${VEEDOR_LLM_API_KEY:-}}
+      HF_HUB_OFFLINE: "1"
       # Performance: uvicorn processes and DuckDB threads per process (docs/DEPLOYMENT.md).
       VEEDOR_API_WORKERS: ${VEEDOR_API_WORKERS:-2}
       VEEDOR_LAKE_THREADS: ${VEEDOR_LAKE_THREADS:-2}
@@ -73,6 +84,8 @@ services:
       # the API serves only the screened quotes in data/marts.
       # Stored investigations are produced by the CLI on the host and only read by the API.
       - ./data/investigations:/app/data/investigations:ro
+      # The local embedding model (question answering embeds the question); read-only, never downloaded.
+      - ./data/models:/app/data/models:ro
       # `GET /glossary` serves the web team's content file (the folder is mounted, never one file).
       - ./web/src/data:/app/web/src/data:ro
       - veedor_dossiers:/app/data/dossiers

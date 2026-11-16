@@ -131,6 +131,10 @@ def contraloria_reports(record_id: str | None) -> Source:
     )
 
 
+def sercop_enquiries(record_id: str | None) -> Source:
+    return sercop("SERCOP datos abiertos OCDS: preguntas y respuestas (recuentos y fechas)", record_id)
+
+
 INVESTIGATION_SOURCES = {
     "supercias_company": supercias_company_live,
     "supercias_financials": supercias_financials_live,
@@ -138,4 +142,5 @@ INVESTIGATION_SOURCES = {
     "sercop_pair_awards": sercop_pair_awards,
     "vector_index": vector_index,
     "contraloria_reports": contraloria_reports,
+    "sercop_enquiries": sercop_enquiries,
 }

@@ -24,11 +24,14 @@ def quote(rank=1, text=SAFE, signal="SINGLE_BIDDER", pair_text=PAIR, **extra):
         "related_signal": signal, "similarity": 0.512, "truncated": False,
         "pair_text": pair_text, "pair_kind": "enquiry_answer" if pair_text else None,
         "pair_source_field": "tender.enquiries[0].answer" if pair_text else None,
+        "pair_truncated": False,
     }  # fmt: skip
     return row | extra
 
 
-def write(marts: Path, ocid: str, quotes: list[dict], stats: dict | None = None) -> None:
+def write(
+    marts: Path, ocid: str, quotes: list[dict], stats: dict | None = None, *, vocabulary: bool = True
+) -> None:
     import pyarrow as pa
     import pyarrow.parquet as pq
 
@@ -39,6 +42,8 @@ def write(marts: Path, ocid: str, quotes: list[dict], stats: dict | None = None)
     } | (stats or {})  # fmt: skip
     pq.write_table(pa.Table.from_pylist(rows, schema=QUOTES_SCHEMA), marts / "process_quotes.parquet")
     pq.write_table(pa.Table.from_pylist([stat], schema=STATS_SCHEMA), marts / "process_quote_stats.parquet")
+    if not vocabulary:
+        return
     tokens = [{"token": t} for t in sorted(VOCABULARY)]
     pq.write_table(
         pa.Table.from_pylist(tokens, schema=VOCABULARY_SCHEMA), marts / "person_name_tokens.parquet"
@@ -64,6 +69,7 @@ def test_quotes_are_served_with_label_pair_counts_and_the_note(client: TestClien
         "kind": "enquiry_answer",
         "text": PAIR,
         "source_field": "tender.enquiries[0].answer",
+        "truncated": False,
     }
     assert second["pair"] is None and second["related_signal"] == "LOW_SAVING"
     assert set(first) == {
@@ -193,3 +199,9 @@ def test_quotes_endpoint_runs_only_single_selects_by_ocid(
     unbounded = [s for s in seen if "WHERE" not in s.upper()]
     # the only statement without a key is the person-name vocabulary: a few hundred rows, once per build
     assert unbounded == ["SELECT token FROM person_name_tokens"], seen
+
+
+def test_quotes_are_served_without_the_name_vocabulary_table(client: TestClient, marts: Path):
+    write(marts, fx.OCID_COMPANY, [quote()], vocabulary=False)
+    response = client.get(f"{API}/processes/{fx.OCID_COMPANY}/quotes")
+    assert response.status_code == 200 and response.json()["items"][0]["text"] == SAFE

@@ -166,3 +166,18 @@ class SimilarSummary(_Result):
     n_in_window: int = Field(ge=0)
     n_with_amount: int = Field(ge=0)
     combined_amount: float | None = None
+
+
+class EnquirySummary(_Result):
+    """`process_texts` (local tool): counts and dates of the process's own enquiries. No text, no names."""
+
+    n_with_text: int = Field(ge=0, le=100_000)
+    n_answered: int = Field(ge=0, le=100_000)
+    n_dated_pairs: int = Field(ge=0, le=100_000)
+    median_days_to_answer: float | None = Field(default=None, ge=0, le=3_650)
+    max_days_to_answer: int | None = Field(default=None, ge=0, le=3_650)
+    n_late: int | None = Field(default=None, ge=0, le=100_000)
+    topic_deadlines: int = Field(ge=0, le=100_000)
+    topic_specifications: int = Field(ge=0, le=100_000)
+    topic_price: int = Field(ge=0, le=100_000)
+    topic_requirements: int = Field(ge=0, le=100_000)

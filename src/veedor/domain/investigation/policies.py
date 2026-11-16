@@ -34,8 +34,11 @@ SIGNAL_TABLE: tuple[tuple[str, SpecialistName, DispatchReason], ...] = (
     ("SINGLE_BIDDER", "history", "single_bidder_signal"),
     ("SHORT_TENDER_WINDOW", "audit", "tender_window_signal"),
     ("LOW_SAVING", "history", "low_saving_signal"),
+    ("SHORT_TENDER_WINDOW", "enquiries", "tender_window_signal"),
+    ("SINGLE_BIDDER", "enquiries", "single_bidder_signal"),
+    ("RECURRING_COBIDDERS", "enquiries", "recurring_cobidders_signal"),
 )
-BASELINE_ORDER: tuple[SpecialistName, ...] = ("company", "history", "audit", "tax_registry")
+BASELINE_ORDER: tuple[SpecialistName, ...] = ("company", "history", "audit", "tax_registry", "enquiries")
 
 
 def winner_is_registry_eligible(pack: EvidencePack) -> bool:
@@ -59,6 +62,8 @@ def applicable_specialists(pack: EvidencePack) -> list[SpecialistName]:
             continue
         if name == "audit" and not buyer_is_nameable(pack):
             continue
+        if name == "enquiries" and not (pack.process.n_enquiries or 0) > 0:
+            continue  # the process registered no question: there is nothing to describe
         out.append(name)
     return out
 
@@ -131,6 +136,7 @@ ACTION_MENU: dict[SpecialistName, tuple[Action, ...]] = {
     "tax_registry": (Action("get_sri_ruc_info", "winner"),),
     "history": (Action("pair_awards", "winner"), Action("similar_processes", "process")),
     "audit": (Action("list_catalogo", "buyer"), Action("get_contraloria_informe", "buyer")),
+    "enquiries": (Action("process_texts", "process"),),
 }
 # The default sequence is the menu in order; a model may only reorder or drop entries.
 ALLOWED_TOOLS: dict[SpecialistName, frozenset[str]] = {

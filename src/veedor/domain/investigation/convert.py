@@ -15,6 +15,7 @@ from veedor.domain.dossier.models import (
     AuditReportRef,
     CompanyFinancialsFacts,
     CompanyRegistryFacts,
+    EnquiriesFacts,
     EvidencePack,
     TaxRegistryLiveFacts,
 )
@@ -27,6 +28,7 @@ from veedor.domain.investigation.results import (
     REPORT_ID_PATTERN,
     Catalogue,
     CompaniaInfo,
+    EnquirySummary,
     Financials,
     ReportsFile,
     SriRucInfo,
@@ -251,4 +253,28 @@ def audit_facts(
         n_not_covering=sum(r.covers_process is False for r in matches) if reliable else None,
         n_period_unknown=sum(r.covers_process is None for r in matches) if reliable else None,
         reports=ordered[:MAX_LISTED_REPORTS],
+    )
+
+
+def enquiries_facts(summary: EnquirySummary, pack: EvidencePack, arguments: dict) -> EnquiriesFacts:
+    """Counts and dates of the enquiries. The deadline is the process's own `tender_end` (a day)."""
+    deadline = arguments.get("deadline_day")
+    n_with_text = summary.n_with_text
+    return EnquiriesFacts(
+        outcome="ok",
+        n_registered=pack.process.n_enquiries,
+        n_with_text=n_with_text,
+        n_answered=summary.n_answered,
+        n_dated_pairs=summary.n_dated_pairs,
+        median_days_to_answer=None
+        if summary.median_days_to_answer is None
+        else round(summary.median_days_to_answer, 1),
+        max_days_to_answer=summary.max_days_to_answer,
+        deadline=deadline if isinstance(deadline, str) and summary.n_late is not None else None,
+        late_window_days=arguments.get("late_days") if summary.n_late is not None else None,
+        n_late=summary.n_late,
+        topic_deadlines=summary.topic_deadlines,
+        topic_specifications=summary.topic_specifications,
+        topic_price=summary.topic_price,
+        topic_requirements=summary.topic_requirements,
     )

@@ -33,6 +33,7 @@ from veedor.domain.dossier.safety import is_unsafe_text
 from veedor.domain.dossier.text import canonical
 from veedor.domain.investigation.identifiers import document_has_personal_identifier
 from veedor.domain.masking import MASKED_NAME, TEXT_PLACEHOLDER, UNIDENTIFIED_NAME, safe_free_text
+from veedor.domain.quotes.deny import is_denied
 from veedor.domain.quotes.names import probable_person_name
 
 PERSONAL = "personal"
@@ -85,6 +86,14 @@ _GENERIC_ADDRESSEE = frozenset(
 # "yo <name>, en mi calidad de" is a person introducing themselves.
 _TITLE_NAME = re.compile(
     rf"\b(?:Ingenier[oa]|Doctor[a]?|Licenciad[oa]|Abogad[oa]|Arquitect[oa]|Economista)\s+{_NAME}\s+{_NAME}"
+)
+# A name followed by an official title in capitals ("Pedro Mora SECRETARIO DE ...") is a signature or an
+# address line. (Patterns for "role noun + name" and for owner lists were tried and removed: 289 and 82
+# stored passages matched, nearly all ordinary requirements such as "Personal Técnico Clave"; the few real
+# cases are in `domain.quotes.deny`.)
+_TITLE_AFTER_NAME = re.compile(
+    rf"{_NAME}\s+{_NAME}(?:\s+{_NAME})?\s*(?:SECRETARI|DIRECTOR|GERENTE|ADMINISTRADOR|ALCALD|MINISTR|COORDINADOR|"
+    r"PRESIDENT|SUBSECRETARI|RECTOR|JEFE|DELEGAD|REPRESENTANTE|COMISARI|CONCEJAL|PREFECT)"
 )
 _ATTACHED_SENOR = re.compile(r"\bSe[ñn]or(?:a|ita)?(?=[A-ZÁÉÍÓÚÑ]{2})")
 _SELF_INTRODUCTION = re.compile(
@@ -169,12 +178,29 @@ def _personal_cue(text: str, protected: Iterable[str]) -> str | None:
         return "honorific"
     if _salutation_cue(text):
         return "salutation"
+    if _TITLE_AFTER_NAME.search(text):
+        return "name_before_title"
     ascii_text = _ascii_digits(canon)
     if _EMAIL.search(ascii_text):
         return "email"
     if _PHONE_NUMBER.search(ascii_text) or _PHONE_CUE.search(ascii_text):
         return "phone"
     return None
+
+
+def has_accusation_wording(text: str) -> bool:
+    """Accusation or inference wording, also hidden by look-alike digits or symbols or by separators between
+    letters (and nothing else: links, markup and instruction-like text are not considered)."""
+    from veedor.domain.dossier.vocabulary import FORBIDDEN_PATTERN, INFERENCE_PATTERN
+
+    canon = canonical(text)
+    leet = canon.translate(_LEET)
+    if _EXTRA_FORBIDDEN.search(canon) or _EXTRA_FORBIDDEN.search(leet):
+        return True
+    if any(p.search(form) for p in (FORBIDDEN_PATTERN, INFERENCE_PATTERN) for form in (canon, leet)):
+        return True
+    compact = _SEPARATORS.sub("", leet)
+    return any(stem in compact for stem in _COMPACT_STEMS)
 
 
 def has_obfuscated_wording(text: str) -> bool:
@@ -202,6 +228,8 @@ def check_passage(
     protected = list(protected_names)
     if asker_is_person:
         return _drop(PERSONAL, "asker_person")
+    if is_denied(text):
+        return _drop(PERSONAL, "denied_passage")
     if safe_free_text(text, names, protected_names=protected)[1]:
         return _drop(PERSONAL, "name_or_identifier")
     if TEXT_PLACEHOLDER in text or MASKED_NAME in text or UNIDENTIFIED_NAME in text:

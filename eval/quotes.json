@@ -4,51 +4,53 @@
   "build": {
     "flagged_processes_with_text": 86936,
     "texts": 716246,
-    "quotes": 68553,
-    "quotes_with_pair": 42068,
-    "near_duplicates_skipped": 1090,
+    "quotes": 68541,
+    "quotes_with_pair": 42038,
+    "near_duplicates_skipped": 1055,
     "exclusions_by_reason": {
       "personal:asker_person": 88918,
-      "personal:email": 2437,
+      "personal:denied_passage": 4,
+      "personal:email": 2435,
       "personal:honorific": 1017,
       "personal:identifier": 79,
+      "personal:name_before_title": 27,
       "personal:name_or_identifier": 5808,
-      "personal:phone": 557,
+      "personal:phone": 555,
       "personal:placeholder": 4,
-      "personal:probable_person_name": 1756,
-      "personal:question_excluded": 70103,
+      "personal:probable_person_name": 1751,
+      "personal:question_excluded": 70105,
       "personal:salutation": 1697,
       "personal:self_or_address_line": 19,
       "personal:signature": 595,
       "unsafe:obfuscated_wording": 1527,
       "unsafe:question_excluded": 8798,
-      "unsafe:unsafe_text": 23350
+      "unsafe:unsafe_text": 23349
     },
     "exclusions_by_category": {
-      "personal": 172990,
-      "unsafe": 33675
+      "personal": 173014,
+      "unsafe": 33674
     },
-    "wall_seconds": 252.1,
-    "embed_seconds": 11.1,
-    "processes_per_second": 344.9,
-    "texts_per_second": 2841.5,
+    "wall_seconds": 252.8,
+    "embed_seconds": 11.3,
+    "processes_per_second": 343.9,
+    "texts_per_second": 2832.9,
     "bytes": {
-      "process_quotes": 11016605,
-      "process_quote_stats": 830949
+      "process_quotes": 11295044,
+      "process_quote_stats": 830957
     },
     "stats_rows": 86936,
-    "quote_rows": 68553,
+    "quote_rows": 68541,
     "quote_rows_by_kind": {
-      "award_text": 12799,
-      "enquiry_answer": 5841,
-      "enquiry_question": 49913
+      "award_text": 12800,
+      "enquiry_answer": 5842,
+      "enquiry_question": 49899
     },
     "quote_rows_by_rank": {
       "1": 36345,
-      "2": 19053,
-      "3": 13155
+      "2": 19046,
+      "3": 13150
     },
-    "rows_truncated": 13232
+    "rows_truncated": 4096
   },
   "coverage": {
     "all_flagged": {
@@ -152,7 +154,7 @@
   },
   "calibration": {
     "processes": 6000,
-    "eligible_passages": 23429,
+    "eligible_passages": 23426,
     "best_similarity_percentiles": {
       "5": 0.02,
       "25": 0.154,
@@ -162,22 +164,22 @@
       "95": 0.539,
       "99": 0.601
     },
-    "stem_passage_pairs": 1766,
+    "stem_passage_pairs": 1765,
     "base_stem_rate": 0.1212,
     "by_floor": {
       "0.1": {
-        "passages": 1221,
-        "stem_rate": 0.1433,
+        "passages": 1220,
+        "stem_rate": 0.1434,
         "lift": 1.18
       },
       "0.15": {
-        "passages": 1097,
-        "stem_rate": 0.1513,
+        "passages": 1096,
+        "stem_rate": 0.1515,
         "lift": 1.25
       },
       "0.2": {
-        "passages": 927,
-        "stem_rate": 0.1532,
+        "passages": 926,
+        "stem_rate": 0.1533,
         "lift": 1.26
       },
       "0.25": {
@@ -198,7 +200,7 @@
       "0.4": {
         "passages": 93,
         "stem_rate": 0.5376,
-        "lift": 4.44
+        "lift": 4.43
       },
       "0.45": {
         "passages": 37,
@@ -208,7 +210,7 @@
       "0.5": {
         "passages": 12,
         "stem_rate": 0.8333,
-        "lift": 6.88
+        "lift": 6.87
       }
     },
     "rule": "smallest floor on the 0.05 grid whose stem rate is at least twice the base rate"
@@ -236,25 +238,25 @@
     },
     "LOW_SAVING": {
       "processes": 1561,
-      "selected_quote_stem_rate": 0.5176,
+      "selected_quote_stem_rate": 0.5208,
       "selected_ci95": [
-        0.4933,
-        0.5426
+        0.4965,
+        0.5458
       ],
       "random_eligible_item_stem_rate": 0.296,
       "random_ci95": [
         0.2729,
         0.319
       ],
-      "difference": 0.2217,
+      "difference": 0.2249,
       "difference_ci95": [
-        0.1954,
-        0.2479
+        0.1986,
+        0.2511
       ]
     }
   },
   "privacy_sweep": {
-    "quote_passages_scanned": 110621,
+    "quote_passages_scanned": 110579,
     "processes_with_quotes": 36345,
     "processes_with_person_names_searched": 15760,
     "person_names_searched": 67806,
@@ -265,7 +267,7 @@
       "phone": 0,
       "senor_followed_by_a_name": 0
     },
-    "rarer_name_pair_candidates": 17,
+    "rarer_name_pair_candidates": 13,
     "hit_locations": [
       {
         "ocid": "ocds-5wno2w-MCO-GADMP-01-2020.-45119",

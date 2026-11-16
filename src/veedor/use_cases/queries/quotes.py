@@ -22,7 +22,7 @@ VOCABULARY_TABLE = "person_name_tokens"
 
 _QUOTES_SQL = (
     "SELECT rank, kind, text, date, author_kind, source_field, related_signal, similarity, truncated, "
-    "pair_text, pair_kind, pair_source_field FROM process_quotes WHERE ocid = ? ORDER BY rank"
+    "pair_text, pair_kind, pair_source_field, pair_truncated FROM process_quotes WHERE ocid = ? ORDER BY rank"
 )
 _STATS_SQL = (
     "SELECT available_total, excluded_personal, excluded_unsafe, below_floor "
@@ -33,7 +33,7 @@ _VOCABULARY = VersionedCache(max_entries=2)
 
 
 def get_process_quotes(lake: LakePort, ocid: str) -> dict[str, Any]:
-    missing = [t for t in (QUOTES_TABLE, STATS_TABLE, VOCABULARY_TABLE) if not lake.has_table(t)]
+    missing = [t for t in (QUOTES_TABLE, STATS_TABLE) if not lake.has_table(t)]
     if missing:
         raise LakeUnavailableError(missing)
     if not process_exists(lake, ocid):
@@ -42,9 +42,13 @@ def get_process_quotes(lake: LakePort, ocid: str) -> dict[str, Any]:
 
 
 def _vocabulary(lake: LakePort) -> frozenset[str]:
-    """Person-name tokens of the build (a few hundred rows), read once per data build."""
+    """Person-name tokens of the build, read once per data build. The table is optional: the public data
+    bundle does not ship it (docs/SECURITY.md), and the mart was already screened with it when it was built,
+    so without it the boundary applies every other screen and the name net only at build time."""
 
     def load() -> frozenset[str]:
+        if not lake.has_table(VOCABULARY_TABLE):
+            return frozenset()
         rows = lake.fetch("SELECT token FROM person_name_tokens", [], tables=(VOCABULARY_TABLE,))
         return frozenset(row["token"] for row in rows)
 
@@ -105,6 +109,7 @@ def _checked_item(
                 "kind": row["pair_kind"],
                 "text": row["pair_text"],
                 "source_field": row["pair_source_field"],
+                "truncated": bool(row["pair_truncated"]),
             }
         else:
             _count(omitted, pair_verdict.category)

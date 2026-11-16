@@ -13,6 +13,7 @@ from typing import Any
 
 from veedor.domain.dossier.models import EvidencePack
 from veedor.domain.investigation.convert import reference_date
+from veedor.domain.investigation.enquiry_topics import LATE_WINDOW_DAYS
 from veedor.domain.investigation.policies import REGISTRY_KINDS, buyer_is_nameable
 from veedor.domain.masking import NATURAL_PERSON, kind_from_ruc
 
@@ -84,3 +85,16 @@ def audit_buyer_name(pack: EvidencePack) -> str | Skip:
     if not buyer_is_nameable(pack):
         return Skip("no_buyer_name")
     return pack.process.buyer_name or ""
+
+
+def enquiry_arguments(pack: EvidencePack) -> dict[str, Any] | Skip:
+    """Arguments of `process_texts`: the process id, the offer deadline (a day) when published, the window."""
+    ocid = pack.process.ocid
+    if not _OCID.match(ocid):
+        return Skip("no_identifier")
+    deadline = pack.process.tender_end
+    return {
+        "ocid": ocid,
+        "deadline_day": deadline[:10] if isinstance(deadline, str) and len(deadline) >= 10 else None,
+        "late_days": LATE_WINDOW_DAYS,
+    }

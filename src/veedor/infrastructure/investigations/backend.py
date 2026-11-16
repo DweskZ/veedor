@@ -85,8 +85,12 @@ def _classify_local(exc: Exception) -> RawResult:
     return RawResult("upstream_error", reason="tool_reported_error")
 
 
-def build_backend(mcp: ToolBackend, lake: LakeTools) -> CompositeBackend:
-    return CompositeBackend(
-        mcp,
-        {"pair_awards": lake.pair_awards, "similar_processes": lambda args: similar_summary(lake, args)},
-    )
+def build_backend(mcp: ToolBackend, lake: LakeTools, enquiries: Any | None = None) -> CompositeBackend:
+    """`enquiries` is an `EnquiryTool` (local, unmasked texts): without one the tool is not offered."""
+    local: dict[str, LocalTool] = {
+        "pair_awards": lake.pair_awards,
+        "similar_processes": lambda args: similar_summary(lake, args),
+    }
+    if enquiries is not None:
+        local["process_texts"] = enquiries.process_texts
+    return CompositeBackend(mcp, local)

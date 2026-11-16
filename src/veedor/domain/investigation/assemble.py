@@ -16,7 +16,7 @@ from veedor.domain.dossier.models import (
 from veedor.domain.investigation.models import SpecialistRun, ToolCall
 from veedor.domain.investigation.vocab import SOURCE_BY_TOOL
 
-FINDING_KEYS = ("company", "financials", "tax_registry", "pair_history", "similar", "audit")
+FINDING_KEYS = ("company", "financials", "tax_registry", "pair_history", "similar", "audit", "enquiries")
 _SPECIALIST_OF_FACT = (
     ("investigation.company", "company"),
     ("investigation.financials", "company"),
@@ -24,6 +24,7 @@ _SPECIALIST_OF_FACT = (
     ("investigation.pair", "history"),
     ("investigation.similar", "history"),
     ("investigation.audit", "audit"),
+    ("investigation.enquiries", "enquiries"),
 )
 
 
@@ -94,6 +95,7 @@ def assemble(
         "sercop_pair_awards": pack.process.ocid,
         "vector_index": pack.process.ocid,
         "contraloria_reports": None,
+        "sercop_enquiries": pack.process.ocid,
     }
     sources = list(pack.sources)
     for key in catalog.INVESTIGATION_SOURCES:

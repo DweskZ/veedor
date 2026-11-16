@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from veedor.domain.dossier.models import Dossier, LookupOutcome
+from veedor.domain.dossier.models import Dossier, InvestigationFacts, LookupOutcome
 
 DecidedBy = Literal["policy", "model"]
 
@@ -55,5 +55,7 @@ class InvestigationRecord(BaseModel):
     tool_log: list[ToolCall] = Field(default_factory=list)
     facts_added: list[str] = Field(default_factory=list)
     dossier: Dossier | None = None  # None only when the record is withheld
+    facts: InvestigationFacts | None = None  # typed facts of the run (counts, dates, closed values): the
+    # question-answering route rebuilds the investigation sentences from them. None in older records.
     withheld: str | None = None  # closed reason; set when the privacy guard refused the full record
     model_usage: ModelUsage = Field(default_factory=ModelUsage)

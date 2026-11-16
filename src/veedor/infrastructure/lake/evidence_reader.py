@@ -197,6 +197,7 @@ class EvidenceReader:
             first_award_date=_day(raw.get("first_award_date")),
             date_signed=_day(raw.get("date_signed")),
             main_cpc=raw.get("main_cpc"),
+            n_enquiries=None if raw.get("n_enquiries") is None else int(raw["n_enquiries"]),
             main_cpc_description=cpc_text,
         )
 

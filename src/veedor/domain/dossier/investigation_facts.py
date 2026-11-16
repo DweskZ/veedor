@@ -20,6 +20,7 @@ from veedor.domain.dossier.models import (
     AuditReportRef,
     CompanyFinancialsFacts,
     CompanyRegistryFacts,
+    EnquiriesFacts,
     EvidencePack,
     InvestigationFacts,
     PairHistoryFacts,
@@ -430,6 +431,72 @@ def _audit_reports_text(pack: EvidencePack) -> str:
     return "\n".join(blocks)
 
 
+# --- enquiries (question-and-answer stage) -----------------------------------------------------
+
+_ENQ = "En la etapa de preguntas y respuestas"
+
+
+def _enq(pack: EvidencePack) -> EnquiriesFacts | None:
+    e = _inv(pack).enquiries
+    return e if e is not None and e.outcome == "ok" else None
+
+
+def _enquiries_count_text(pack: EvidencePack) -> str:
+    e = _enq(pack)
+    assert e is not None
+    registered = fmt_count(e.n_registered, "pregunta", "preguntas") if e.n_registered is not None else NOT_AVAILABLE_ES
+    return (
+        f"{_ENQ}: preguntas de oferentes registradas en el proceso: {registered}; con texto publicado y "
+        f"analizable: {e.n_with_text}; de ellas, con una respuesta de texto publicada: {e.n_answered}. Una "
+        "respuesta que es solo una fórmula breve no se cuenta, de modo que las respuestas son una cifra mínima."
+    )
+
+
+def _has_timing(pack: EvidencePack) -> bool:
+    e = _enq(pack)
+    return e is not None and bool(e.n_dated_pairs) and e.median_days_to_answer is not None
+
+
+def _enquiries_timing_text(pack: EvidencePack) -> str:
+    e = _enq(pack)
+    assert e is not None and e.median_days_to_answer is not None and e.max_days_to_answer is not None
+    return (
+        f"{_ENQ}: en las {e.n_dated_pairs} preguntas con fecha de pregunta y fecha de respuesta, los días entre "
+        f"una y otra tuvieron mediana de {fmt_num(e.median_days_to_answer)} días y máximo de "
+        f"{fmt_count(e.max_days_to_answer, 'día', 'días')}."
+    )
+
+
+def _has_late(pack: EvidencePack) -> bool:
+    e = _enq(pack)
+    return e is not None and e.n_late is not None and e.deadline is not None and e.late_window_days is not None
+
+
+def _enquiries_late_text(pack: EvidencePack) -> str:
+    e = _enq(pack)
+    assert e is not None and e.deadline is not None and e.late_window_days is not None
+    return (
+        f"{_ENQ}: preguntas con fecha en los {e.late_window_days} días anteriores al cierre de ofertas "
+        f"(cierre de ofertas: {fmt_date(e.deadline)}): {e.n_late}."
+    )
+
+
+def _has_topics(pack: EvidencePack) -> bool:
+    e = _enq(pack)
+    return e is not None and bool(e.n_with_text) and e.topic_deadlines is not None
+
+
+def _enquiries_topics_text(pack: EvidencePack) -> str:
+    e = _enq(pack)
+    assert e is not None
+    return (
+        f"{_ENQ}: preguntas por tema, según la cercanía de su significado con una descripción fija de cada "
+        f"tema (una pregunta puede no tener tema): plazos y fechas, {e.topic_deadlines}; especificaciones "
+        f"técnicas, {e.topic_specifications}; precio, {e.topic_price}; requisitos para "
+        f"participar, {e.topic_requirements}. Es una clasificación automática aproximada."
+    )
+
+
 # --- what was done -----------------------------------------------------------------------------
 
 
@@ -532,6 +599,17 @@ FACT_SPECS: tuple[FactSpec, ...] = (
              "contraloria_reports", lambda p: _audit(p) is not None, _audit_text),
     FactSpec("investigation.audit.reports", SECTION_CONTEXT, "Informes identificados", "contraloria_reports",
              _has_audit_reports, _audit_reports_text, untrusted_quote=True),
+    # enquiries -----------------------------------------------------------------------------
+    FactSpec("investigation.enquiries.unavailable", SECTION_CONTEXT, "Etapa de preguntas: sin datos",
+             "sercop_enquiries", _group_failed("enquiries"), lambda p: _unavailable(_ENQ)),
+    FactSpec("investigation.enquiries.count", SECTION_CONTEXT, "Preguntas y respuestas del proceso",
+             "sercop_enquiries", lambda p: _enq(p) is not None, _enquiries_count_text),
+    FactSpec("investigation.enquiries.timing", SECTION_CONTEXT, "Días entre pregunta y respuesta",
+             "sercop_enquiries", _has_timing, _enquiries_timing_text),
+    FactSpec("investigation.enquiries.late", SECTION_CONTEXT, "Preguntas cerca del cierre de ofertas",
+             "sercop_enquiries", _has_late, _enquiries_late_text),
+    FactSpec("investigation.enquiries.topics", SECTION_CONTEXT, "Preguntas por tema",
+             "sercop_enquiries", _has_topics, _enquiries_topics_text),
     # what was done -------------------------------------------------------------------------
     FactSpec("investigation.run.specialists", SECTION_INVESTIGATION, "Especialistas ejecutados", None,
              _any_investigation, _specialists_text),

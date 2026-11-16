@@ -12,7 +12,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="VEEDOR_", env_file=".env", extra="ignore")
+    # env_ignore_empty: compose passes `${VAR:-}` (empty when unset); an empty value is read as unset.
+    model_config = SettingsConfigDict(
+        env_prefix="VEEDOR_", env_file=".env", extra="ignore", env_ignore_empty=True
+    )
 
     data_dir: Path = REPO_ROOT / "data"
     database_url: str = "postgresql+psycopg://veedor:veedor_dev@localhost:5433/veedor"
@@ -21,6 +24,16 @@ class Settings(BaseSettings):
     llm_provider: str | None = None  # e.g. "openai", "anthropic", "groq"
     llm_model: str | None = None
     llm_api_key: str | None = None
+
+    # Question answering over one process (`POST /processes/{ocid}/ask`): the only route that may reach a
+    # language model. Off by default (404). Enabled without a key or with the daily budget spent, it answers
+    # by retrieval only. Limits are per API worker process (docs/SECURITY.md, "Question answering").
+    ask_enabled: bool = False
+    ask_daily_budget: int = Field(default=300, ge=0, le=1_000_000)  # model calls per UTC day, all workers
+    ask_rate_per_minute: int = Field(default=4, ge=1, le=600)  # requests per client IP per worker
+    ask_rate_per_hour: int = Field(default=30, ge=1, le=100_000)
+    ask_max_output_tokens: int = Field(default=160, ge=16, le=1_000)
+    ask_timeout_seconds: float = Field(default=15.0, gt=0, le=120)
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
@@ -40,6 +53,11 @@ class Settings(BaseSettings):
     # OpenTelemetry is off unless an OTLP/HTTP base URL is set (e.g. http://localhost:4318).
     otel_endpoint: str | None = None
     otel_service_name: str = "veedor-api"
+
+    @property
+    def model_configured(self) -> bool:
+        """A provider, a model name and a key are all set (the key itself is never exposed)."""
+        return bool(self.llm_provider and self.llm_model and self.llm_api_key)
 
     @property
     def raw_dir(self) -> Path:

@@ -58,3 +58,19 @@ make db-migrate    # alembic upgrade head
 make serve         # API on http://127.0.0.1:8000 (docs at /docs)
 veedor serve --host 0.0.0.0 --port 8000
 ```
+
+## Question answering
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VEEDOR_ASK_ENABLED` | `false` | Switches `POST /processes/{ocid}/ask` on. Off: 404. |
+| `VEEDOR_ASK_DAILY_BUDGET` | `300` | Model calls per UTC day for all workers (each worker counts `budget // workers`). `0` means never call a model. Spent: retrieval-only answers, not errors. |
+| `VEEDOR_ASK_RATE_PER_MINUTE` / `VEEDOR_ASK_RATE_PER_HOUR` | `4` / `30` | Requests per client IP, per worker process (multiply by `VEEDOR_API_WORKERS`). 429 beyond. |
+| `VEEDOR_ASK_MAX_OUTPUT_TOKENS` / `VEEDOR_ASK_TIMEOUT_SECONDS` | `160` / `15` | Hard caps of the one model call per question (no retry). |
+| `VEEDOR_LLM_PROVIDER`, `VEEDOR_LLM_MODEL`, `VEEDOR_LLM_API_KEY` | unset | Model mode needs all three. Without them the route answers by retrieval. |
+
+An empty value (what compose passes for `${VAR:-}` when a variable is unset) is read as unset. In compose, `VEEDOR_ASK_ENABLED`, the budget and the three model variables are passed with `${VAR:-}` interpolation; the model variables reach the container only while `VEEDOR_ASK_ENABLED` is set. To switch the route on: `VEEDOR_ASK_ENABLED=true docker compose up -d --no-deps api` (add the model variables to the same shell for model mode). The local embedding model is mounted read-only from `data/models`.
+
+### Cost model
+
+Measured with `gpt-5.4-mini` over 68 model calls (docs/EVALUATION.md): about **991 prompt tokens and 30 completion tokens per call**, one call per question that clears the model floor (questions answered by the screen, the cache or the budget fallback cost nothing). Daily ceiling at the default budget: 300 calls = about 297,000 prompt and 9,000 completion tokens. **Price assumption (not a quoted price; check your provider's list):** USD 1.00 per million prompt tokens and USD 4.00 per million completion tokens gives about USD 0.0010 per call and at most about USD 0.33 per day. Change the budget with `VEEDOR_ASK_DAILY_BUDGET`; the ceiling scales linearly.

@@ -49,6 +49,7 @@ class _Instruments:
     tool_duration: Histogram
     llm_tokens: Counter
     grounding: Counter
+    ask_requests: Counter
     http_duration: Histogram
 
 
@@ -96,6 +97,9 @@ def _build_instruments(meter: Meter) -> _Instruments:
         llm_tokens=meter.create_counter("veedor.llm.tokens", unit="{token}", description="LLM tokens."),
         grounding=meter.create_counter(
             "veedor.grounding.results", unit="{check}", description="Grounding verification results."
+        ),
+        ask_requests=meter.create_counter(
+            "veedor.ask.requests", unit="{request}", description="Answered questions (no text)."
         ),
         http_duration=meter.create_histogram(
             "http.server.request.duration",
@@ -274,6 +278,17 @@ def record_grounding(passed: bool, mode: str) -> None:
     if state is None:
         return
     state.instruments.grounding.add(1, _labels(passed=bool(passed), mode=mode))
+
+
+def record_ask(mode: str, outcome: str, grounded: bool | None = None) -> None:
+    """Count one answered question by mode (model | retrieval), outcome and grounding result. No text."""
+    state = _state
+    if state is None:
+        return
+    labels = {"mode": mode, "outcome": outcome}
+    if grounded is not None:
+        labels["passed"] = bool(grounded)
+    state.instruments.ask_requests.add(1, _labels(**labels))
 
 
 def record_investigation(final_mode: str, duration_ms: float | None = None) -> None:

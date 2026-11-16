@@ -6,6 +6,7 @@ from veedor.infrastructure.telemetry.nodes import traced_node
 from veedor.infrastructure.telemetry.runtime import (
     SpanHandle,
     is_enabled,
+    record_ask,
     record_grounding,
     record_investigation,
     record_llm_usage,
@@ -21,6 +22,7 @@ __all__ = [
     "TelemetryMiddleware",
     "instrument_app",
     "is_enabled",
+    "record_ask",
     "record_grounding",
     "record_investigation",
     "record_llm_usage",

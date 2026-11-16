@@ -27,6 +27,7 @@ def report_to_dict(report: QuotesReport) -> dict:
         "quotes": report.quotes,
         "quotes_with_pair": report.pairs,
         "near_duplicates_skipped": report.near_duplicates,
+        "repeated_passages_skipped": report.repeated,
         "embedded_texts": report.embedded_texts,
         "name_vocabulary_tokens": report.name_vocabulary,
         "exclusions_by_reason": dict(sorted(report.reasons.items())),

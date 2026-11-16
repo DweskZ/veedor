@@ -20,6 +20,7 @@ class QuotePair(BaseModel):
     kind: str = Field(examples=["enquiry_answer"])
     text: str
     source_field: str = Field(examples=["tender.enquiries[3].answer"])
+    truncated: bool = Field(default=False, description="The paired passage is shown cut.")
 
 
 class QuoteItem(BaseModel):
@@ -33,7 +34,7 @@ class QuoteItem(BaseModel):
     related_signal: str = Field(examples=["SHORT_TENDER_WINDOW"])
     related_signal_label_es: str | None = None
     similarity: float = Field(description="Coseno entre el pasaje y el tema de la señal (-1 a 1).")
-    truncated: bool = False
+    truncated: bool = Field(default=False, description="The main passage (not the pair) is shown cut.")
     pair: QuotePair | None = None
 
 

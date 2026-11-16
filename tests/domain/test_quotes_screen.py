@@ -263,3 +263,25 @@ def test_professional_titles_alone_and_ordinary_phrases_are_not_names() -> None:
         "Señores miembros de la comisión técnica",
     ):
         assert check_passage(text).eligible, text
+
+
+def test_a_name_followed_by_an_official_title_in_capitals_is_dropped():
+    signed = "Quito, 3 de diciembre de 2020 Christian Murgueytio Jeria SECRETARIO DE GESTIÓN"
+    assert verdict(signed).reason == "name_before_title"
+    assert verdict("Se aclara que el SECRETARIO DE GESTIÓN firmará el acta").eligible
+
+
+def test_a_denied_passage_is_dropped_by_its_hash_and_a_phone_shaped_number_is_not_a_part_number():
+    from veedor.domain.quotes import deny
+
+    text = "Texto de ejemplo que un revisor decidió retirar de las citas."
+    assert verdict(text).eligible
+    original = deny.DENIED_PASSAGE_HASHES
+    spelled_differently = "  TEXTO de ejemplo que un revisor decidió  retirar de las citas. "
+    deny.DENIED_PASSAGE_HASHES = frozenset({deny.passage_hash(spelled_differently)})
+    try:
+        assert verdict(text).reason == "denied_passage"
+        assert verdict("Otro texto distinto sobre el plazo").eligible
+    finally:
+        deny.DENIED_PASSAGE_HASHES = original
+    assert all(len(h) == 64 and set(h) <= set("0123456789abcdef") for h in original)

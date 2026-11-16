@@ -37,6 +37,7 @@ class InvestigationService:
         config_dir: Path | None = None,
         model_call_cap: int | None = None,
         today: Any = date.today,
+        enquiries: Any = None,  # EnquiryTool | None
     ) -> None:
         from veedor.agents.investigation.chooser import Chooser
         from veedor.agents.investigation.supervisor import InvestigationPorts
@@ -47,7 +48,7 @@ class InvestigationService:
         self.meter = UsageMeter(limit=model_call_cap)
         model = MeteredChatModel(chat_model, self.meter) if chat_model is not None else None
         ports = InvestigationPorts(
-            backend=build_backend(mcp, lake_tools),
+            backend=build_backend(mcp, lake_tools, enquiries),
             chooser=Chooser(model, self.meter),
             meter=self.meter,
             key_index=lake_tools.buyer_key_index,
@@ -58,6 +59,7 @@ class InvestigationService:
         )
         self._store = store
         self._lake_tools = lake_tools
+        self._enquiries = enquiries
 
     def investigate(self, ocid: str) -> InvestigationRecord:
         self._store.path(ocid)  # rejects a malformed ocid before any work
@@ -77,6 +79,7 @@ class InvestigationService:
             tool_log=state.get("inv_log", []),
             facts_added=[f.id for f in catalogue(pack) if f.id.startswith("investigation.")],
             dossier=state["dossier"],
+            facts=pack.investigation,
             model_usage=self.meter.delta(before),
         )
         try:
@@ -91,6 +94,8 @@ class InvestigationService:
 
     def close(self) -> None:
         self._lake_tools.close()
+        if self._enquiries is not None:
+            self._enquiries.close()
 
 
 def build_service(
@@ -100,6 +105,7 @@ def build_service(
     use_llm: bool = True,
     model_call_cap: int | None = None,
 ) -> InvestigationService:
+    from veedor.infrastructure.investigations.enquiries import EnquiryTool
     from veedor.infrastructure.investigations.lake_tools import LakeTools
     from veedor.infrastructure.lake.evidence_reader import EvidenceReader
     from veedor.infrastructure.llm.factory import build_chat_model
@@ -114,6 +120,7 @@ def build_service(
         trace_dir=settings.data_dir / "traces",
         config_dir=settings.data_dir / "config",
         model_call_cap=model_call_cap,
+        enquiries=EnquiryTool(settings.texts_dir),
     )
 
 

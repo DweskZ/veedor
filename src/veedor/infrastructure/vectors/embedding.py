@@ -51,13 +51,18 @@ class FastEmbedEmbedder:
         threads: int | None = None,
         parallel: int | None = None,
         cache_dir: Path | None = None,
+        local_files_only: bool = False,
     ) -> None:
+        """`local_files_only`: never contact the network (the API container has a read-only cache)."""
         from fastembed import TextEmbedding  # heavy import: only when embeddings are really needed
 
         self._batch_size = batch_size
         self._parallel = parallel
         self._model = TextEmbedding(
-            model_name=MODEL_NAME, cache_dir=str(cache_dir or model_cache_dir()), threads=threads
+            model_name=MODEL_NAME,
+            cache_dir=str(cache_dir or model_cache_dir()),
+            threads=threads,
+            local_files_only=local_files_only,
         )
 
     def embed(self, texts: Sequence[str]) -> np.ndarray:

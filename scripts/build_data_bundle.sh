@@ -15,7 +15,8 @@ DATA="${VEEDOR_DATA_DIR:-$ROOT/data}"
 OUT="${1:-$ROOT/dist}"
 STAMP="$(date -u +%Y%m%d)"
 LAKE_TABLES=(processes tenderers awards suppliers_sri ghost_companies companies_supercias company_financials)
-MART_TABLES=(process_signals process_scores supplier_profiles process_quotes process_quote_stats person_name_tokens)
+# person_name_tokens.parquet is deliberately not shipped (docs/SECURITY.md, "Name vocabulary").
+MART_TABLES=(process_signals process_scores supplier_profiles process_quotes process_quote_stats)
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT

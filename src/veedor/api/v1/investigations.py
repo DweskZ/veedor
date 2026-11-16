@@ -44,4 +44,4 @@ def get_investigation(ocid: OcidPath, lake: Lake, store: Store) -> dict:
     if record is None:
         raise NotFoundError("investigation", ocid)
     persons, protected = name_context(lake, ocid)
-    return mask_payload(record.model_dump(mode="json"), persons, protected)
+    return mask_payload(record.model_dump(mode="json", exclude={"facts"}), persons, protected)

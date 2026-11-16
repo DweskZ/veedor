@@ -11,7 +11,7 @@ from typing import Literal, get_args
 from veedor.domain.dossier.models import LegalStatus, LookupOutcome, SriStatus
 from veedor.domain.dossier.text import canonical
 
-SpecialistName = Literal["company", "tax_registry", "history", "audit"]
+SpecialistName = Literal["company", "tax_registry", "history", "audit", "enquiries"]
 SPECIALISTS: tuple[SpecialistName, ...] = get_args(SpecialistName)
 TargetRef = Literal["winner", "buyer", "process"]
 OUTCOMES: tuple[str, ...] = get_args(LookupOutcome)
@@ -24,6 +24,7 @@ ToolName = Literal[
     "similar_processes",
     "list_catalogo",
     "get_contraloria_informe",
+    "process_texts",
 ]
 TOOLS: tuple[ToolName, ...] = get_args(ToolName)
 MCP_TOOLS: frozenset[str] = frozenset(
@@ -75,6 +76,7 @@ SPECIALIST_LABEL_ES: dict[str, str] = {
     "tax_registry": "registro tributario",
     "history": "historial de compras",
     "audit": "informes de control",
+    "enquiries": "etapa de preguntas y respuestas",
 }
 
 # Source keys appear in the "Investigación realizada" section. Each is a fixed Spanish label.
@@ -86,6 +88,7 @@ SOURCE_BY_TOOL: dict[str, str] = {
     "similar_processes": "vector_index",
     "list_catalogo": "contraloria_catalogue",
     "get_contraloria_informe": "contraloria_reports",
+    "process_texts": "sercop_enquiries",
 }
 SOURCE_LABEL_ES: dict[str, str] = {
     "supercias_company": "Superintendencia de Compañías (registro de la compañía)",
@@ -95,6 +98,7 @@ SOURCE_LABEL_ES: dict[str, str] = {
     "vector_index": "índice de procesos similares de Veedor",
     "contraloria_catalogue": "Contraloría General del Estado (catálogo de informes)",
     "contraloria_reports": "Contraloría General del Estado (informes aprobados)",
+    "sercop_enquiries": "SERCOP (preguntas y respuestas del proceso; solo recuentos y fechas)",
 }
 OUTCOME_PHRASE_ES: dict[str, str] = {
     "ok": "respondió",

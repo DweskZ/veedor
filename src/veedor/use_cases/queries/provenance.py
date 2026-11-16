@@ -280,9 +280,10 @@ _INVESTIGATION_VERIFY = {
     "investigation.pair": "Busque en los datos abiertos de SERCOP las adjudicaciones de la entidad al RUC {ruc}.",
     "investigation.similar": "Compare con los procesos de la misma entidad listados en «Procesos similares».",
     "investigation.audit": "Busque a la entidad compradora en los informes aprobados de la Contraloría General del Estado.",
+    "investigation.enquiries": "Cuente las preguntas y respuestas de la etapa de consultas del proceso en el Portal de Compras Públicas.",
     "investigation.run": "La bitácora completa está en la sección «Investigación realizada» del expediente.",
 }
-_INVESTIGATION_DERIVED = frozenset({"pair", "similar", "audit", "run"})
+_INVESTIGATION_DERIVED = frozenset({"pair", "similar", "audit", "run", "enquiries"})
 
 
 def _investigation_facts(builder: _Builder, investigation: Any) -> None:

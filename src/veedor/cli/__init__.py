@@ -32,3 +32,7 @@ for _name, _help in _SUB_APPS.items():
             raise
         continue
     app.add_typer(_module.app, name=_name, help=_help)
+
+from veedor.cli.ask import ask as _ask  # noqa: E402 - a single command, not a group: `veedor ask <ocid> "<question>"`
+
+app.command("ask", help="Ask a question about one process (answers only from stored evidence).")(_ask)

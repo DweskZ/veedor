@@ -1,6 +1,6 @@
 # Multi-agent investigation
 
-A supervisor and four specialists gather extra evidence about a flagged process through read-only
+A supervisor and five specialists gather extra evidence about a flagged process through read-only
 tools, then the evidence flows through the same renderer and grounding verifier as the stage-1
 dossier. Investigations are produced by the CLI and stored; the HTTP API only serves stored ones.
 
@@ -22,6 +22,8 @@ flowchart TD
     S -->|dispatch| T[tax_registry_agent<br/>SRI public record]
     S -->|dispatch| H[history_agent<br/>buyer-supplier history, vector search]
     S -->|dispatch| U[audit_agent<br/>Contraloría reports]
+    S -->|dispatch| Q[enquiries_agent<br/>question-and-answer stage]
+    Q --> S
     C --> S
     T --> S
     H --> S
@@ -47,6 +49,7 @@ Each specialist is itself a LangGraph subgraph: `choose` (order the enumerated a
 | `company` | Facts of the company winner: incorporation date and days to the process date, subscribed capital and the award/capital multiple, legal status, last balance year, latest fiscal year with financial statements (employees, equity, assets). | `get_compania_info`, `get_financials` (EcuDataMCP) | 4 calls | Fact becomes "no disponible (la fuente no respondió)"; the source says so in the section "Investigación realizada". |
 | `tax_registry` | Live SRI public record: status, taxpayer class, size category, activity start, whether it agrees with the downloaded table. | `get_sri_ruc_info` with `include_establecimientos=false` | 4 calls | Same. |
 | `history` | Other awards between this buyer and supplier at any date (count, amount) and same-buyer similar purchases within ±180 days among the 50 nearest neighbours of the vector index. | `pair_awards` (lake), `similar_processes` (`find_similar` + lake dates) | 4 calls | Vector index missing: `upstream_error`/`skipped` with a closed reason; the rest still runs. |
+| `enquiries` | How the question-and-answer stage went: questions registered, with text, with an answer text, days between question and answer, questions in the 3 days before the offer deadline (when the process publishes it), questions per topic (deadlines, specifications, price, requirements) by embedding similarity to fixed descriptions. | `process_texts` (local, read-only, over `data/texts`) | 1 call | Fact becomes "no disponible". |
 | `audit` | Contraloría approved-report rows whose audited entity equals the buyer by a normalised-name comparison. | `list_catalogo(fuente="contraloria")`, `get_contraloria_informe` | 4 calls (catalogue + 3 files) | "No se pudo establecer" when matching is unreliable or coverage is partial; never a weak match. |
 
 ### Dispatch policy (no model)
@@ -168,3 +171,35 @@ targets are stored.
 - The legal status and capital come from a snapshot directory; status is not the status at award time.
 - Similar-purchase counts depend on the vector index and are bounded by the 50 neighbours examined.
 - No model behaviour was reviewed adversarially with a real model beyond one batch of 10.
+
+## Enquiries specialist
+
+`enquiries_agent` runs **only in the CLI investigation flow**: its tool reads `data/texts/process_texts.parquet`, which is unmasked and is not mounted in the API container. The tool returns numbers only (counts, dates, topic counts); no text reaches the pack, the dossier, a model or the stored record, which keeps derived counts and dates (`InvestigationRecord.facts`). It applies when the process registered at least one question (`processes.n_enquiries`). The supervisor table dispatches it for `SHORT_TENDER_WINDOW`, `SINGLE_BIDDER` and `RECURRING_COBIDDERS`, and last in the baseline order. "Answered" counts only answers with published text (bare formulas such as "Aclaración" are not stored), so it is a lower bound; the sentence says so. The topic floor (0.40) and the late window (3 days) are in `domain/investigation/enquiry_topics.py`: judgement calls, the floor chosen from the similarity distribution of real questions (calibration below). New fact templates (`investigation.enquiries.*`) have applicability predicates, bindings for their day counts, provenance, and are covered by the "every enumerated phrase renders and verifies" test.
+
+## Question answering flow
+
+```mermaid
+flowchart TD
+    Q[question] --> V{screen: 3-300 chars, one question, no control characters}
+    V -->|invalid| R422[422, never echoed]
+    V --> I{intent}
+    I -->|judgement, person, instruction, payload| F[fixed sentence]
+    I -->|answerable| P[evidence pack: dossier sentences + stored investigation + stored quotes]
+    P --> E[embed question; rank facts and quotes by cosine]
+    E --> M{model configured and budget left?}
+    M -->|no| T[top-k above the floor]
+    M -->|yes| S[one structured call: ids from the candidate set]
+    S -->|invalid, failure, timeout| T
+    S -->|valid| C[ids in catalogue order]
+    T --> C
+    C --> N[render: dossier sentences + attributed quotes]
+    N --> G{grounding verifier}
+    G -->|pass| A[answer]
+    G -->|fail| U[fixed unavailable sentence, counted]
+```
+
+What each control does, and what stays open, is in `docs/SECURITY.md` ("Question answering"): the model only picks ids (prompt injection can at most select true facts of this process), it never sees quotes or text from the data (exfiltration of third-party text), and rate limits, a daily budget, a token cap and a timeout bound the cost. Residual limits: the screen is heuristic; limits are per worker; the retrieval is only as good as an embedding similarity (see docs/EVALUATION.md); behaviour of a real model against a hostile question was measured on a small set, not reviewed adversarially by a third party.
+
+### Topic floor calibration (measured)
+
+A random sample of 20,000 real questions (seed 42) was embedded and each assigned to its closest topic. The proxy label is a lexical stem family per topic (deadlines: plazo, prórroga, fecha, días, ampli-, cronograma; specifications: especific-, característic-, marca, modelo, ficha, medida, norma, cantidad; price: precio, presupuesto, valor, costo, pago, anticipo, reajuste; requirements: requisito, experiencia, certific-, document-, formulario, descalific-, personal técnico). Rule: the smallest floor on a 0.05 grid at which, for every topic, the stem rate among the questions assigned to it is at least twice the base rate of that stem family over all questions. Base rates: 14.0 %, 29.2 %, 13.0 %, 34.1 %. At 0.40 the stem rates are 59.6 %, 61.4 %, 90.1 % and 84.8 % (4,101 of 20,000 questions get a topic); at 0.35 specifications reach 55.3 %, under twice its base, so the floor is 0.40. It is a ranking aid chosen from a distribution, not a finding about any question.

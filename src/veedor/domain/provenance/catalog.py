@@ -111,6 +111,13 @@ SOURCES: dict[str, SourceInfo] = {
             None,
         ),
         SourceInfo(
+            "sercop_enquiries",
+            "Datos abiertos OCDS: preguntas y respuestas del proceso (recuentos y fechas)",
+            "SERCOP (Servicio Nacional de Contratación Pública)",
+            SERCOP_LICENCE,
+            sc.SERCOP_URL,
+        ),
+        SourceInfo(
             "contraloria_reports",
             "Contraloría General del Estado: informes aprobados (consulta en línea)",
             "Contraloría General del Estado",
@@ -122,7 +129,7 @@ SOURCES: dict[str, SourceInfo] = {
 
 # Sources whose retrieval date is the day of a stored investigation, not the data download day.
 LIVE_SOURCES = frozenset(
-    {"supercias_company", "supercias_financials", "sri_live", "contraloria_reports", "vector_index"}
+    {"supercias_company", "supercias_financials", "sri_live", "contraloria_reports", "vector_index", "sercop_enquiries"}
 )
 # Sources computed by Veedor: their date is the date of the last build.
 DERIVED_SOURCES = frozenset({"veedor_indicators"})
@@ -448,6 +455,7 @@ INVESTIGATION_TOOLS: dict[str, tuple[str, str]] = {
     "investigation.pair": ("pair_awards", "awards.parquet (adjudicaciones de la entidad y el proveedor)"),
     "investigation.similar": ("similar_processes", "índice vectorial (procesos similares de la misma entidad)"),
     "investigation.audit": ("get_contraloria_informe", "informes aprobados (fecha, período, tipo)"),
+    "investigation.enquiries": ("process_texts", "tender.enquiries[].date y dateAnswered; recuentos (el texto no se almacena)"),
     "investigation.run": ("(registro de la investigación)", "bitácora de especialistas y consultas"),
 }  # fmt: skip
 

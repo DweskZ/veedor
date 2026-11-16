@@ -19,6 +19,7 @@ from veedor.domain.dossier.models import (
     AuditFacts,
     CompanyFinancialsFacts,
     CompanyRegistryFacts,
+    EnquiriesFacts,
     EvidencePack,
     PairHistoryFacts,
     SimilarPurchasesFacts,
@@ -29,6 +30,7 @@ from veedor.domain.investigation.policies import Action
 from veedor.domain.investigation.results import (
     Catalogue,
     CompaniaInfo,
+    EnquirySummary,
     Financials,
     PairAwards,
     ReportsFile,
@@ -241,6 +243,28 @@ def audit_reports(ctx: SpecialistContext) -> None:
     )
 
 
+# --- enquiries ---------------------------------------------------------------------------------
+
+
+def enquiries_summary(ctx: SpecialistContext) -> None:
+    """Counts and dates of the process's own questions and answers, computed by code from the stored
+    texts. The tool returns numbers only: no text reaches the pack, the dossier or a model."""
+    action = Action("process_texts", "process")
+    arguments = targets.enquiry_arguments(ctx.pack)
+    if isinstance(arguments, targets.Skip):
+        ctx.runner.skip("enquiries", action.tool, action.target, arguments.reason)
+        return
+    output = ctx.runner.run(
+        specialist="enquiries", tool=action.tool, target=action.target, arguments=arguments,
+        model=EnquirySummary, budget=ctx.budget,
+    )  # fmt: skip
+    _mark(ctx, action, output)
+    if output.value is None:
+        ctx.findings["enquiries"] = EnquiriesFacts(outcome=output.call.outcome)
+        return
+    ctx.findings["enquiries"] = convert.enquiries_facts(output.value, ctx.pack, arguments)
+
+
 @dataclass(frozen=True)
 class SpecialistSpec:
     name: str
@@ -261,4 +285,5 @@ SPECIALISTS: dict[str, SpecialistSpec] = {
         "audit",
         {"list_catalogo:buyer": audit_catalogue, "get_contraloria_informe:buyer": audit_reports},
     ),
+    "enquiries": SpecialistSpec("enquiries", {"process_texts:process": enquiries_summary}),
 }

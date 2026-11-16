@@ -83,6 +83,35 @@ def run_coverage(
     typer.echo(f"Wrote {out_dir / 'coverage.json'}")
 
 
+@app.command("qa")
+def run_qa(
+    with_model: Annotated[
+        bool, typer.Option("--with-model", help="Also run model mode (needs provider, model name and key).")
+    ] = False,
+    n: Annotated[int, typer.Option(min=300, help="Processes sampled (at least 300).")] = 600,
+    model: Annotated[str | None, typer.Option(help="Model name, when VEEDOR_LLM_MODEL is not set.")] = None,
+    out_dir: Annotated[Path, typer.Option(help="Directory for eval/qa.json.")] = EVAL_DIR,
+    doc: Annotated[Path, typer.Option(help="Markdown file with the generated QA block.")] = DOC_PATH,
+) -> None:
+    """Question answering: retrieval-only over >= 300 processes, model mode over ~150 questions."""
+    from veedor.evaluation.qa import render, runner
+
+    settings = get_settings()
+    if model:
+        settings = settings.model_copy(update={"llm_model": model})
+    if with_model and not settings.model_configured:
+        typer.echo("No model is configured (provider, model name and key): running retrieval only.", err=True)
+    try:
+        result = runner.run_evaluation(settings, with_model=with_model, n=n, progress=typer.echo)
+    except (FileNotFoundError, ValueError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+    _write_json(out_dir / "qa.json", result)
+    render.update_docs(doc, render.render_markdown(result))
+    adv = result["retrieval_only"]["adversarial"]
+    typer.echo(f"Retrieval-only attack successes: {adv['attack_success_count']}. Wrote {out_dir / 'qa.json'}")
+
+
 @app.command("report")
 def run_report(
     eval_dir: Annotated[
@@ -93,5 +122,11 @@ def run_report(
     """Regenerate docs/EVALUATION.md from the JSON files; no number is typed by hand."""
     backtest_result = _read_json(eval_dir / "backtest.json")
     coverage_result = _read_json(eval_dir / "coverage.json")
-    out.write_text(report.render(backtest_result, coverage_result), encoding="utf-8")
+    from veedor.evaluation.qa.render import qa_block_of
+
+    previous = qa_block_of(out.read_text(encoding="utf-8")) if out.is_file() else None
+    text = report.render(backtest_result, coverage_result)
+    if previous:  # the generated QA section belongs to `veedor evaluate qa`: keep it
+        text = text.rstrip("\n") + "\n\n## Question answering (generated)\n\n" + previous + "\n"
+    out.write_text(text, encoding="utf-8")
     typer.echo(f"Wrote {out}")

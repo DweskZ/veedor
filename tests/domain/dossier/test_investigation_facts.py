@@ -12,6 +12,7 @@ from veedor.domain.dossier.models import (
     AuditReportRef,
     CompanyFinancialsFacts,
     CompanyRegistryFacts,
+    EnquiriesFacts,
     InvestigationFacts,
     LookupSummary,
     PairHistoryFacts,
@@ -26,11 +27,23 @@ from veedor.domain.dossier.vocabulary import SECTION_INVESTIGATION
 OK = {"outcome": "ok", "found": True}
 
 
+ENQUIRIES = EnquiriesFacts(
+    outcome="ok", n_registered=9, n_with_text=8, n_answered=6, n_dated_pairs=5, median_days_to_answer=2.5,
+    max_days_to_answer=6, deadline="2023-06-01", late_window_days=3, n_late=2, topic_deadlines=3,
+    topic_specifications=2, topic_price=1, topic_requirements=4,
+)  # fmt: skip
+
+
 def investigated(pack, **parts):
+    enquiries = parts.get("enquiries")
+    if enquiries is not None and enquiries.deadline is not None:  # the deadline is the process's own
+        parts["enquiries"] = enquiries.model_copy(update={"deadline": pack.process.tender_end})
     return pack.model_copy(update={"investigation": InvestigationFacts(**parts)})
 
 
 def full(pack):
+    if pack.process.tender_end is None:  # the late-question fact needs the process's own deadline
+        pack = pack.model_copy(update={"process": pack.process.model_copy(update={"tender_end": "2023-06-01"})})
     return investigated(
         pack,
         company=CompanyRegistryFacts(**OK, incorporation_date="2023-06-01", days_incorporation_to_process=85,
@@ -47,6 +60,7 @@ def full(pack):
                          coverage_complete=False, n_reports=1,
                          reports=[AuditReportRef(report_id="DNA1-0001-2023", report_type="general",
                                                  approval_date="2023-01-03", title="Examen Especial a los procesos")]),
+        enquiries=ENQUIRIES,
         specialists=[SpecialistSummary(specialist="company", n_tool_calls=2), SpecialistSummary(specialist="audit", n_tool_calls=1)],
         lookups=[LookupSummary(source="sri_live", outcome="upstream_error", reason="upstream_http_error", retries=1),
                  LookupSummary(source="contraloria_reports", outcome="ok")],
@@ -62,6 +76,7 @@ def failed(pack):
         pair_history=PairHistoryFacts(outcome="upstream_error"),
         similar=SimilarPurchasesFacts(outcome="upstream_error"),
         audit=AuditFacts(outcome="invalid_result"),
+        enquiries=EnquiriesFacts(outcome="upstream_error"),
         specialists=[SpecialistSummary(specialist="history", n_tool_calls=1)],
         lookups=[LookupSummary(source="vector_index", outcome="skipped", reason="not_indexed", calls=1)],
     )
@@ -96,7 +111,13 @@ def not_found(pack):
                         tax_registry=TaxRegistryLiveFacts(outcome="ok", found=False))  # fmt: skip
 
 
-BUILDERS = [full, failed, conclusive_none, unreliable_audit, negative_days, not_found]
+def enquiries_without_deadline(pack):
+    return investigated(pack, enquiries=ENQUIRIES.model_copy(update={
+        "deadline": None, "late_window_days": None, "n_late": None, "n_dated_pairs": 0,
+        "median_days_to_answer": None, "max_days_to_answer": None, "n_with_text": 0}))  # fmt: skip
+
+
+BUILDERS = [enquiries_without_deadline, full, failed, conclusive_none, unreliable_audit, negative_days, not_found]
 
 
 @pytest.mark.parametrize("build", BUILDERS)

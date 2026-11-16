@@ -131,6 +131,7 @@ def main() -> int:
 
     check_stage3_endpoints(ocid)
     check_quotes_and_provenance(ocid)
+    check_ask(ocid)
 
     for path in ("/", "/procesos", "/metodologia", f"/procesos/{ocid}"):
         code, body = request(f"{WEB}{path}")
@@ -205,6 +206,37 @@ def check_stage3_endpoints(ocid: str) -> None:
         status == 200 and len(terms) > 0 and all(t.get("term") and t.get("definition_es") for t in terms),
         f"{len(terms)} terms",
     )
+
+
+def check_ask(ocid: str) -> None:
+    """Question answering: off by default (404); when switched on, answers from stored evidence only."""
+    status_meta, meta = get_json("/meta")
+    enabled = meta.get("ask_enabled") is True
+    body = {"question": "¿Cuántos oferentes hubo en este proceso?"}
+    status, raw = request(f"{API}/processes/{ocid}/ask", body)
+    answer = json.loads(raw) if raw else {}
+    if not enabled:
+        check("api ask is off by default (404)", status_meta == 200 and status == 404, f"http {status}")
+        return
+    sentences = answer.get("sentences", [])
+    check(
+        "api ask answers from stored evidence",
+        status == 200
+        and answer.get("mode") in ("model", "retrieval")
+        and answer.get("ocid") == ocid
+        and bool(sentences)
+        and all(all(s.get(k) for k in ("fact_id", "source_id", "source_field", "text")) for s in sentences),
+        f"mode={answer.get('mode')}, {len(sentences)} sentences",
+    )
+    status, raw = request(f"{API}/processes/{ocid}/ask", {"question": "¿Hubo corrupción en este proceso?"})
+    judged = json.loads(raw) if raw else {}
+    check(
+        "api ask refuses to judge",
+        status == 200 and judged.get("answerable") is False and judged.get("sentences") == [],
+        f"reason={judged.get('reason')}",
+    )
+    status, _ = request(f"{API}/processes/{ocid}/ask", {"question": "uno\ndos"})
+    check("api ask rejects a malformed question (422)", status == 422, f"http {status}")
 
 
 def check_quotes_and_provenance(ocid: str) -> None:

@@ -11,6 +11,10 @@
       "investigation.company.filing": 20,
       "investigation.company.incorporation": 20,
       "investigation.company.legal_status": 20,
+      "investigation.enquiries.count": 12,
+      "investigation.enquiries.late": 6,
+      "investigation.enquiries.timing": 9,
+      "investigation.enquiries.topics": 11,
       "investigation.financials.latest": 20,
       "investigation.pair.others": 20,
       "investigation.run.lookups": 20,
@@ -31,6 +35,7 @@
     "specialists_dispatched": {
       "audit": 20,
       "company": 20,
+      "enquiries": 12,
       "history": 20,
       "tax_registry": 20
     },
@@ -52,6 +57,9 @@
       },
       "pair_awards": {
         "ok": 20
+      },
+      "process_texts": {
+        "ok": 12
       },
       "similar_processes": {
         "ok": 20

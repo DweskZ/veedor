@@ -34,3 +34,9 @@ def test_the_data_bundle_does_not_ship_the_texts():
     tables = re.findall(r"^(?:LAKE|MART)_TABLES=\(([^)]*)\)", script, flags=re.MULTILINE)
     assert tables and all("process_texts" not in t for t in tables)
     assert "process_quotes" in script and "process_quote_stats" in script
+
+
+def test_the_data_bundle_does_not_ship_the_name_vocabulary():
+    script = (REPO_ROOT / "scripts" / "build_data_bundle.sh").read_text(encoding="utf-8")
+    tables = re.findall(r"^(?:LAKE|MART)_TABLES=\(([^)]*)\)", script, flags=re.MULTILINE)
+    assert tables and all("person_name_tokens" not in t for t in tables)

@@ -213,10 +213,68 @@ def test_stats_arithmetic(topics):
     assert s["n_eligible"] == 2 and s["below_floor"] == 1 and s["n_quotes"] == 1
 
 
-def test_shorten_cuts_at_a_word_and_says_so():
+def test_shorten_keeps_a_short_text_whole_and_cuts_a_long_one_at_a_sentence():
     assert shorten("corto") == ("corto", False)
+    sentence = "Se solicita confirmar el plazo de entrega. "
+    long_text = sentence * 30
+    text, cut = shorten(long_text, 200)
+    assert cut and text.endswith(".") and len(text) <= 200
+    assert text.count(".") == (len(text) + 1) // len(sentence)  # whole sentences only
+
+
+def test_shorten_falls_back_to_a_clause_then_to_a_word_and_never_adds_an_ellipsis():
+    clauses = "ítem uno requiere certificado, ítem dos requiere garantía, " * 6
+    text, cut = shorten(clauses, 100)
+    assert cut and clauses.startswith(text) and not text.endswith(",") and "…" not in text
     text, cut = shorten("palabra " * 200, 100)
-    assert cut and text.endswith("…") and len(text) <= 101 and "palabr…" not in text
+    assert cut and len(text) <= 100 and text.endswith("palabra")
+
+
+def test_a_question_that_fits_is_never_cut_even_when_its_answer_is_long(topics):
+    question = f"¿{ON_TOPIC} y la experiencia general y específica?"
+    answer = ("Se aclara que la experiencia se acredita con contratos. " * 30).strip()
+    result = select(bundle([row("enquiry_question", 0, question), row("enquiry_answer", 0, answer)]), topics)
+    quote = result.quotes[0]
+    assert quote["text"] == question and quote["truncated"] is False
+    assert quote["pair_truncated"] is True and quote["pair_text"].endswith(".")
+
+
+def test_a_passage_appears_at_most_once_per_process(topics):
+    same_answer = "Se amplía el plazo cinco días mediante adenda."
+    b = bundle(
+        [
+            row("enquiry_question", 0, f"¿{ON_TOPIC}?"),
+            row("enquiry_answer", 0, same_answer),
+            row("enquiry_question", 1, f"¿{ON_TOPIC} adenda?"),
+            row("enquiry_answer", 1, same_answer.upper() + "  "),
+            row("enquiry_question", 2, "cronograma plazos ofertas ampliación"),
+        ]
+    )
+    result = select(b, topics)
+    seen = [p for q in result.quotes for p in (q["text"], q["pair_text"]) if p]
+    keys = [" ".join(p.casefold().split()) for p in seen]
+    assert len(keys) == len(set(keys)) and result.repeated >= 1
+
+
+def test_an_answer_that_repeats_its_question_is_shown_once(topics):
+    same = f"¿{ON_TOPIC} y la experiencia?"
+    result = select(bundle([row("enquiry_question", 0, same), row("enquiry_answer", 0, same)]), topics)
+    quote = result.quotes[0]
+    assert quote["text"] == same and quote["pair_text"] is None and quote["pair_kind"] is None
+    assert quote["pair_truncated"] is False
+
+
+def test_a_ten_digit_number_starting_with_zero_is_a_phone_only_when_it_has_a_phone_shape():
+    from veedor.domain.quotes.screen import check_passage
+
+    for harmless in (
+        "se aceptan los números de parte 174126090 o 0174120140",
+        "véase la página 0000000091 del pliego",
+        "facturas No. 00004240 -0000004419",
+    ):
+        assert check_passage(harmless).eligible, harmless
+    for phone in ("llame al 0991234567", "convencional 022345678", "escriba o llame al 0 9 9 1 2 3 4 5 6 7"):
+        assert not check_passage(phone).eligible, phone
 
 
 def test_name_context_masks_persons_and_protects_companies_and_buyers():

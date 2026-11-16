@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from veedor.api.v1 import (
+    ask,
     buyers,
     catalogue,
     glossary,
@@ -23,6 +24,7 @@ for module in (
     stats,
     processes,
     quotes,
+    ask,
     provenance,
     reviews,
     suppliers,

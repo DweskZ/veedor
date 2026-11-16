@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -245,4 +246,9 @@ def test_a_pack_value_holding_an_identifier_is_withheld_end_to_end(tmp_path, spe
     record = svc.investigate(OCID)
     assert record.withheld == "personal_data_guard" and record.dossier is None
     stored = (tmp_path / "inv").iterdir().__next__().read_text()
-    assert "1710034065" not in stored and "034" not in stored.replace("0034", "")
+    # The old check looked for the bare fragment "034", which also occurs in the microseconds of a
+    # timestamp (flaky). Look for the identifier in every shape it was written in instead: whole, digits
+    # only, the buyer text around it, and the tail of the separated spellings (e.g. "034.065").
+    digits = re.sub(r"\D", "", spelling)[:10]
+    assert not any(token in stored for token in (spelling, digits, "HOSPITAL DE"))
+    assert not re.search(r"0?34[\s.\-]+0?65", stored)

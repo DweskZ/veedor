@@ -203,6 +203,7 @@ def build_noun_bindings(pack: EvidencePack) -> list[NounBinding]:
     co = inv.company if inv else None
     pair = inv.pair_history if inv else None
     sim = inv.similar if inv else None
+    enq = inv.enquiries if inv else None
     days_inc = co.days_incorporation_to_process if co else None
     incorporation_days = abs(days_inc) if days_inc else None
 
@@ -226,6 +227,9 @@ def build_noun_bindings(pack: EvidencePack) -> list[NounBinding]:
             *ev("window_days", "p05_days", "days_between"),
             incorporation_days,
             sim.window_days if sim else None,
+            enq.median_days_to_answer if enq else None,
+            enq.max_days_to_answer if enq else None,
+            enq.late_window_days if enq else None,
         ],
         "años": [],
         "proveedores": [w.n_award_suppliers if w else None],
