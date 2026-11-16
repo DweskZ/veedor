@@ -1,0 +1,6 @@
+# Local proof overlay (docker compose -p veedor-prod -f compose.prod.yml -f compose.local.yml ...).
+# Caddy only on 127.0.0.1:8088, plain HTTP; no other published port.
+services:
+  caddy:
+    ports: !override
+      - "127.0.0.1:8088:80"

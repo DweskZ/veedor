@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars (git-ignored) and edit. Nothing here is a secret, but the e-mail is personal.
+
+region        = "us-east-1"
+instance_type = "t4g.small" # t4g.medium if you turn on the observability profile
+
+# Required: where the 50 / 80 / 100 percent budget alerts go.
+budget_alert_email = "you@example.org"
+budget_amount_usd  = 20
+
+# Optional: a domain you already own, and an EXISTING Route 53 hosted zone for it.
+# Leave both empty to use the Elastic IP over plain HTTP (temporary mode) or to create the DNS record by hand.
+domain_name     = ""
+route53_zone_id = ""
+
+# Optional: let a GitHub workflow deploy (OIDC, no keys). Format: owner/repository.
+github_repository = ""
+github_branch     = "main"
+# create_github_oidc_provider = false # set false if this account already has the GitHub OIDC provider

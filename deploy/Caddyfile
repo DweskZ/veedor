@@ -1,0 +1,82 @@
+# Veedor reverse proxy (Caddy 2.x, no plugins). One origin: /api/* -> api, everything else -> web.
+#
+# SITE_ADDRESS (server env file):
+#   veedor.example.org  automatic HTTPS (Let's Encrypt / ZeroSSL), HTTP redirected to HTTPS
+#   :80                 plain HTTP on any host name or IP. TEMPORARY: no certificate is possible for a
+#                       bare IP with the default certificate authorities, and traffic is unencrypted.
+#
+# Headers: the web app already sends CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy and
+# Permissions-Policy (web/next.config.ts); the API sends nosniff, X-Frame-Options, Referrer-Policy,
+# Cache-Control and a CSP on its own responses (src/veedor/api/security.py). Caddy therefore adds only
+# what neither sends: HSTS (HTTPS only) and it removes the Server header. Do not add the others here:
+# Caddy's `header` would append a duplicate.
+#
+# Not possible without a plugin: request rate limiting (third-party module caddy-ratelimit; needs a
+# custom Caddy build). Read endpoints are not rate limited by the API either (docs/SECURITY.md).
+
+{
+	admin off
+	# HTTP/1.1 and HTTP/2 only: no UDP/443 to open.
+	servers {
+		protocols h1 h2
+	}
+	log {
+		output stdout
+		format json
+		level INFO
+	}
+}
+
+# Internal health listener for the container healthcheck. Not published by compose.
+:8081 {
+	bind 127.0.0.1
+	respond /healthz 200
+	log {
+		output discard
+	}
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	# The API accepts 16 KiB bodies at most (MAX_BODY_BYTES); nothing here needs more.
+	request_body {
+		max_size 32KB
+	}
+
+	header {
+		-Server
+	}
+	@secure protocol https
+	header @secure Strict-Transport-Security "max-age=31536000"
+
+	# Access log: no query strings (search terms), client address truncated, no cookies/auth.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			request>uri regexp \?.*$ ""
+			request>remote_ip ip_mask 24 48
+			request>client_ip ip_mask 24 48
+			request>headers delete
+		}
+	}
+
+	handle /api/* {
+		reverse_proxy api:8000 {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 60s
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 60s
+			}
+		}
+	}
+}

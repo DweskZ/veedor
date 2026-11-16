@@ -1,0 +1,231 @@
+# Veedor production stack. Self-contained: it does NOT extend docker-compose.yml.
+#
+#   docker compose -p veedor --env-file /etc/veedor/server.env -f compose.prod.yml up -d --wait
+#   (add `--profile observability` to also run the optional Grafana stack)
+#
+# Variables come from the env file the owner creates on the server from deploy/server.env.template.
+# Nothing secret is stored here. Only Caddy publishes ports; db, api and web are on an internal
+# network. See docs/DEPLOYMENT_AWS.md.
+#
+# Settings mirrored from docker-compose.yml (read on 2026-11-16). If the dev file changes any of
+# these, update this file too:
+#   - db image pgvector/pgvector:0.8.7-pg16, POSTGRES_USER/DB = veedor, healthcheck pg_isready
+#   - api: VEEDOR_DATA_DIR, VEEDOR_DATABASE_URL, VEEDOR_CORS_ORIGINS, VEEDOR_REVIEWS_*,
+#     VEEDOR_DOCS_ENABLED, VEEDOR_GLOSSARY_PATH, VEEDOR_API_WORKERS, VEEDOR_LAKE_THREADS,
+#     VEEDOR_OTEL_*; mounts of lake/marts/investigations (read-only), dossiers volume;
+#     healthcheck on /api/v1/health
+#   - web: build args NEXT_PUBLIC_API_URL / NEXT_PUBLIC_SITE_URL, runtime API_INTERNAL_URL,
+#     healthcheck on /
+#   - observability: grafana/otel-lgtm:0.41.0 and its two provisioning mounts
+#   - migrate: `alembic upgrade head` with the api image
+#   - settings with no dev-file equivalent (src/veedor/core/settings.py): VEEDOR_ASK_*, VEEDOR_LLM_*
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-api-env: &api-env
+  VEEDOR_DATA_DIR: /app/data
+  VEEDOR_DATABASE_URL: postgresql+psycopg://veedor:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the server env file}@db:5432/veedor
+
+x-hardening: &hardening
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  pids_limit: 512
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg16
+    restart: unless-stopped
+    <<: *hardening
+    # The entrypoint fixes ownership of PGDATA and then drops to the postgres user.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run/postgresql
+    environment:
+      POSTGRES_USER: veedor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the server env file}
+      POSTGRES_DB: veedor
+    command: ["postgres", "-c", "shared_buffers=${PG_SHARED_BUFFERS:-128MB}", "-c", "max_connections=40"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    mem_limit: ${DB_MEM_LIMIT:-768m}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veedor -d veedor"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: *logging
+
+  migrate:
+    image: ${VEEDOR_API_IMAGE:-veedor-api:release}
+    restart: "no"
+    <<: *hardening
+    read_only: true
+    tmpfs: [/tmp]
+    command: ["alembic", "upgrade", "head"]
+    environment: *api-env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+    mem_limit: 256m
+    logging: *logging
+
+  api:
+    image: ${VEEDOR_API_IMAGE:-veedor-api:release}
+    restart: unless-stopped
+    <<: *hardening
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *api-env
+      VEEDOR_CORS_ORIGINS: '["${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN in the server env file}"]'
+      # Public deployment: reviews and interactive docs are always off. Not configurable on purpose.
+      VEEDOR_REVIEWS_ENABLED: "false"
+      VEEDOR_DOCS_ENABLED: "false"
+      VEEDOR_GLOSSARY_PATH: /app/web/src/data/glossary.json
+      VEEDOR_API_WORKERS: ${VEEDOR_API_WORKERS:-2}
+      VEEDOR_LAKE_THREADS: ${VEEDOR_LAKE_THREADS:-2}
+      # Behind Caddy every request arrives from the proxy's address. The api is reachable only from the
+      # internal network (Caddy), so trusting its X-Forwarded-For gives the per-IP limiters the real client.
+      FORWARDED_ALLOW_IPS: "*"
+      # Question answering (POST /processes/{ocid}/ask): off unless the owner turns it on. Passed by
+      # interpolation only; the values live in the server env file. Needs the optional model cache
+      # (see docs/DEPLOYMENT_AWS.md, "Turning on question answering").
+      VEEDOR_ASK_ENABLED: ${VEEDOR_ASK_ENABLED:-false}
+      VEEDOR_ASK_DAILY_BUDGET: ${VEEDOR_ASK_DAILY_BUDGET:-300}
+      VEEDOR_LLM_PROVIDER: ${VEEDOR_LLM_PROVIDER:-}
+      VEEDOR_LLM_MODEL: ${VEEDOR_LLM_MODEL:-}
+      VEEDOR_LLM_API_KEY: ${VEEDOR_LLM_API_KEY:-}
+      # Off unless set (observability profile): http://observability:4318
+      VEEDOR_OTEL_ENDPOINT: ${VEEDOR_OTEL_ENDPOINT:-}
+      VEEDOR_OTEL_SERVICE_NAME: veedor-api
+    volumes:
+      - ${VEEDOR_DATA_HOST:-/srv/veedor/data}/lake:/app/data/lake:ro
+      - ${VEEDOR_DATA_HOST:-/srv/veedor/data}/marts:/app/data/marts:ro
+      - ${VEEDOR_DATA_HOST:-/srv/veedor/data}/investigations:/app/data/investigations:ro
+      # Embedding model cache for the ask route only; an empty folder when the route is off.
+      - ${VEEDOR_DATA_HOST:-/srv/veedor/data}/models:/app/data/models:ro
+      - ${VEEDOR_DATA_HOST:-/srv/veedor/data}/glossary:/app/web/src/data:ro
+      - dossiers:/app/data/dossiers
+    networks: [internal]
+    mem_limit: ${API_MEM_LIMIT:-768m}
+    cpus: ${API_CPUS:-2}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    logging: *logging
+
+  web:
+    # Built with NEXT_PUBLIC_API_URL=/api/v1 (same origin): see deploy/scripts/build-release.sh.
+    image: ${VEEDOR_WEB_IMAGE:-veedor-web:release}
+    restart: unless-stopped
+    <<: *hardening
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_INTERNAL_URL: http://api:8000/api/v1
+      NODE_OPTIONS: --max-old-space-size=${WEB_HEAP_MB:-192}
+    networks: [internal]
+    mem_limit: ${WEB_MEM_LIMIT:-320m}
+    cpus: ${WEB_CPUS:-1}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    logging: *logging
+
+  caddy:
+    image: caddy:2.11-alpine
+    restart: unless-stopped
+    <<: *hardening
+    cap_add: [NET_BIND_SERVICE]
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      # ":80" = plain HTTP on any host name or IP (temporary mode). A domain name = automatic HTTPS.
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "${CADDY_HTTP_BIND:-0.0.0.0:80}:80"
+      - "${CADDY_HTTPS_BIND:-0.0.0.0:443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [internal]
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    logging: *logging
+
+  # Optional: `--profile observability`. One all-in-one development image (about 770 MB measured),
+  # reachable only on the server's loopback; use an SSM port forward to open Grafana.
+  observability:
+    profiles: [observability]
+    image: grafana/otel-lgtm:0.41.0
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json
+      PROMETHEUS_EXTRA_ARGS: --storage.tsdb.retention.time=3d
+      ENABLE_LOGS_TEMPO: "true"
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - obsdata:/data
+      - ./ops/observability/grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor.yaml:ro
+      - ./ops/observability/grafana/dashboards/veedor.json:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json:ro
+    networks: [internal]
+    mem_limit: ${OBS_MEM_LIMIT:-1280m}
+    cpus: 1.5
+    healthcheck:
+      test: ["CMD", "/otel-lgtm/docker/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    logging: *logging
+
+networks:
+  # One private network. Only Caddy publishes ports. Egress stays open (ACME for Caddy; an LLM
+  # provider for the api when the ask route is on).
+  internal: {}
+
+volumes:
+  pgdata:
+  dossiers:
+  obsdata:
+  caddy_data:
+  caddy_config:
