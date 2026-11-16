@@ -91,6 +91,22 @@ export function HeaderSearch({ inline = false, onNavigate }: { inline?: boolean;
     return () => document.removeEventListener("pointerdown", down);
   }, []);
 
+  // "/" focuses the search from anywhere that is not a text field (the usual shortcut on data sites).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const input = root.current?.querySelector<HTMLInputElement>("input");
+      if (!input || input.offsetParent === null) return;
+      e.preventDefault();
+      input.focus();
+      input.select();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const go = (href: string) => {
     setOpen(false);
     setActive(-1);
@@ -133,6 +149,7 @@ export function HeaderSearch({ inline = false, onNavigate }: { inline?: boolean;
         aria-expanded={expanded}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-keyshortcuts="/"
         aria-activedescendant={expanded && active >= 0 ? `${uid}-o${active}` : undefined}
         value={value}
         onChange={(e) => {
@@ -160,6 +177,7 @@ export function HeaderSearch({ inline = false, onNavigate }: { inline?: boolean;
           } else if (e.key === "Tab") setOpen(false);
         }}
       />
+      <kbd className="hs__kbd" aria-hidden="true">/</kbd>
       <p className="sr-only" role="status" aria-live="polite">
         {status}
       </p>

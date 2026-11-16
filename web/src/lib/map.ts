@@ -41,12 +41,18 @@ export interface ClassScale {
   ranges: ({ min: number; max: number; count: number } | null)[];
 }
 
-/** Quintiles: five classes with (as nearly as ties allow) the same number of provinces. */
+/** Shares are compared at the precision they are shown (one decimal of a percentage point), so a class edge never splits two equal labels. */
+const atShownPrecision = (x: number) => Math.round(x * 1000) / 1000;
+
+/** Quintiles: five classes with (as nearly as ties allow) the same number of provinces. Cuts are on shown values. */
 export function quantileClasses(values: number[], n = 5): ClassScale {
-  const v = [...values].sort((a, b) => a - b);
+  const v = values.map(atShownPrecision).sort((a, b) => a - b);
   const cuts: number[] = [];
   for (let i = 1; i < n; i++) cuts.push(v[Math.min(v.length - 1, Math.round((i * v.length) / n))] ?? 0);
-  const classOf = (x: number) => cuts.filter((c) => x >= c).length;
+  const classOf = (x: number) => {
+    const y = atShownPrecision(x);
+    return cuts.filter((c) => y >= c).length;
+  };
   const ranges: ClassScale["ranges"] = Array.from({ length: n }, () => null);
   for (const x of v) {
     const k = classOf(x);
@@ -54,6 +60,17 @@ export function quantileClasses(values: number[], n = 5): ClassScale {
     ranges[k] = r ? { min: Math.min(r.min, x), max: Math.max(r.max, x), count: r.count + 1 } : { min: x, max: x, count: 1 };
   }
   return { cuts, classOf, ranges };
+}
+
+const oneDecimal = new Intl.NumberFormat("es-EC", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const shown = (f: number) => `${oneDecimal.format(f * 100)} %`;
+
+/** Unambiguous class wording from the cuts: "menos de A", "A a menos de B", "B o más". Ranges never touch. */
+export function classRangeLabel(cuts: number[], k: number): string {
+  if (!cuts.length) return "todas las provincias";
+  if (k === 0) return `menos de ${shown(cuts[0])}`;
+  if (k >= cuts.length) return `${shown(cuts[cuts.length - 1])} o más`;
+  return cuts[k - 1] === cuts[k] ? `${shown(cuts[k - 1])}` : `${shown(cuts[k - 1])} a menos de ${shown(cuts[k])}`;
 }
 
 /** Fills: ice-to-ink sequential, terracotta only for the top class (which also gets a hatch). */

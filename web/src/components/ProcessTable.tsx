@@ -2,7 +2,7 @@ import Link from "next/link";
 import { fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessSummary } from "@/lib/types";
 import { canLinkBuyer, canLinkSupplier } from "@/lib/validate";
-import { Num, partyName, RiskScore, SignalChip } from "./ui";
+import { Name, Num, partyName, RiskScore, SignalChip } from "./ui";
 
 export interface SortConfig {
   current: string;
@@ -28,11 +28,15 @@ function ariaSort(field: string | null, current: string): "ascending" | "descend
 function Buyer({ r }: { r: ProcessSummary }) {
   return canLinkBuyer(r.buyer_ruc) ? (
     <Link href={`/entidades/${r.buyer_ruc}`} className="cell-link">
-      {r.buyer_name ?? NA}
+      <Name value={r.buyer_name} />
     </Link>
   ) : (
-    <>{r.buyer_name ?? NA}</>
+    <><Name value={r.buyer_name} /></>
   );
+}
+
+function WinnerName({ r }: { r: ProcessSummary }) {
+  return r.winner_kind === "natural_person" ? <>{partyName(r.winner_name, r.winner_kind)}</> : <Name value={r.winner_name ?? partyName(r.winner_name, r.winner_kind)} />;
 }
 
 function Winner({ r, withRuc = true }: { r: ProcessSummary; withRuc?: boolean }) {
@@ -41,10 +45,10 @@ function Winner({ r, withRuc = true }: { r: ProcessSummary; withRuc?: boolean })
     <>
       {canLinkSupplier(r.winner_ruc, r.winner_kind) ? (
         <Link href={`/proveedores/${r.winner_ruc}`} className="cell-link">
-          {partyName(r.winner_name, r.winner_kind)}
+          <WinnerName r={r} />
         </Link>
       ) : (
-        partyName(r.winner_name, r.winner_kind)
+        <WinnerName r={r} />
       )}
       {withRuc && r.winner_ruc ? (
         <div className="cell-sub">

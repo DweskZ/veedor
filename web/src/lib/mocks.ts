@@ -2,6 +2,7 @@
  * SAMPLE DATA. Fictional entities, fictional figures. Used only when NEXT_PUBLIC_USE_MOCKS=1.
  * Nothing here describes a real process, buyer or supplier.
  */
+import type { Provenance, Quotes } from "./provenance";
 import type {
   BuyerDetail,
   Dossier,
@@ -269,6 +270,51 @@ export function buyer(ruc: string): BuyerDetail {
       .sort((a, b2) => (b2.total_awarded ?? 0) - (a.total_awarded ?? 0)),
     signal_mix: [...mix].map(([c, count]) => ({ code: c, label_es: signals.find((s) => s.code === c)?.label_es ?? null, count })),
   };
+}
+
+/** Fictional provenance for the mock server. The names, publisher and URL do not exist. */
+export function provenance(ocid: string): Provenance | null {
+  if (!ocid.startsWith("sample-ocid")) return null;
+  const p = find(ocid);
+  const fact = (key: string, label_es: string, value: string, source_field: string | null, derived = false, derivation_es: string | null = null) => ({
+    key, label_es, value, source_id: "ejemplo-ocds", source_field, derived, derivation_es,
+    verify_es: "Busca el identificador del proceso en el portal de datos de ejemplo y compara el campo indicado.",
+  });
+  return {
+    ocid,
+    sources: [{ id: "ejemplo-ocds", name: "Datos abiertos de ejemplo (ficticio)", publisher: "Institución de ejemplo", licence: "Licencia de ejemplo", retrieved_at: "2026-01-15", url: "https://ejemplo.invalid/datos" }],
+    facts: [
+      fact("facts.buyer_name", "Entidad contratante", p.buyer_name ?? "", "buyer.name"),
+      fact("facts.method", "Método", p.method ?? "", "tender.procurementMethodDetails"),
+      fact("facts.budget", "Presupuesto referencial", String(Math.round((p.award_total ?? 0) * 1.012 * 100) / 100), "tender.value.amount"),
+      fact("facts.award_total", "Monto adjudicado", String(p.award_total ?? ""), "awards[].value.amount", true, "Suma de los montos de todas las adjudicaciones del proceso."),
+      fact("facts.n_tenderers", "Número de oferentes", p.signal_codes.includes("SINGLE_BIDDER") ? "1" : "4", "tender.numberOfTenderers"),
+    ],
+  };
+}
+
+export function quotes(ocid: string): Quotes | null {
+  if (!ocid.startsWith("sample-ocid")) return null;
+  const base = { truncated: false, similarity: 0.71, related_signal: null, related_signal_label_es: null, pair: null };
+  if (ocid === "sample-ocid-0001")
+    return {
+      ocid,
+      items: [
+        { ...base, kind: "enquiry_question", text: "Texto ficticio de una pregunta: ¿el plazo para entregar las ofertas puede ampliarse unos días?", date: "2019-03-12", author_kind: "oferente", source_field: "tender.enquiries[].description", related_signal: "SHORT_TENDER_WINDOW", related_signal_label_es: "Plazo de ofertas corto", pair: { kind: "enquiry_answer", text: "Texto ficticio de una respuesta: el plazo se mantiene según el cronograma publicado.", source_field: "tender.enquiries[].answer" } },
+      ],
+      available_total: 4,
+      omitted: { personal_data: 1, unsafe: 0, below_relevance: 2 },
+      note_es: "Texto de ejemplo, no real.",
+    };
+  if (ocid === "sample-ocid-0002")
+    return {
+      ocid,
+      items: [{ ...base, kind: "award_text", text: "Texto ficticio de adjudicación: se adjudica el contrato al único oferente calificado.", date: "2024-07-01", author_kind: "entidad", source_field: "awards[].description", related_signal: "SINGLE_BIDDER", related_signal_label_es: "Un solo oferente" }],
+      available_total: 1,
+      omitted: { personal_data: 0, unsafe: 0, below_relevance: 0 },
+      note_es: null,
+    };
+  return { ocid, items: [], available_total: 0, omitted: { personal_data: 0, unsafe: 0, below_relevance: 0 }, note_es: null };
 }
 
 export const meta = { reviews_enabled: false };

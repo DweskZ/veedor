@@ -3,7 +3,7 @@ import { ApiError, getSimilar } from "@/lib/api";
 import { fmtUsd, NA, shortCode } from "@/lib/format";
 import type { SimilarProcess } from "@/lib/types";
 import { canLinkBuyer } from "@/lib/validate";
-import { EmptyState, Num } from "./ui";
+import { EmptyState, Name, Num } from "./ui";
 
 const sim = new Intl.NumberFormat("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -22,10 +22,10 @@ function SimilarityBar({ value }: { value: number }) {
 function Buyer({ r }: { r: SimilarProcess }) {
   return canLinkBuyer(r.buyer_ruc) ? (
     <Link href={`/entidades/${r.buyer_ruc}`} className="cell-link">
-      {r.buyer_name ?? NA}
+      <Name value={r.buyer_name} />
     </Link>
   ) : (
-    <>{r.buyer_name ?? NA}</>
+    <><Name value={r.buyer_name} /></>
   );
 }
 

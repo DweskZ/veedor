@@ -22,7 +22,7 @@ export interface ActiveFilter {
 }
 
 interface Props {
-  values: { year: string; method: string; signal: string; region: string; min_score: string; q: string; sort: string };
+  values: { year: string; method: string; signal: string; region: string; min_score: string; min_amount: string; max_amount: string; q: string; sort: string };
   years: Opt[];
   methods: Opt[];
   signals: Opt[];
@@ -66,16 +66,16 @@ export function ExplorerShell({ values, years, methods, signals, regions, sorts,
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
   // Chips, removable filters and back/forward change the URL without touching the form: keep its fields in step.
-  const { year, method, signal, region, min_score, q, sort } = values;
+  const { year, method, signal, region, min_score, min_amount, max_amount, q, sort } = values;
   useEffect(() => {
     const f = form.current;
     if (!f) return;
-    const now = { year, method, signal, region, min_score, q, sort };
+    const now = { year, method, signal, region, min_score, min_amount, max_amount, q, sort };
     for (const [name, v] of Object.entries(now)) {
       const el = f.elements.namedItem(name);
       if ((el instanceof HTMLSelectElement || el instanceof HTMLInputElement) && el !== document.activeElement && el.value !== v) el.value = v;
     }
-  }, [year, method, signal, region, min_score, q, sort]);
+  }, [year, method, signal, region, min_score, min_amount, max_amount, q, sort]);
 
   const go = (href: string) => start(() => router.push(href, { scroll: false }));
 
@@ -138,6 +138,11 @@ export function ExplorerShell({ values, years, methods, signals, regions, sorts,
         </div>
 
         <div className="filters__grid">
+          <label className="field field--search">
+            <span className="field__label">Buscar</span>
+            <input name="q" type="search" defaultValue={values.q} placeholder="Escribe aquí" className="control" />
+            <span className="field__help">Código del proceso o nombre de la entidad</span>
+          </label>
           <Select name="year" label="Año" value={values.year} options={years} all="Todos los años" />
           <Select name="method" label="Método de contratación" value={values.method} options={methods} all="Todos los métodos" />
           {regions.length ? <Select name="region" label="Provincia de la entidad" value={values.region} options={regions} all="Todo el país" /> : null}
@@ -147,13 +152,10 @@ export function ExplorerShell({ values, years, methods, signals, regions, sorts,
             <input name="min_score" type="number" min={0} max={100} inputMode="numeric" defaultValue={values.min_score} placeholder="0" className="control" />
             <span className="field__help">De 0 a 100</span>
           </label>
-          <label className="field">
-            <span className="field__label">Buscar</span>
-            <input name="q" type="search" defaultValue={values.q} placeholder="Escribe aquí" className="control" />
-            <span className="field__help">Código del proceso o nombre de la entidad</span>
-          </label>
           <Select name="sort" label="Ordenar por" value={values.sort} options={sorts} />
         </div>
+        <input type="hidden" name="min_amount" defaultValue={values.min_amount} />
+        <input type="hidden" name="max_amount" defaultValue={values.max_amount} />
         <div className="filters__foot">
           <p className="small muted" style={{ margin: 0 }}>
             Los resultados se actualizan al cambiar un filtro.
@@ -162,6 +164,11 @@ export function ExplorerShell({ values, years, methods, signals, regions, sorts,
             <button type="submit" className="btn btn--tc btn--sm nojs-only">
               Aplicar filtros
             </button>
+            {active.length ? (
+              <a href={clearHref} data-nav className="btn btn--line btn--sm">
+                Quitar los {active.length} filtros
+              </a>
+            ) : null}
           </div>
         </div>
       </form>

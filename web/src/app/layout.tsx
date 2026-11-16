@@ -5,6 +5,7 @@ import { Footer, Header, MockBanner } from "@/components/SiteChrome";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import "./globals.css";
 import "./features.css";
+import "./data.css";
 
 // Plus Jakarta Sans, the Ruray typeface, self-hosted (no request to Google).
 const jakarta = localFont({
@@ -33,6 +34,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="es-EC" className={`${jakarta.variable} h-full antialiased`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+        {/* Without JavaScript React cannot move streamed content out of its hidden holding boxes: show them, and drop the loading skeletons. Inside the base layer because Tailwind's important [hidden] rule lives there and layered important rules beat unlayered ones. */}
+        <noscript>
+          <style>{'@layer base{div[hidden][id^="S:"]{display:block!important}.skeleton,[aria-label="Cargando"]{display:none!important}}'}</style>
+        </noscript>
       </head>
       <body className="flex min-h-full flex-col">
         <a href="#contenido" className="skip">

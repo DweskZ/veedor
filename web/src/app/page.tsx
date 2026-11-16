@@ -164,30 +164,31 @@ function HowToRead() {
     <section className="sec sec--ink" id="como" aria-labelledby="como-h">
       <div className="wrap">
         <header className="sec__head reveal">
-          <p className="eyebrow">Cómo leerlo</p>
+          <p className="eyebrow">Cómo funciona</p>
           <h2 className="h2" id="como-h">
-            Tres pasos. <em>Sin</em> ser experto.
+            Cómo usar Veedor <em>en tres pasos</em>.
           </h2>
         </header>
         <ol className="steps">
-          <li className="step reveal">
+          <li className="step">
             <div className="step__media">
+              <span className="pin pin--corner" aria-hidden="true">1</span>
               <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
-                <Art name="datos" sizes="340px" alt="Dibujo isométrico de un archivo con estantes de carpetas: los procesos de contratación." />
-                <span className="pin" style={{ left: "29%", top: "42%", transform: "translate(-50%,-50%)" }} aria-hidden="true">
-                  1
-                </span>
+                <Art name="datos" priority sizes="340px" alt="Dibujo isométrico de un archivo con estantes de carpetas: los procesos de contratación." />
               </div>
             </div>
             <div className="step__text">
+              <p className="tag">Paso 1 de 3</p>
               <h3 className="h3">
                 <span className="sr-only">Paso 1. </span>Elige un proceso
               </h3>
               <p>Filtra por año, método o tipo de señal. Cada fila es una compra del Estado, con su puntaje.</p>
+              <Link href="/procesos" className="link step__go">Abrir el explorador <span aria-hidden="true">→</span></Link>
             </div>
           </li>
-          <li className="step reveal" style={{ "--d": "0.1s" } as React.CSSProperties}>
+          <li className="step">
             <div className="step__media">
+              <span className="pin pin--corner" aria-hidden="true">2</span>
               <div style={{ position: "relative", width: "100%", maxWidth: 320 }}>
                 <div className="mock" aria-label="Ejemplo ilustrativo de una señal">
                   <p className="mock__t">Oferente único</p>
@@ -206,32 +207,32 @@ function HowToRead() {
                   </div>
                   <p className="mock__note">Ejemplo ilustrativo, no es un proceso real.</p>
                 </div>
-                <span className="pin" style={{ right: -6, top: -14 }} aria-hidden="true">
-                  2
-                </span>
               </div>
             </div>
             <div className="step__text">
+              <p className="tag">Paso 2 de 3</p>
               <h3 className="h3">
                 <span className="sr-only">Paso 2. </span>Mira las señales y de dónde salen
               </h3>
               <p>Cada señal responde tres preguntas: qué se observó, por qué puede importar y cómo puede ser normal. La evidencia va al lado.</p>
+              <RandomProcessButton className="link step__go step__btn" label="Ver un proceso de ejemplo →" />
+              <Link href="/procesos?signal=SINGLE_BIDDER" className="link step__go nojs-only">Ver procesos con un solo oferente <span aria-hidden="true">→</span></Link>
             </div>
           </li>
-          <li className="step reveal" style={{ "--d": "0.2s" } as React.CSSProperties}>
+          <li className="step">
             <div className="step__media">
+              <span className="pin pin--corner" aria-hidden="true">3</span>
               <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
-                <Art name="verificacion" sizes="340px" alt="Dibujo isométrico de una oficina de registro público con un mostrador y un sello: la fuente oficial." />
-                <span className="pin" style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} aria-hidden="true">
-                  3
-                </span>
+                <Art name="verificacion" priority sizes="340px" alt="Dibujo isométrico de una oficina de registro público con un mostrador y un sello: la fuente oficial." />
               </div>
             </div>
             <div className="step__text">
+              <p className="tag">Paso 3 de 3</p>
               <h3 className="h3">
                 <span className="sr-only">Paso 3. </span>Verifica en la fuente oficial
               </h3>
               <p>Cada proceso trae su código y sus fuentes para que lo compruebes en el portal de datos abiertos del SERCOP y en el SRI. Veedor no es la última palabra.</p>
+              <Link href="/metodologia#fuentes" className="link step__go">Ver de dónde salen los datos <span aria-hidden="true">→</span></Link>
             </div>
           </li>
         </ol>

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import { ApiError, getContext, getDossier, getInvestigation, getMeta, getProcess, getReviews, getSignals } from "@/lib/api";
-import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtNum, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
+import { cache, Suspense } from "react";
+import { ApiError, getContext, getDossier as fetchDossier, getInvestigation, getMeta, getProcess, getProvenance, getQuotes, getReviews, getSignals } from "@/lib/api";
+import { citationFor, pickQuotes, sourceById, type Provenance } from "@/lib/provenance";
+import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessFacts, SignalDef } from "@/lib/types";
 import { SignalCard } from "@/components/SignalCard";
 import { DossierIndex, DossierSectionView } from "@/components/DossierSections";
@@ -14,7 +15,15 @@ import { SameBuyerToggle } from "@/components/SameBuyerToggle";
 import { SimilarBody } from "@/components/SimilarProcesses";
 import { canLinkBuyer, canLinkSupplier, isOcid } from "@/lib/validate";
 import { REVIEW_LABELS } from "@/lib/reviews";
-import { Card, EmptyState, ErrorState, Num, PageSkeleton, partyName, RiskScore, Section, Skeleton } from "@/components/ui";
+import { Card, EmptyState, ErrorState, Name, Num, PageSkeleton, partyName, RiskScore, Section, Skeleton } from "@/components/ui";
+import { displayName } from "@/lib/names";
+import { SectionNav, type NavItem } from "@/components/SectionNav";
+import { ProvenanceProvider, SourceMarker, SourcesToggle } from "@/components/Provenance";
+import { QuotesBlock, quoteAnchor } from "@/components/Quotes";
+import { CopyButton } from "@/components/CopyButton";
+import { BackToTop } from "@/components/BackToTop";
+
+const getDossier = cache(fetchDossier);
 
 export const metadata: Metadata = { title: "Expediente de proceso" };
 
@@ -33,38 +42,15 @@ export default function ProcessPage({ params, searchParams }: PageProps<"/proces
   );
 }
 
-function Fact({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+function Fact({ label, keys, children }: { label: React.ReactNode; keys?: string[]; children: React.ReactNode }) {
   return (
     <div className="fact">
       <dt>{label}</dt>
-      <dd>{children}</dd>
+      <dd>
+        {children}
+        {keys ? <SourceMarker keys={keys} /> : null}
+      </dd>
     </div>
-  );
-}
-
-function Toc({ items }: { items: [string, string][] }) {
-  const list = (
-    <ol>
-      {items.map(([id, label]) => (
-        <li key={id}>
-          <a href={`#${id}`}>{label}</a>
-        </li>
-      ))}
-    </ol>
-  );
-  return (
-    <>
-      <nav aria-label="En esta página" className="toc toc-d">
-        <p className="toc__title">En esta página</p>
-        {list}
-      </nav>
-      <nav aria-label="En esta página" className="toc toc-m">
-        <details>
-          <summary>En esta página</summary>
-          {list}
-        </details>
-      </nav>
-    </>
   );
 }
 
@@ -98,59 +84,71 @@ async function Dossier({
   const isContext = (s: { code: string; kind?: string }) => (s.kind ?? defByCode.get(s.code)?.kind) === "context";
   const riskSignals = detail.signals.filter((s) => !isContext(s));
   const contextSignals = detail.signals.filter(isContext);
-  const toc: [string, string][] = [
-    ["hechos", "Los datos del proceso"],
-    ["senales", "Señales de riesgo"],
-    ["comparacion", "Cómo se compara"],
-    ...(contextSignals.length ? ([["contexto", "Contexto del proveedor"]] as [string, string][]) : []),
-    ["investigacion", "Investigación con agentes"],
-    ["similares", "Procesos parecidos"],
-    ["texto", "Texto del expediente"],
-    ["fuentes", "Fuentes"],
-    ["verificar", "Cómo verificar"],
-    ["revision", "Revisión humana"],
+  const [prov, quotes] = await Promise.all([
+    getProvenance(ocid).catch(() => null),
+    getQuotes(ocid).catch(() => null),
+  ]);
+  const quoteFor = new Map<string, string>();
+  (quotes ? pickQuotes(quotes) : []).forEach((q, i) => {
+    if (q.related_signal && !quoteFor.has(q.related_signal)) quoteFor.set(q.related_signal, `#${quoteAnchor(i)}`);
+  });
+  const nav: NavItem[] = [
+    { id: "hechos", label: "Datos" },
+    { id: "senales", label: "Señales", also: ["comparacion", ...(contextSignals.length ? ["contexto"] : [])] },
+    { id: "citas", label: "Citas" },
+    { id: "investigacion", label: "Investigación" },
+    { id: "similares", label: "Parecidos" },
+    { id: "texto", label: "Expediente" },
+    { id: "fuentes", label: "Fuentes", also: ["verificar", "revision"] },
   ];
-  const winnerName = w && (w.ruc || w.name) ? partyName(w.name, w.kind) : null;
+  const winnerNode =
+    w && (w.ruc || w.name) ? (w.kind === "natural_person" || !w.name ? partyName(w.name, w.kind) : <Name value={w.name} />) : null;
+  const code = f.process_code ?? shortCode(ocid);
+  const hasTitle = Boolean(f.description);
+  const meta = [fmtCategory(f.category), displayName(f.main_cpc_description)].filter(Boolean).join(" · ");
 
   return (
-    <>
-      <header className="phead" style={{ paddingBottom: 28 }}>
+    <ProvenanceProvider prov={prov}>
+      <header className="phead phead--page">
         <div className="wrap">
           <div className="phead__circle" aria-hidden="true" />
           <div className="phead__text">
             <Link href="/procesos" className="crumb">
               ← Todos los procesos
             </Link>
-            <p className="eyebrow" style={{ marginTop: 18 }}>
+            <p className="eyebrow" style={{ marginTop: 14 }}>
               Proceso de contratación
             </p>
-            <h1 className="h1 h1--sm">
-              <Num>{f.process_code ?? shortCode(ocid)}</Num>
-            </h1>
+            <h1 className="h1 h1--page">{hasTitle ? <Name value={f.description} /> : <Num>{code}</Num>}</h1>
+            {!hasTitle && detail.facts?.description_withheld ? <p className="phead__meta">Descripción omitida por contener datos personales.</p> : null}
+            {meta ? <p className="phead__meta">{meta}</p> : null}
+            <p className="pcode">
+              <span className="tag">Código</span>
+              <span className="pcode__v">
+                <Num>{code}</Num>
+                <CopyButton text={code} label="Copiar código" iconOnly />
+              </span>
+            </p>
+            <div className="actions actions--tight">
+              <a href="#senales" className="btn btn--tc btn--sm">
+                {riskSignals.length ? `Ver las ${riskSignals.length === 1 ? "señal" : `${fmtInt(riskSignals.length)} señales`}` : "Ver las señales"}
+              </a>
+            </div>
           </div>
         </div>
       </header>
 
       <div className="wrap">
-        <section className="summary" aria-label="Resumen del proceso">
-          <div className="summary__cell summary__cell--what">
-            <p className="summary__q">Qué se compró</p>
-            <p className="summary__a summary__a--text">
-              {f.description ? f.description : detail.facts?.description_withheld ? "Descripción omitida por contener datos personales." : NA}
-            </p>
-            {f.main_cpc_description || f.category ? (
-              <p className="summary__sub">{[fmtCategory(f.category), f.main_cpc_description].filter(Boolean).join(" · ")}</p>
-            ) : null}
-          </div>
+        <section className="summary" aria-label="Lo esencial de este proceso">
           <div className="summary__cell summary__cell--who">
             <p className="summary__q">Quién compró</p>
             <p className="summary__a">
               {canLinkBuyer(f.buyer_ruc) ? (
                 <Link href={`/entidades/${f.buyer_ruc}`} className="cell-link">
-                  {f.buyer_name ?? NA}
+                  <Name value={f.buyer_name} />
                 </Link>
               ) : (
-                (f.buyer_name ?? NA)
+                <Name value={f.buyer_name} />
               )}
             </p>
             <p className="summary__sub">
@@ -161,13 +159,13 @@ async function Dossier({
           <div className="summary__cell summary__cell--won">
             <p className="summary__q">Quién ganó</p>
             <p className="summary__a">
-              {winnerName ? (
+              {winnerNode ? (
                 w && canLinkSupplier(w.ruc, w.kind) ? (
                   <Link href={`/proveedores/${w.ruc}`} className="cell-link">
-                    {winnerName}
+                    {winnerNode}
                   </Link>
                 ) : (
-                  winnerName
+                  winnerNode
                 )
               ) : (
                 "Sin adjudicatario registrado"
@@ -184,42 +182,45 @@ async function Dossier({
           </div>
           <div className="summary__cell summary__cell--much">
             <p className="summary__q">Cuánto</p>
-            <p className="summary__a summary__a--big">{fmtUsd(f.award_total)}</p>
+            <p className="summary__a summary__a--big">{fmtUsd(f.award_total)}<SourceMarker keys={["facts.award_total"]} /></p>
             <p className="summary__sub">Presupuesto referencial: {fmtUsd(f.budget)}</p>
           </div>
           <div className="summary__cell summary__cell--score">
             <p className="summary__q"><Term t="puntaje">Puntaje</Term></p>
             {score ? (
               <>
-                <RiskScore score={score.risk_score} big />
+                <RiskScore score={score.risk_score} big /><SourceMarker keys={["score.risk_score"]} />
                 <p className="summary__sub" style={{ marginTop: 10 }}>
-                  {riskSignals.length === 1 ? "1 señal de riesgo" : `${fmtInt(riskSignals.length)} señales de riesgo`}. El puntaje es una guía
-                  para decidir qué mirar primero, no un veredicto.
+                  {riskSignals.length === 1 ? "1 señal de riesgo" : `${fmtInt(riskSignals.length)} señales de riesgo`}. Es una guía para decidir qué mirar primero,
+                  no un veredicto.
                 </p>
-                {score.anomaly_score != null ? (
-                  <p className="summary__sub">
-                    Puntaje de anomalía: <Num>{fmtNum(score.anomaly_score)}</Num>. Se informa por separado y no cambia el puntaje.
-                  </p>
-                ) : null}
               </>
             ) : (
               <p className="summary__a">No disponible</p>
             )}
           </div>
         </section>
+      </div>
 
+      <SectionNav items={nav} />
+
+      <div className="wrap">
         <div className="doc">
-          <Toc items={toc} />
           <div className="doc__main">
-            <Section title="Los datos del proceso" id="hechos" note="Estos son los datos tal como los publica el SERCOP. Compáralos con el registro original.">
+            <Section
+              title="Los datos del proceso"
+              id="hechos"
+              note="Estos son los datos tal como los publica el SERCOP. Compáralos con el registro original."
+              aside={<SourcesToggle />}
+            >
               <dl className="facts">
-                <Fact label={<Term t="entidad contratante">Entidad contratante</Term>}>
+                <Fact label={<Term t="entidad contratante">Entidad contratante</Term>} keys={["facts.buyer_name", "facts.buyer_ruc"]}>
                   {canLinkBuyer(f.buyer_ruc) ? (
                     <Link href={`/entidades/${f.buyer_ruc}`} className="cell-link">
-                      {f.buyer_name ?? NA}
+                      <Name value={f.buyer_name} />
                     </Link>
                   ) : (
-                    (f.buyer_name ?? NA)
+                    <Name value={f.buyer_name} />
                   )}
                   {f.buyer_ruc ? (
                     <>
@@ -228,15 +229,15 @@ async function Dossier({
                     </>
                   ) : null}
                 </Fact>
-                <Fact label="Quién ganó">
-                  {winnerName ? (
+                <Fact label="Quién ganó" keys={["winner.name", "winner.ruc", "awards.supplier_name"]}>
+                  {winnerNode ? (
                     <>
                       {w && canLinkSupplier(w.ruc, w.kind) ? (
                         <Link href={`/proveedores/${w.ruc}`} className="cell-link">
-                          {winnerName}
+                          {winnerNode}
                         </Link>
                       ) : (
-                        winnerName
+                        winnerNode
                       )}
                       {w?.ruc ? (
                         <>
@@ -249,56 +250,40 @@ async function Dossier({
                     "Sin adjudicatario registrado"
                   )}
                 </Fact>
-                <Fact label="Método">{f.method ?? NA}</Fact>
-                <Fact label="Categoría">{fmtCategory(f.category) ?? NA}</Fact>
-                <Fact label="Estado">{fmtStatus(f.status) ?? NA}</Fact>
-                <Fact label="Fecha de publicación">{fmtDate(f.release_date)}</Fact>
-                <Fact label={<Term t="presupuesto referencial">Presupuesto referencial</Term>}>
+                <Fact label="Método" keys={["facts.method"]}>{f.method ?? NA}</Fact>
+                <Fact label="Categoría" keys={["facts.category"]}>{fmtCategory(f.category) ?? NA}</Fact>
+                <Fact label="Estado" keys={["facts.status"]}>{fmtStatus(f.status) ?? NA}</Fact>
+                <Fact label="Fecha de publicación" keys={["facts.release_date"]}>{fmtDate(f.release_date)}</Fact>
+                <Fact label={<Term t="presupuesto referencial">Presupuesto referencial</Term>} keys={["facts.budget"]}>
                   <Num>{fmtUsd(f.budget)}</Num>
                 </Fact>
-                <Fact label={<>Monto <Term t="adjudicación">adjudicado</Term></>}>
+                <Fact label={<>Monto <Term t="adjudicación">adjudicado</Term></>} keys={["facts.award_total"]}>
                   <Num>{fmtUsd(f.award_total)}</Num>
                 </Fact>
-                <Fact label={<>Empresas que ofertaron (<Term t="oferente">oferentes</Term>)</>}>
-                  {detail.tenderers.length ? (
-                    <ul>
-                      {detail.tenderers.map((t, i) => (
-                        <li key={`${t.ruc}-${i}`}>
-                          {partyName(t.name, t.kind)}
-                          {t.ruc ? (
-                            <>
-                              {" "}
-                              · <Num>{t.ruc}</Num>
-                            </>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    NA
-                  )}
+                <Fact label={<>Empresas que ofertaron (<Term t="oferente">oferentes</Term>)</>} keys={["tenderers.name", "tenderers.ruc"]}>
+                  {detail.tenderers.length ? <TendererList tenderers={detail.tenderers} /> : NA}
                 </Fact>
-                <Fact label="Oferentes / ofertas">
+                <Fact label="Oferentes / ofertas" keys={["facts.n_tenderers", "facts.n_bids"]}>
                   <Num>
                     {fmtInt(f.n_tenderers)} / {fmtInt(f.n_bids)}
                   </Num>
                 </Fact>
-                <Fact label="Periodo de ofertas">
+                <Fact label="Periodo de ofertas" keys={["facts.tender_start", "facts.tender_end"]}>
                   {f.tender_start || f.tender_end ? `${fmtDate(f.tender_start)} a ${fmtDate(f.tender_end)}` : NA}
                 </Fact>
-                <Fact label="Fecha de firma">{fmtDate(f.date_signed)}</Fact>
-                <Fact label={<>Tipo de bien o servicio (<Term t="CPC">CPC</Term>)</>}>
+                <Fact label="Fecha de firma" keys={["facts.date_signed"]}>{fmtDate(f.date_signed)}</Fact>
+                <Fact label={<>Tipo de bien o servicio (<Term t="CPC">CPC</Term>)</>} keys={["facts.main_cpc"]}>
                   {f.main_cpc ? (
                     <>
                       <Num>{f.main_cpc}</Num>
-                      {f.main_cpc_description ? ` · ${f.main_cpc_description}` : ""}
+                      {f.main_cpc_description ? ` · ${displayName(f.main_cpc_description)}` : ""}
                     </>
                   ) : (
                     NA
                   )}
                 </Fact>
                 <Fact label="Identificador OCDS">
-                  <Num>{ocid}</Num>
+                  <Num>{ocid}</Num> <CopyButton text={ocid} label="Copiar identificador OCDS" iconOnly />
                 </Fact>
               </dl>
             </Section>
@@ -317,7 +302,7 @@ async function Dossier({
               ) : (
                 <div className="sigs sigs--2">
                   {riskSignals.map((s) => (
-                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} />
+                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quoteHref={quoteFor.get(s.code)} />
                   ))}
                 </div>
               )}
@@ -333,11 +318,19 @@ async function Dossier({
               <Section title="Contexto del proveedor" id="contexto" note="Estos datos describen el registro del proveedor en relación con el proceso. Son solo contexto: no suman puntos.">
                 <div className="sigs sigs--2">
                   {contextSignals.map((s) => (
-                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quiet />
+                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quiet quoteHref={quoteFor.get(s.code)} />
                   ))}
                 </div>
               </Section>
             ) : null}
+
+            <Section
+              title="Citas de la fuente"
+              id="citas"
+              note="Palabras del expediente original que ayudan a entender las señales. No son texto de Veedor."
+            >
+              <QuotesBlock quotes={quotes} />
+            </Section>
 
             <Section title="Investigación con agentes" id="investigacion">
               <Suspense fallback={<Skeleton style={{ height: 256 }} />}>
@@ -357,7 +350,7 @@ async function Dossier({
             </Section>
 
             <Suspense fallback={<Skeleton style={{ height: 256, marginTop: 64 }} />}>
-              <DossierText ocid={ocid} />
+              <DossierText ocid={ocid} prov={prov} />
             </Suspense>
 
             <Section title="Cómo verificar" id="verificar" note="Veedor no es la última palabra. Estos pasos te llevan a la fuente oficial.">
@@ -367,7 +360,7 @@ async function Dossier({
                     <>
                       Copia el identificador OCDS (<Num>{ocid}</Num>) y búscalo en el portal de datos abiertos del SERCOP o en el archivo de liberaciones OCDS de la fuente.
                     </>,
-                    <>Compara los campos de «Los datos del proceso» con el registro original: presupuesto, monto adjudicado, número de oferentes y fechas.</>,
+                    <>Compara los campos de «Los datos del proceso» con el registro original: presupuesto, monto adjudicado, número de oferentes y fechas. El botón de documento junto a cada dato dice de dónde sale.</>,
                     <>Revisa el valor observado y el umbral de cada señal; la evidencia lista los campos usados en el cálculo.</>,
                     <>Para quien ganó, contrasta su estado con la consulta pública del SRI. El estado del registro es el de hoy, no el que tenía cuando se adjudicó.</>,
                   ].map((t, i) => (
@@ -394,6 +387,32 @@ async function Dossier({
           </div>
         </div>
       </div>
+      <BackToTop />
+    </ProvenanceProvider>
+  );
+}
+
+/** Long lists open on demand (a native disclosure: works without JavaScript). */
+function TendererList({ tenderers }: { tenderers: { ruc: string | null; name: string | null; kind: Parameters<typeof partyName>[1] }[] }) {
+  const items = tenderers.map((t, i) => (
+    <li key={`${t.ruc}-${i}`}>
+      {t.kind === "natural_person" || !t.name ? partyName(t.name, t.kind) : <Name value={t.name} />}
+      {t.ruc ? (
+        <>
+          {" "}
+          · <Num>{t.ruc}</Num>
+        </>
+      ) : null}
+    </li>
+  ));
+  if (tenderers.length <= 5) return <ul className="plain">{items}</ul>;
+  return (
+    <>
+      <ul className="plain">{items.slice(0, 3)}</ul>
+      <details className="more">
+        <summary>Ver las otras {tenderers.length - 3} empresas</summary>
+        <ul className="plain">{items.slice(3)}</ul>
+      </details>
     </>
   );
 }
@@ -419,7 +438,7 @@ async function InvestigationSection({ ocid }: { ocid: string }) {
   return <InvestigationPanel inv={r.v} />;
 }
 
-async function DossierText({ ocid }: { ocid: string }) {
+async function DossierText({ ocid, prov }: { ocid: string; prov: Provenance | null }) {
   const r = await getDossier(ocid).then(
     (v) => ({ ok: true as const, v }),
     (e: unknown) => ({ ok: false as const, e }),
@@ -470,7 +489,9 @@ async function DossierText({ ocid }: { ocid: string }) {
           ))}
         </Card>
       </Section>
-      <Section title="Fuentes" id="fuentes" note="De dónde salen los datos de este expediente.">
+      <Section title="Fuentes" id="fuentes" note="De dónde sale cada dato de este expediente y qué registros se usaron.">
+        <ProvenanceList prov={prov} />
+        <h3 className="h4" style={{ margin: "28px 0 12px" }}>Registros usados para el expediente</h3>
         {d.sources.length === 0 ? (
           <EmptyState>No hay fuentes registradas para este expediente.</EmptyState>
         ) : (
@@ -498,6 +519,91 @@ async function DossierText({ ocid }: { ocid: string }) {
         )}
       </Section>
     </>
+  );
+}
+
+/** Server-rendered, so it reads without JavaScript: each datum with its source, original field and how it was obtained. */
+function ProvenanceList({ prov }: { prov: Provenance | null }) {
+  if (!prov || prov.facts.length === 0)
+    return <p className="muted">El detalle de dónde sale cada dato no está disponible para este proceso.</p>;
+  const GROUPS: [string, string][] = [
+    ["facts", "Datos del proceso"],
+    ["winner", "Quién ganó"],
+    ["tenderers", "Oferentes"],
+    ["awards", "Adjudicaciones"],
+    ["registry", "Registros del proveedor (SRI y Superintendencia de Compañías)"],
+    ["signal", "Señales de riesgo"],
+    ["score", "Puntaje"],
+    ["investigation", "Investigación con agentes"],
+  ];
+  const groups = GROUPS.map(([id, title]) => ({
+    id,
+    title,
+    facts: prov.facts.filter((f) => f.key.split(".")[0] === id && (id !== "investigation" || f.value)),
+  })).filter((g) => g.facts.length);
+  const other = prov.facts.filter((f) => !GROUPS.some(([id]) => f.key.split(".")[0] === id));
+  if (other.length) groups.push({ id: "other", title: "Otros datos", facts: other });
+  return (
+    <div className="provlist">
+      <ul className="provsrc">
+        {prov.sources.map((s) => (
+          <li key={s.id} className="card card--tight">
+            <p className="h4">{s.name}</p>
+            <p className="small muted">
+              {[s.publisher, s.licence ? `Licencia: ${s.licence}` : null, s.retrieved_at ? `Obtenido el ${fmtDate(s.retrieved_at)}` : null].filter(Boolean).join(" · ")}
+            </p>
+            {s.url ? (
+              <p className="small" style={{ overflowWrap: "anywhere" }}>
+                <a href={s.url} className="inline-link" target="_blank" rel="noopener noreferrer">
+                  {s.url}
+                  <span className="sr-only"> (se abre en una pestaña nueva)</span>
+                </a>
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {groups.map((g, gi) => (
+        <details key={g.id} className="provgroup" open={gi < 1}>
+          <summary>
+            {g.title} <span className="muted">({g.facts.length})</span>
+          </summary>
+          <div className="tbl-wrap provtbl" tabIndex={0} role="region" aria-label={`De dónde sale cada dato: ${g.title} (tabla desplazable)`}>
+            <table className="tbl">
+              <caption className="sr-only">{g.title}: cada dato con su fuente, campo original y forma de obtenerlo</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Dato</th>
+                  <th scope="col">Valor publicado</th>
+                  <th scope="col">Fuente y campo</th>
+                  <th scope="col">Cómo se obtuvo</th>
+                  <th scope="col"><span className="sr-only">Copiar cita</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.facts.map((f) => (
+                  <tr key={f.key}>
+                    <th scope="row">{f.label_es}</th>
+                    <td data-l="Valor">{f.value || NA}</td>
+                    <td data-l="Fuente">
+                      {sourceById(prov, f.source_id)?.name ?? NA}
+                      {f.source_field ? <div className="cell-sub"><Num>{f.source_field}</Num></div> : null}
+                    </td>
+                    <td data-l="Cómo se obtuvo">
+                      {f.derived ? `Calculado por Veedor. ${f.derivation_es ?? ""}` : "Tal como lo publica la fuente."}
+                      {f.verify_es ? <div className="cell-sub">Verificar: {f.verify_es}</div> : null}
+                    </td>
+                    <td>
+                      <CopyButton text={citationFor(prov, f, fmtDate)} label={`Copiar cita: ${f.label_es}`} iconOnly />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      ))}
+    </div>
   );
 }
 

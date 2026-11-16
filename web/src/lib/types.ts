@@ -268,6 +268,8 @@ export interface ProcessQuery {
   method?: string;
   signal?: string;
   min_score?: string;
+  min_amount?: string;
+  max_amount?: string;
   q?: string;
   buyer_ruc?: string;
   region?: string;

@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Procesos" };
 // Method names as they appear in the contract's data description.
 const METHODS = ["Subasta Inversa Electrónica", "Menor Cuantía", "Cotización", "Licitación"];
 const PAGE_SIZE = 25;
-const KEYS = ["year", "method", "signal", "region", "min_score", "q", "sort", "page"] as const;
+const KEYS = ["year", "method", "signal", "region", "min_score", "min_amount", "max_amount", "q", "sort", "page"] as const;
 
 const QUICK: { id: string; label: string; signal: string }[] = [
   { id: "single", label: "Un solo oferente", signal: "SINGLE_BIDDER" },
@@ -110,14 +110,24 @@ async function Explorer({ searchParams }: { searchParams: PageProps<"/procesos">
   add("region", `Provincia: ${q.region ? regionLabel(q.region) : ""}`);
   add("signal", `Señal: ${signals.find((s) => s.code === q.signal)?.label_es ?? q.signal}`);
   add("min_score", `Puntaje desde ${q.min_score}`);
+  if (q.min_amount) add("min_amount", `Monto desde USD ${fmtInt(Number(q.min_amount))}`);
+  if (q.max_amount) add("max_amount", `Monto hasta USD ${fmtInt(Number(q.max_amount))}`);
   add("q", `Búsqueda: «${q.q}»`);
 
+  const millionOn = q.min_amount === "1000000";
+  chips.push({
+    id: "million",
+    label: "Más de USD 1 millón",
+    on: millionOn,
+    count: await millionCount(q),
+    href: href(q, { min_amount: millionOn ? undefined : "1000000", page: undefined }),
+  });
   const bigOn = sort === "-award_total";
   chips.push({ id: "big", label: "Montos más altos primero", on: bigOn, count: null, href: href(q, { sort: bigOn ? undefined : "-award_total", page: undefined }) });
 
   return (
     <ExplorerShell
-      values={{ year: q.year ?? "", method: q.method ?? "", signal: q.signal ?? "", region: q.region ?? "", min_score: q.min_score ?? "", q: q.q ?? "", sort: SORTS.some(([v]) => v === sort) ? sort : "-risk_score" }}
+      values={{ year: q.year ?? "", method: q.method ?? "", signal: q.signal ?? "", region: q.region ?? "", min_score: q.min_score ?? "", min_amount: q.min_amount ?? "", max_amount: q.max_amount ?? "", q: q.q ?? "", sort: SORTS.some(([v]) => v === sort) ? sort : "-risk_score" }}
       years={years.map((y) => ({ value: y, label: y }))}
       methods={METHODS.map((m) => ({ value: m, label: m }))}
       signals={signals.map((s) => ({ value: s.code, label: s.label_es }))}
@@ -134,7 +144,19 @@ async function Explorer({ searchParams }: { searchParams: PageProps<"/procesos">
   );
 }
 
-const FILTER_NAMES: Record<string, string> = { year: "el año", method: "el método", region: "la provincia", signal: "el tipo de señal", min_score: "el puntaje mínimo", q: "la búsqueda" };
+/**
+ * Processes above USD 1 million within the current filters. If the API ignores `min_amount` (an older build), the filtered total
+ * equals the unfiltered one: then no count is shown rather than a wrong one.
+ */
+async function millionCount(q: ProcessQuery): Promise<number | null> {
+  const [withMin, without] = await Promise.all([
+    getProcesses({ ...q, min_amount: "1000000", page: undefined, page_size: "1" }).then((r) => r.total, () => null),
+    getProcesses({ ...q, min_amount: undefined, page: undefined, page_size: "1" }).then((r) => r.total, () => null),
+  ]);
+  return withMin != null && without != null && withMin < without ? withMin : null;
+}
+
+const FILTER_NAMES: Record<string, string> = { year: "el año", method: "el método", region: "la provincia", signal: "el tipo de señal", min_score: "el puntaje mínimo", min_amount: "el monto mínimo", max_amount: "el monto máximo", q: "la búsqueda" };
 
 async function Results({ q, signals, regionLabel }: { q: ProcessQuery; signals: SignalDef[]; regionLabel: (k: string) => string }) {
   const res = await getProcesses({ ...q, page_size: String(PAGE_SIZE) }).then(
@@ -144,13 +166,13 @@ async function Results({ q, signals, regionLabel }: { q: ProcessQuery; signals: 
   const labels = Object.fromEntries(signals.map((s) => [s.code, s.label_es]));
   const context = signals.filter((s) => s.kind === "context").map((s) => s.code);
   const sort = q.sort || "-risk_score";
-  const hasFilters = Boolean(q.year || q.method || q.signal || q.min_score || q.q || q.region);
+  const hasFilters = Boolean(q.year || q.method || q.signal || q.min_score || q.min_amount || q.max_amount || q.q || q.region);
   if (!res.ok) return <ErrorState detail={res.e instanceof Error ? res.e.message : undefined} />;
   const page = res.v;
 
   if (page.items.length === 0) {
     // Which single filter, once removed, brings results back? Ask the API for each.
-    const keys = (["year", "method", "region", "signal", "min_score", "q"] as const).filter((k) => q[k]);
+    const keys = (["year", "method", "region", "signal", "min_score", "min_amount", "max_amount", "q"] as const).filter((k) => q[k]);
     const probes = await Promise.all(
       keys.map((k) =>
         getProcesses({ ...q, [k]: undefined, page: undefined, page_size: "1" }).then(

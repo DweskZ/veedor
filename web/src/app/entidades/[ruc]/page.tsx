@@ -6,7 +6,7 @@ import { ApiError, getBuyer, getProcesses, getSignalIndex } from "@/lib/api";
 import { fmtInt, fmtNum, fmtPct, fmtUsd, NA } from "@/lib/format";
 import { ProcessTable } from "@/components/ProcessTable";
 import { canLinkSupplier, isRuc } from "@/lib/validate";
-import { BarList, Card, EmptyState, ErrorState, Fig, Num, PageHeader, PageSkeleton, partyName, Section } from "@/components/ui";
+import { BarList, Card, EmptyState, ErrorState, Fig, Name, Num, PageHeader, PageSkeleton, partyName, Section } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Entidad contratante" };
 
@@ -45,7 +45,7 @@ async function Content({ params }: { params: PageProps<"/entidades/[ruc]">["para
       <PageHeader
         eyebrow="Entidad contratante"
         small
-        title={b.name ?? "Entidad contratante"}
+        title={<Name value={b.name} fallback="Entidad contratante" />}
         lead={
           <>
             RUC <Num>{b.ruc}</Num>

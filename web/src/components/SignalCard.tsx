@@ -1,4 +1,5 @@
 import { evidenceLabel, fmtEvidence, fmtNum } from "@/lib/format";
+import { SourceMarker } from "./Provenance";
 import { FALLBACK_COPY, SIGNAL_COPY } from "@/lib/signal-copy";
 import type { FiredSignal, SignalDef } from "@/lib/types";
 
@@ -21,12 +22,12 @@ function Comparison({ value, threshold }: { value: number; threshold: number }) 
  * One signal, answering three questions in plain words: what was observed, why it can matter,
  * and how it can be perfectly normal. Context signals are quieter and do not add points.
  */
-export function SignalCard({ signal, def, quiet = false }: { signal: FiredSignal; def: SignalDef | undefined; quiet?: boolean }) {
+export function SignalCard({ signal, def, quiet = false, quoteHref }: { signal: FiredSignal; def: SignalDef | undefined; quiet?: boolean; quoteHref?: string }) {
   const evidence = Object.entries(signal.evidence);
   const copy = SIGNAL_COPY[signal.code] ?? FALLBACK_COPY;
   const label = signal.label_es ?? def?.label_es ?? signal.code;
   return (
-    <article className={`sig ${quiet ? "sig--quiet" : ""}`}>
+    <article id={`sig-${signal.code}`} className={`sig ${quiet ? "sig--quiet" : ""}`}>
       <header className="sig__head">
         {quiet ? <p className="tag">Solo contexto · no suma puntos</p> : null}
         <h3 className="h3">{label}</h3>
@@ -39,7 +40,7 @@ export function SignalCard({ signal, def, quiet = false }: { signal: FiredSignal
           <dl className="sig__vals">
             <div>
               <dt>Valor observado</dt>
-              <dd>{fmtNum(signal.value)}</dd>
+              <dd>{fmtNum(signal.value)}<SourceMarker keys={[`signal.${signal.code}`]} /></dd>
             </div>
             <div>
               <dt>Umbral de la regla</dt>
@@ -58,9 +59,16 @@ export function SignalCard({ signal, def, quiet = false }: { signal: FiredSignal
           <p>{copy.normal}</p>
         </div>
       </div>
+      {quoteHref ? (
+        <p className="sig__quote">
+          <a href={quoteHref} className="inline-link">
+            Ver la cita de la fuente relacionada
+          </a>
+        </p>
+      ) : null}
       {evidence.length ? (
         <details>
-          <summary>De dónde sale: evidencia ({evidence.length} campos)</summary>
+          <summary>Evidencia usada ({evidence.length} campos)</summary>
           <div className="ev-wrap">
             <table className="ev">
               <caption className="sr-only">Evidencia de la señal {label}</caption>

@@ -1,6 +1,7 @@
 import { normalizeInvestigation } from "./investigation";
 import { normalizeContext, normalizeRegions, normalizeYears } from "./normalize";
 import * as mocks from "./mocks";
+import { normalizeProvenance, normalizeQuotes, type Provenance, type Quotes } from "./provenance";
 import type {
   BuyerDetail,
   Dossier,
@@ -162,6 +163,28 @@ export async function getContext(ocid: string): Promise<ProcessContext | null> {
   if (USE_MOCKS) return mocks.context(ocid);
   try {
     return normalizeContext(await request<unknown>(`/processes/${enc(ocid)}/context`));
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return null;
+    throw e;
+  }
+}
+
+/** Where each datum came from. Null when the API has none (404) or does not offer it yet. Other failures throw. */
+export async function getProvenance(ocid: string): Promise<Provenance | null> {
+  if (USE_MOCKS) return mocks.provenance(ocid);
+  try {
+    return normalizeProvenance(await request<unknown>(`/processes/${enc(ocid)}/provenance`));
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return null;
+    throw e;
+  }
+}
+
+/** A few passages written by bidders or the buying entity, as published. Null when none or not offered. */
+export async function getQuotes(ocid: string): Promise<Quotes | null> {
+  if (USE_MOCKS) return mocks.quotes(ocid);
+  try {
+    return normalizeQuotes(await request<unknown>(`/processes/${enc(ocid)}/quotes`));
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return null;
     throw e;

@@ -7,7 +7,7 @@ import { fmtDate, fmtInt, fmtNum, fmtPct, fmtUsd, NA } from "@/lib/format";
 import { ProcessTable } from "@/components/ProcessTable";
 import { isRuc } from "@/lib/validate";
 import type { SriFacts } from "@/lib/types";
-import { Card, EmptyState, ErrorState, Fig, Num, PageHeader, PageSkeleton, partyName, Section } from "@/components/ui";
+import { Card, EmptyState, ErrorState, Fig, Name, Num, PageHeader, PageSkeleton, partyName, Section } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Proveedor" };
 
@@ -55,7 +55,7 @@ async function Content({ params }: { params: PageProps<"/proveedores/[ruc]">["pa
       <PageHeader
         eyebrow="Proveedor"
         small
-        title={partyName(s.name, s.kind)}
+        title={<Name value={s.name} fallback={partyName(s.name, s.kind)} />}
         lead={
           <>
             RUC <Num>{s.ruc ?? ruc}</Num>

@@ -12,6 +12,7 @@ import {
   isSmall,
   METRICS,
   quantileClasses,
+  classRangeLabel,
   type Metric,
 } from "@/lib/map";
 import type { RegionRow } from "@/lib/types";
@@ -320,7 +321,7 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
                   <span className="muted">
                     {ranges[i] ? (
                       <>
-                        {fmtP(ranges[i]!.min)} a {fmtP(ranges[i]!.max)} · {ranges[i]!.count} {ranges[i]!.count === 1 ? "provincia" : "provincias"}
+                        {classRangeLabel(scale.cuts, i)} · {ranges[i]!.count} {ranges[i]!.count === 1 ? "provincia" : "provincias"}
                       </>
                     ) : (
                       "sin provincias"

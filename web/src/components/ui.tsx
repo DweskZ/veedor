@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { RISK_LEVELS, riskLevel } from "@/lib/risk";
 import { fmtNum } from "@/lib/format";
+import { displayName } from "@/lib/names";
 import type { PartyKind } from "@/lib/types";
 import { Art } from "./Art";
 
@@ -25,7 +26,7 @@ export function PageHeader({
         <div className="phead__circle" aria-hidden="true" />
         <div className="phead__text">
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-          <h1 className={`h1 ${small ? "h1--sm" : ""}`}>{title}</h1>
+          <h1 className={`h1 ${small ? "h1--sm" : "h1--page"}`}>{title}</h1>
           {lead ? <div className="lead">{lead}</div> : null}
           {children}
         </div>
@@ -183,7 +184,17 @@ export function SignalChip({ code, labels, quiet = false }: { code: string; labe
 export function partyName(name: string | null, kind: PartyKind | null): string {
   if (kind === "natural_person") return "Persona natural";
   if (kind === "unknown" && !name) return "Persona natural o sin identificar";
-  return name ?? "No disponible";
+  return name ? displayName(name) : "No disponible";
+}
+
+/**
+ * An official name or title shown in sentence-friendly case. The original spelling stays in the title attribute
+ * (shown on hover and read by assistive technology only when it differs).
+ */
+export function Name({ value, fallback = "No disponible" }: { value: string | null | undefined; fallback?: string }) {
+  if (!value) return <>{fallback}</>;
+  const shown = displayName(value);
+  return shown === value ? <>{value}</> : <span title={`Como figura en el registro: ${value}`}>{shown}</span>;
 }
 
 /** Codes, RUCs and amounts: same family as the text, tabular figures. */
