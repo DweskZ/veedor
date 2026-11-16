@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentDiagram } from "@/components/AgentDiagram";
-import { Card, Mono, PageHeader, Section } from "@/components/ui";
+import { Card, Num, PageHeader, Section } from "@/components/ui";
 import snapshot from "@/data/eval-snapshot.json";
 import { fmtInt } from "@/lib/format";
 import { SPECIALISTS } from "@/lib/investigation";
@@ -31,39 +31,45 @@ const isEst = (v: unknown): v is Est => !!v && isNum((v as Est).estimate) && isN
 const pctCi = (c: Ci) => `${pct.format(c.mean * 100)} %`;
 const pctRange = (c: Ci) => `IC 95 %: ${pct.format(c.ci95_low * 100)} a ${pct.format(c.ci95_high * 100)} %`;
 
-const AGENTS: { name: string; tools: string; can: string; cannot: string }[] = [
+const AGENTS: { name: string; plain: string; tools: string; can: string; cannot: string }[] = [
   {
     name: "Supervisor",
+    plain: "Decide a quién consultar y en qué orden.",
     tools: "Ninguna. Hasta 6 despachos por investigación; cada especialista, como máximo dos veces.",
     can: "Elegir qué especialistas corren y en qué orden, con un motivo tomado de una lista cerrada. Sin modelo, una tabla fija ordena según las señales.",
     cannot: "Consultar fuentes, escribir texto o nombrar un objetivo distinto de ganador, entidad o proceso. Una elección inválida se reintenta una vez y luego pasa a la tabla.",
   },
   {
     name: SPECIALISTS.company.name,
+    plain: "Lee los datos de la empresa que ganó.",
     tools: "get_compania_info, get_financials. Hasta 4 consultas.",
     can: "Consultar constitución, capital, situación legal y último ejercicio con estados financieros del ganador, solo si es compañía o entidad pública.",
     cannot: "Consultar personas naturales ni declarar nombres de representantes legales: esos campos se descartan al validar la respuesta.",
   },
   {
     name: SPECIALISTS.tax_registry.name,
+    plain: "Confirma si la empresa figura como activa en el SRI.",
     tools: "get_sri_ruc_info, sin establecimientos. Hasta 4 consultas.",
     can: "Leer el estado vigente del RUC y comprobar si coincide con la tabla descargada.",
     cannot: "Cambiar el RUC consultado: el argumento lo construye el código y debe superar un patrón estricto.",
   },
   {
     name: SPECIALISTS.history.name,
+    plain: "Busca si la entidad ya le compró antes a esa empresa.",
     tools: "pair_awards, similar_processes. Hasta 4 consultas.",
     can: "Contar otras adjudicaciones entre la entidad y el proveedor y compras similares de la misma entidad en ±180 días entre los 50 vecinos más cercanos.",
     cannot: "Afirmar relación entre procesos: la similitud es una ayuda de búsqueda. Si falta el índice, la consulta se omite con un motivo cerrado.",
   },
   {
     name: SPECIALISTS.audit.name,
+    plain: "Busca informes de la Contraloría sobre la entidad.",
     tools: "list_catalogo, get_contraloria_informe. Hasta 4 consultas.",
     can: "Confirmar «al menos N» informes aprobados cuya entidad auditada coincide con la entidad contratante por comparación exacta de nombre normalizado.",
     cannot: "Descartar informes: lee 3 archivos de 200 filas como máximo. Lo habitual es «no se pudo establecer». Una coincidencia ambigua nunca cuenta.",
   },
   {
     name: "Redactor y verificador",
+    plain: "Escribe el resumen y comprueba cada cifra.",
     tools: "Plantilla determinista; el verificador es una función pura.",
     can: "El modelo, si existe, elige qué hechos van y en qué orden. Cada frase la escribe la plantilla y el verificador comprueba cada cifra, fecha y nombre contra la evidencia.",
     cannot: "Ocultar la sección «Investigación realizada» ni ningún fallo listado en ella, ni tocar las limitaciones, ni ver texto proveniente de una herramienta.",
@@ -81,13 +87,13 @@ const SAFETY: { title: string; body: string }[] = [
 
 function Metric({ label, value, range, note, source }: { label: string; value: string; range?: string; note?: string; source: string }) {
   return (
-    <Card>
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="mt-1 font-mono text-2xl font-medium tracking-tight text-ink">{value}</dd>
-      {range ? <p className="mt-1 font-mono text-xs text-muted">{range}</p> : null}
-      {note ? <p className="mt-2 text-xs leading-relaxed text-muted">{note}</p> : null}
-      <p className="mt-2 text-xs text-muted">
-        Fuente: <Mono>{source}</Mono>
+    <Card className="metric">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+      {range ? <p className="metric__range">{range}</p> : null}
+      {note ? <p>{note}</p> : null}
+      <p>
+        Fuente: <Num>{source}</Num>
       </p>
     </Card>
   );
@@ -182,48 +188,47 @@ function Results() {
 
   return (
     <>
-      {tiles.length ? <dl className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{tiles}</dl> : <p className="text-sm text-muted">No hay resultados medidos disponibles en esta compilación.</p>}
+      {tiles.length ? <dl className="grid3">{tiles}</dl> : <p className="muted">No hay resultados medidos disponibles en esta compilación.</p>}
       {g.length ? (
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold text-ink">Redacción verificada: dos diseños sobre los mismos procesos</h3>
-          <div className="mt-2 overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0} role="region" aria-label="Resultados de redacción verificada (tabla desplazable)">
-            <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
+        <div style={{ marginTop: 40 }}>
+          <h3 className="h3">Redacción verificada: dos diseños sobre los mismos procesos</h3>
+          <div className="tbl-wrap" style={{ marginTop: 16 }} tabIndex={0} role="region" aria-label="Resultados de redacción verificada (tabla desplazable)">
+            <table className="tbl" style={{ minWidth: "44rem" }}>
               <caption className="sr-only">Resultados de la verificación de expedientes redactados con modelo</caption>
               <thead>
-                <tr className="border-b border-line bg-surface-2 text-xs uppercase tracking-wide text-muted">
-                  <th scope="col" className="px-4 py-3 font-medium">Ejecución</th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">Procesos</th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">Pasó al primer intento</th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">Pasó tras reintento</th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">Plantilla de respaldo</th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">Expedientes finales verificados</th>
+                <tr>
+                  <th scope="col">Ejecución</th>
+                  <th scope="col" className="r">Procesos</th>
+                  <th scope="col" className="r">Pasó al primer intento</th>
+                  <th scope="col" className="r">Pasó tras reintento</th>
+                  <th scope="col" className="r">Plantilla de respaldo</th>
+                  <th scope="col" className="r">Expedientes finales verificados</th>
                 </tr>
               </thead>
               <tbody>
                 {g.map((r, i) => (
-                  <tr key={i} className="border-b border-line align-top last:border-b-0">
-                    <th scope="row" className="px-4 py-3 text-left font-normal text-ink">
+                  <tr key={i}>
+                    <th scope="row">
                       {i === 0 ? "El modelo redacta; el verificador rechaza lo no respaldado" : "El modelo elige hechos; la plantilla redacta todo el texto"}
-                      <span className="mt-0.5 block font-mono text-xs text-muted">{r.label}</span>
+                      <span className="cell-sub" style={{ display: "block" }}>{r.label}</span>
                     </th>
-                    <td className="px-4 py-3 text-right font-mono">{fmtInt(r.runs)}</td>
-                    <td className="px-4 py-3 text-right font-mono">{fmtInt(r.llm_passed_first_attempt)}</td>
-                    <td className="px-4 py-3 text-right font-mono">{fmtInt(r.llm_passed_after_retry)}</td>
-                    <td className="px-4 py-3 text-right font-mono">{fmtInt(r.fell_back_to_template)}</td>
-                    <td className="px-4 py-3 text-right font-mono">{fmtInt(r.final_dossiers_passing_grounding)}</td>
+                    <td className="r">{fmtInt(r.runs)}</td>
+                    <td className="r">{fmtInt(r.llm_passed_first_attempt)}</td>
+                    <td className="r">{fmtInt(r.llm_passed_after_retry)}</td>
+                    <td className="r">{fmtInt(r.fell_back_to_template)}</td>
+                    <td className="r">{fmtInt(r.final_dossiers_passing_grounding)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-xs text-muted">
-            Fuente: <Mono>eval/llm_grounding_runs.json</Mono>. Que todos los expedientes finales pasen la verificación no significa que el modelo acierte: los que fallan se sustituyen por la plantilla determinista.
+          <p className="muted small" style={{ marginTop: 12, maxWidth: "46em" }}>
+            Fuente: <Num>eval/llm_grounding_runs.json</Num>. Que todos los expedientes finales pasen la verificación no significa que el modelo acierte: los que fallan se sustituyen por la plantilla fija.
           </p>
         </div>
       ) : null}
-      <p className="mt-4 max-w-3xl text-xs leading-relaxed text-muted">
-        Las cifras de porcentaje se muestran con un decimal, como en <Mono>docs/VECTOR_SEARCH.md</Mono>; los valores provienen de los archivos generados del repositorio
-        y se copian a esta página con <Mono>pnpm sync:eval</Mono>.
+      <p className="muted small" style={{ marginTop: 24, maxWidth: "46em" }}>
+        Los porcentajes se muestran con un decimal, como en <Num>docs/VECTOR_SEARCH.md</Num>. Los valores salen de los archivos generados del repositorio y se copian a esta página con <Num>pnpm sync:eval</Num>.
         {typeof vector?.generated_on === "string" ? ` Medición del índice: ${vector.generated_on}.` : ""}
       </p>
     </>
@@ -234,72 +239,79 @@ export default function AgentsPage() {
   return (
     <>
       <PageHeader
-        title="Cómo funcionan los agentes"
-        lead="Un supervisor y cuatro especialistas reúnen evidencia adicional sobre un proceso mediante herramientas de solo lectura. Esa evidencia pasa por el mismo redactor y verificador del expediente. Las investigaciones las produce la línea de comandos y se almacenan; la web solo muestra las almacenadas y nunca inicia una."
+        eyebrow="Investiga con agentes"
+        title={
+          <>
+            Un supervisor. <em>Cuatro</em> especialistas.
+          </>
+        }
+        lead="Cuando un proceso lo merece, un supervisor manda a cuatro especialistas a consultar fuentes oficiales, solo para leer. Lo que encuentran pasa por el mismo redactor y verificador del expediente. Las investigaciones se hacen desde la línea de comandos y quedan guardadas: esta web solo muestra las guardadas y nunca inicia una."
       >
-        <p className="mt-3 text-sm">
-          <Link href="/metodologia" className="text-accent underline underline-offset-2">
-            Metodología del puntaje
+        <div className="actions">
+          <Link href="/metodologia" className="btn btn--line btn--sm">
+            Cómo se calcula el puntaje
           </Link>
-        </p>
+        </div>
       </PageHeader>
 
-      <Section title="Flujo" id="flujo">
-        <AgentDiagram />
-        <p className="mt-3 max-w-3xl text-sm text-muted">
-          Cada especialista es un subgrafo: primero ordena sus acciones enumeradas y luego ejecuta una por una. Sin modelo, el orden es una secuencia fija.
-        </p>
-      </Section>
+      <div className="wrap">
+        <Section title="Cómo trabajan" id="flujo" note="Cada especialista primero ordena sus acciones, que vienen de una lista cerrada, y luego las ejecuta una por una. Sin modelo, el orden es una secuencia fija.">
+          <AgentDiagram />
+        </Section>
 
-      <Section title="Qué puede y qué no puede hacer cada agente" id="alcance">
-        <div className="grid gap-4 lg:grid-cols-2">
-          {AGENTS.map((a) => (
-            <Card key={a.name}>
-              <h3 className="text-base font-semibold text-ink">{a.name}</h3>
-              <p className="mt-1 text-xs text-muted">
-                <span className="font-medium">Herramientas y presupuesto:</span> {a.tools}
-              </p>
-              <dl className="mt-3 space-y-2 text-sm leading-relaxed">
-                <div>
-                  <dt className="font-medium text-ink">Puede</dt>
-                  <dd className="text-muted">{a.can}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-ink">No puede</dt>
-                  <dd className="text-muted">{a.cannot}</dd>
-                </div>
-              </dl>
-            </Card>
-          ))}
-        </div>
-      </Section>
+        <Section title="Qué puede y qué no puede hacer cada uno" id="alcance">
+          <div className="grid2">
+            {AGENTS.map((a) => (
+              <Card key={a.name} className="agent">
+                <h3 className="h3">{a.name}</h3>
+                <p style={{ fontWeight: 700 }}>{a.plain}</p>
+                <dl>
+                  <div>
+                    <dt>Puede</dt>
+                    <dd>{a.can}</dd>
+                  </div>
+                  <div>
+                    <dt>No puede</dt>
+                    <dd>{a.cannot}</dd>
+                  </div>
+                  <div>
+                    <dt>Herramientas y tope</dt>
+                    <dd className="muted small">{a.tools}</dd>
+                  </div>
+                </dl>
+              </Card>
+            ))}
+          </div>
+        </Section>
 
-      <Section title="Reglas de seguridad" id="seguridad">
-        <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {SAFETY.map((s) => (
-            <li key={s.title} className="rounded-lg border border-line bg-surface p-5">
-              <h3 className="text-sm font-semibold text-ink">{s.title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted">{s.body}</p>
-            </li>
-          ))}
-        </ul>
-      </Section>
-
-      <Section title="Resultados medidos" id="resultados">
-        <Results />
-      </Section>
-
-      <Section title="Límites conocidos" id="limites">
-        <Card>
-          <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-ink">
-            <li>Los datos en vivo provienen de un servidor no oficial sobre fuentes públicas; sus esquemas pueden cambiar. Una interrupción se registra como fallo y se muestra como tal.</li>
-            <li>La situación legal y el capital provienen de un directorio instantáneo: la situación no es la vigente al momento de la adjudicación.</li>
-            <li>El conteo de compras similares depende del índice vectorial y se limita a los 50 vecinos examinados.</li>
-            <li>La búsqueda de informes de la Contraloría puede confirmar «al menos N» informes, pero no descartar ninguno.</li>
-            <li>El comportamiento del modelo no se revisó de forma adversarial con un modelo real más allá de un lote de 10 investigaciones.</li>
+        <Section title="Reglas de seguridad" id="seguridad" note="Lo que el sistema se impide a sí mismo, escrito en el código.">
+          <ul className="grid3">
+            {SAFETY.map((s) => (
+              <li key={s.title} className="card card--tight">
+                <h3 className="h4">{s.title}</h3>
+                <p className="small" style={{ marginTop: 8 }}>{s.body}</p>
+              </li>
+            ))}
           </ul>
-        </Card>
-      </Section>
+        </Section>
+
+        <Section title="Resultados medidos" id="resultados" note="Cifras medidas sobre datos reales. Se copian de los archivos generados, no se escriben a mano.">
+          <Results />
+        </Section>
+
+        <Section title="Límites conocidos" id="limites">
+          <Card>
+            <ul className="limits">
+              <li>Los datos en vivo vienen de un servidor no oficial sobre fuentes públicas; sus esquemas pueden cambiar. Una interrupción se registra como fallo y se muestra como tal.</li>
+              <li>La situación legal y el capital vienen de un directorio instantáneo: la situación no es la vigente al momento de la adjudicación.</li>
+              <li>El conteo de compras similares depende del índice vectorial y se limita a los 50 vecinos examinados.</li>
+              <li>La búsqueda de informes de la Contraloría puede confirmar «al menos N» informes, pero no descartar ninguno.</li>
+              <li>El comportamiento del modelo no se revisó de forma adversarial con un modelo real más allá de un lote de 10 investigaciones.</li>
+            </ul>
+          </Card>
+        </Section>
+        <div className="page-end" />
+      </div>
     </>
   );
 }

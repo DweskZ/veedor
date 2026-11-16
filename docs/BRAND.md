@@ -1,58 +1,163 @@
-# Veedor brand
+# Veedor — a Ruray product
 
-## Name
-In Ecuador a *veedor* is a citizen overseer: someone who watches a public process and reports what the records show. The name positions the tool as an instrument for that role, not as an accuser.
+Veedor is built by Ruray (founder: Luis Figueroa) and wears the Ruray identity. This file says how Veedor inherits the Ruray system, what it adds, what it deliberately does not use, and where it still departs from it. The Ruray brand guide (`ruray-brand/BRAND.md`) is the parent; where this file is silent, that one decides.
 
-**Tagline:** "Indicadores de riesgo, con su evidencia."
+The one rule that outranks every other design decision: **it must be clear.** A visitor who knows nothing about public procurement has to understand within seconds what this is, what it shows and what it does not.
+
+## Name and line
+
+- *Veedor*: in Ecuador, a citizen overseer who watches a public process. The tool is an instrument for that role, never an accuser.
+- Headline idea: **"Mira cómo compra el Estado."** (look at how the State buys). It says what the product is in plain words, and it does not judge anyone.
+- Ruray slogan, kept as is: **"Hazlo real."** Location line: **"Ecuador · Australia"**. Instagram: `@ruray.tech` (https://www.instagram.com/ruray.tech/).
+
+## Credit (required by the owner)
+
+- Header: a compact "un producto de ruray." under the Veedor wordmark (the word *ruray.* links to the Instagram profile).
+- Footer on every page: **"Hecho por ruray."** (the Ruray wordmark, linking to the Instagram profile), **"Luis Figueroa, fundador de Ruray."**, and **"Hazlo real. · Ecuador · Australia"**.
+- No employer or client is named anywhere.
+
+## What Veedor inherits from Ruray
+
+### Palette: "ice and terracotta"
+
+One theme. There is no dark mode and no theme toggle: ink is a *section* background, not a global mode.
+
+| Token | Hex | Role |
+|---|---|---|
+| Ice | `#E3EEFF` | Main background |
+| Ink | `#1A1F36` | Text, outlines, dark sections |
+| Terracotta | `#D9480F` | The one accent: key words, buttons, the circle, accent sections |
+| White | `#FFFFFF` | Card fills, text on terracotta |
+| Ice deep | `#CADBFB` | Dividers, tracks, secondary fills |
+| Muted | `#5B6384` | Secondary text |
+
+Backgrounds are ice, ink or terracotta only. Sections alternate ice / ink / terracotta so the page does not look washed out. Tokens live in `web/src/app/globals.css` (`:root`).
+
+### Typography
+
+Plus Jakarta Sans for everything, self-hosted (`web/public/fonts/`, four woff2 files for weights 500, 600, 700 and 800, loaded with `next/font/local`; no request to Google). Codes, RUCs and amounts use the same family with `font-variant-numeric: tabular-nums`; the previous monospace face is gone.
+
+| Use | Weight | Tracking | Line height |
+|---|---|---|---|
+| Display / headlines | 800 | `-0.04em` to `-0.05em` | 0.92–1 |
+| Lead / supporting line | 500 | `-0.02em` | 1.25–1.4 |
+| Eyebrow labels | 800, uppercase | `0.14em`, with a terracotta dot | — |
+| Buttons | 700–800 | `-0.02em` | 1.1 |
+
+Headlines are large and broken by hand into short lines with the key word in terracotta (ink on terracotta).
+
+### Wordmark family
+
+Lowercase, weight 800, followed by a small terracotta dot: `veedor.` The construction is the same CSS as Ruray's `.wm` (`web/src/app/globals.css`, class `.wm`, dot `0.17em`). The Ruray wordmark appears only as a credit and is reproduced, not redesigned; the Ruray logo is still provisional.
+
+### Shapes and the circle
+
+- Pill buttons, 56 px tall, 3 px border (44 px for compact ones).
+- White cards with 3 px ink borders and large radius (as the phone mockups of the Ruray site).
+- The large terracotta circle bleeding off the edge is the signature motif: behind the hero illustration on the home page and top right of every inner page header (wide screens only, so it never sits behind text).
+- Numbered terracotta pins (white numerals, large bold) link the three steps of "Cómo leerlo" to what they describe, as in the Ruray *maqueta* pieces. Connector lines are never drawn across an illustration.
+
+### Motion
+
+Only meaningful reveals, as on the Ruray site: sections rise into view once, and the hero illustration rises on load. Nothing bobs, floats or loops. Under `prefers-reduced-motion` all of it is off (the reveal script adds the visible state immediately; the skeleton does not pulse).
+
+## The risk scale
+
+Five presentation bands for the 0–100 score. They are display bins, not statistical thresholds. The scale runs from ice-deep to ink and **terracotta is reserved for the top band**. It is distinguishable without colour in three ways at once: the level name in words, the number of filled bars in a four-bar ascending glyph (a shape and position cue), and the colour.
+
+| Level | Score | Chip fill / text | Bars | Label |
+|---|---|---|---|---|
+| 0 | 0 | `#FFFFFF` / `#1A1F36`, 2 px ink border | 0 of 4 | Sin señales |
+| 1 | 1–24 | `#CADBFB` / `#1A1F36` | 1 of 4 | Bajo |
+| 2 | 25–49 | `#8FA6DB` / `#1A1F36` | 2 of 4 | Moderado |
+| 3 | 50–74 | `#1A1F36` / `#E3EEFF` | 3 of 4 | Elevado |
+| 4 | 75–100 | `#D9480F` / `#FFFFFF` (large bold only) | 4 of 4 | Alto |
+
+The number inside the chip is always 20 px / weight 800 or larger, which is "large text" for WCAG; the level name is always printed next to the chip in ink on white or ice.
+
+### Contrast, measured (WCAG 2.x relative luminance)
+
+Computed with a script over the exact hex values above.
+
+| Foreground on background | Ratio | Used for | Needs |
+|---|---|---|---|
+| ink on ice | 13.87 | body text | 4.5 |
+| ink on white | 16.24 | text in cards and tables | 4.5 |
+| muted on ice | 5.04 | secondary text on the page | 4.5 |
+| muted on white | 5.89 | labels and hints in cards | 4.5 |
+| ice on ink | 13.87 | dark sections, table heads, footer, risk 3 | 4.5 |
+| ice-deep on ink | 11.63 | secondary text on ink | 4.5 |
+| ink on ice-deep | 11.63 | risk 1, legend | 4.5 |
+| ink on `#8FA6DB` | 6.69 | risk 2 | 4.5 |
+| white on terracotta | 4.30 | large bold text only: buttons (19 px / 700), pins, risk 4 number, the evaluation sentence | 3.0 (large) |
+| terracotta on ice | 3.67 | headline key words only (40 px+) | 3.0 (large) |
+| terracotta on ink | 3.78 | headline key words on ink sections only (40 px+) | 3.0 (large) |
+| terracotta focus ring on ice | 3.67 | non-text, 3 px outline | 3.0 |
+| ice focus ring on ink | 13.87 | non-text, in ink sections and footer | 3.0 |
+| ink focus ring on terracotta | 3.78 | non-text, in the terracotta section | 3.0 |
+
+Pairs that fail and are therefore **never used**: muted on ice-deep (4.22) and white on terracotta at small sizes (4.30 < 4.5). Consequences: nothing small is ever set on terracotta, the eyebrow on the terracotta section is an ink pill, and small text never sits on ice-deep.
+
+The two lightest chips (white and ice-deep) are close to the page background (1.17 and 1.19), so every chip carries a 2 px ink border.
+
+## Illustrations: isometric models made with Codex
+
+Method (from the Ruray guide, section 8): `codex exec --skip-git-repo-check -s workspace-write -C <dir> -i oficina.png -i proceso.png - < prompt.txt`, the prompt through stdin, two existing Ruray *maquetas* as style references, an exact filename, no other files. The five prompts shared this text and differed only in the subject:
+
+> Match the style of the two reference images exactly (same line weight, same isometric angle, same scale on the base, same amount of detail, same palette). Style: isometric scale model on a thin rounded square base, flat hand-drawn ink line art, ink outlines #1A1F36, white fills, pale ice-blue shading #CADBFB, terracotta #D9480F on a few small elements only. Technical illustration, not cute, not toy-like. No faces, no people, no text, no letters, no numbers, no signs with writing, no logos, no real brands or flags. The model occupies the lower two thirds of the canvas; the upper third stays empty. Square canvas 1254 x 1254 pixels, transparent background (if you cannot output transparency, use flat pure magenta #FF00FF as the background). Save only the single PNG file with the exact filename given, in the current directory. Do not write code files or any other files.
+
+Subjects:
+
+| File | Subject (the part of the prompt after "Subject:") | Used for |
+|---|---|---|
+| `hero` | a small public square: a modest town hall with columns, a construction site with a crane, a delivery truck on a road. "What the State buys: works, goods and services." Terracotta only on the truck and the crane | Home hero |
+| `datos` | an archive building cut away to show rows of filing shelves with boxes and binders, a loading ramp and stacked boxes outside. "Open public data" | Step 1, "Elige un proceso" |
+| `investigacion` | a desk office with a central round table and four distinct work stations (papers and magnifying glass; laptop and chart; filing cabinet; map and pinboard), no people | "Investiga con agentes" |
+| `verificacion` | a public registry office with a service counter, glass partition, stamp, rope stanchions and filing drawers, no people, no writing | Step 3, "Verifica en la fuente oficial" |
+| `vacio` | an empty fenced lot with a bare tree, a blank sign post and a few stones | Empty states and the 404 |
+
+All five came back at 1254 × 1254 with a real alpha channel on the first attempt (no magenta keying was needed) and matched the references: ink outlines, white fills, pale blue shading, terracotta on one or two items, no text, no people, no faces. Production: cropped to the lower 1254 × 874 band (the upper empty third is removed, the same crop for all five so they stay one scale), converted to WebP at 960 and 480 px wide (`web/public/art/<name>-960.webp`, `-480.webp`), with explicit `width`/`height` and Spanish `alt` text (`web/src/components/Art.tsx`). Below the fold they are lazy-loaded. Sources and the prompt files live in `web/art-src/`, which is git-ignored.
+
+No image contains or implies a real entity, person or brand. The one UI mockup on the home page (the sample "Oferente único" card) is drawn in HTML and CSS, as the Ruray guide asks for mockups, and carries the label "Ejemplo ilustrativo, no es un proceso real."
+
+Rules to keep: ink outlines and white fills only, terracotta on a few elements, no people or faces, no text in the image (text is always HTML), upper third empty, one scale across the set. Always look at an image before using it and reject anything that reads as a toy or does not match the references.
 
 ## Voice
-- Sober, technical, plain Spanish. Describe what the data shows, with the value and the threshold.
-- Use: "señal de riesgo", "indicador", "atípico", "no disponible", "revisión humana".
-- Never use: "corrupto", "fraude", "irregular", "culpable", or anything that asserts wrongdoing. No alarm language, no exclamation marks, no imperatives to "denounce".
-- Missing data is `null` and reads "No disponible". Never fill gaps.
-- Natural persons appear as "Persona natural" with a masked RUC.
-- Every page that shows indicators carries the disclaimer: "Veedor muestra indicadores de riesgo calculados sobre datos públicos. No constituyen acusaciones ni determinan responsabilidades."
 
-## Identity
-Metaphor: an open aperture (the overseer's field of view) around three tally bars of rising height (a measure, not a verdict). Aesthetic: audit report / open-data observatory on warm paper and ink. No red alarm colours, no handcuffs, money bags or magnifying glasses.
+- Serious and trustworthy first, warm second. Plain words, no jargon, neutral Spanish with "tú", short sentences, one idea per block.
+- Say "procesos analizados", never "marts"; "quién ganó", never "adjudicatario" in headings and labels (the contract word may remain in dense reference text).
+- Nothing invented: no numbers, clients, results or urgency. Every figure comes from the API or from the generated evaluation snapshot (`web/src/data/eval-snapshot.json`); the evaluation sentence on the home page is built from that snapshot, not typed.
+- Wording rules of `docs/CONTRACT.md` still hold: "señal de riesgo", "indicador", "atípico". Never "corrupto", "fraude", "irregular", "culpable" or anything that asserts wrongdoing. Indicators are not accusations; the home page, every signal card, the footer and the methodology say so. Natural persons are never named: "Persona natural" with the masked RUC.
+- Each risk signal answers three questions in plain words: what was observed, why it can matter, how it can be perfectly normal (`web/src/lib/signal-copy.ts`, taken from the false-positive notes of `docs/METHODOLOGY.md`). Context signals are quieter (outlined, no points) and say so.
+- Missing data reads "No disponible". Never fill gaps.
 
-**Mark:** `web/src/components/Logo.tsx` (SVG, drawn in code): a ring with an open gap, three rounded bars in the accent colour. The ring uses `currentColor`. **Wordmark:** "Veedor" in Schibsted Grotesk 600, tight tracking. **Favicon:** `web/src/app/icon.svg` (dark tile). **Open Graph:** `web/src/app/opengraph-image.tsx`, generated in code (1200x630). No raster assets.
+## Deliberately not used, and why
 
-## Colour
-Defined as CSS variables in `web/src/app/globals.css`; light is "Papel", dark is "Tinta" (related to the author's Washi/Sumi tones, with a teal accent so Veedor does not read as terracotta/alarm).
+| Not used | Why |
+|---|---|
+| Dark mode, theme toggle | One theme, as Ruray. Ink is a section colour only. |
+| Monospace for codes and labels | Rejected by the founder as the "dark tech" look. Tabular figures in Plus Jakarta Sans instead. |
+| Gradients, glows, grid backgrounds, shadows with colour | Rejected outright by the founder. |
+| Hues outside ice, ink and terracotta (red/amber/green traffic lights, a teal accent) | Not in the palette. A traffic-light scale would also read as a verdict, against the contract. The scale goes from ice-deep to ink and keeps terracotta for the top band. |
+| Mascots, characters, robots, people in illustrations | Rejected by the founder (Ruray guide, "Rejected directions"). The four specialists are drawn as four work stations, not as figures. |
+| Stock images, other image generators | The brand method is Codex with the Ruray maquetas as references. |
+| Screenshots of Ruray apps or client work | Not Veedor's to show. |
+| Chart libraries | Bars are plain HTML lists with the value as text. |
+| Terracotta text at small sizes, muted text on ice-deep | Fail WCAG AA (see the table above). |
+| The previous mark (ring and three bars) and the "Papel / Tinta" palette | Replaced by the wordmark family. |
 
-| Token | Light | Dark |
-|---|---|---|
-| bg | `#f4f0e6` | `#161412` |
-| surface | `#fbf9f4` | `#1e1b18` |
-| surface-2 | `#ece6d8` | `#28241f` |
-| ink | `#1b1a17` | `#ece5d6` |
-| muted | `#58544b` | `#ada594` |
-| line | `#d6cfbd` | `#3c372f` |
-| accent | `#1d5b6a` | `#7cc0cc` |
-| accent-ink | `#f6f3ea` | `#0f1a1d` |
+## Components worth knowing
 
-### Risk scale (presentation bands, not statistical thresholds)
-Sequential, ordered by lightness so it survives colour-vision deficiency; every level also shows its number and label, so colour is never the only channel. Light theme darkens with risk, dark theme brightens with risk.
+- `Art`, `Logo`, `ui.tsx` (page header, sections, figures, risk score and legend, bars, empty and error states, skeleton), `ProcessTable` (a table from 880 px, one card per process below), `SignalCard`, `AgentDiagram` (SVG in line style from 1100 px, numbered list below), `Nav` (pills from 880 px, a "Menú" button below).
+- Focus: a 3 px terracotta outline (ice on ink sections, ink on the terracotta section).
+- Targets: buttons, links and controls are at least 44 px; signal chips extend their hit area with a pseudo-element.
+- Open Graph image, apple-touch icon and favicon are generated in code (`opengraph-image.tsx`, `apple-icon.tsx`, `icon.svg`) in the style of the Ruray site's image: ice background, huge `veedor.` and a terracotta circle. The OG route needs TTF fonts, so `web/assets/jakarta-*.ttf` are decompressed copies of the same woff2 files.
 
-| Level | Score | Light bg / fg | Dark bg / fg |
-|---|---|---|---|
-| 0 Sin señales | 0 | `#e8e4d8` / `#3d392f` | `#2c2822` / `#cfc7b6` |
-| 1 Bajo | 1-24 | `#ecd98f` / `#3f3205` | `#4a4326` / `#eadfb0` |
-| 2 Moderado | 25-49 | `#dca43c` / `#33230a` | `#a8862a` / `#140e02` |
-| 3 Elevado | 50-74 | `#a8531f` / `#fff8ee` | `#d98a4a` / `#1f1204` |
-| 4 Alto | 75-100 | `#5e2347` / `#fbf1f6` | `#f0b8d2` / `#2b0f1f` |
+## Where Veedor still departs from the Ruray site
 
-### Verified contrast (WCAG 2.x ratio, computed with a script)
-- Light: ink on bg 15.3, muted on bg 6.6, muted on surface 7.2, accent on bg 6.7, accent-ink on accent 6.9.
-- Dark: ink on bg 14.7, muted on bg 7.5, accent on bg 9.0, accent-ink on accent 8.7.
-- Risk label text on its fill: light 9.1 / 8.9 / 6.8 / 5.1 / 10.5; dark 8.7 / 7.4 / 5.6 / 6.7 / 10.5 (levels 0 to 4). All at least 4.5.
-- Relative luminance of the fills is strictly monotonic per theme (light 0.776 to 0.040; dark 0.022 to 0.575). Low-level fills are close to the surface, so swatches carry a 1px border and a text label.
-
-## Typography
-- UI: **Schibsted Grotesk** (variable, via `next/font/google`), a serious grotesk with good Spanish diacritics.
-- Codes, RUCs, OCIDs, amounts: **IBM Plex Mono** 400/500.
-- Do not enable tabular-figure features on body text: they widen punctuation in this typeface. Numbers that must align use the mono face.
-
-## Spacing, radius, motion
-Tailwind 4px spacing scale; layout container 72rem with 16px (mobile) / 24px gutters; section rhythm 48px. Radius: 4px (chips, scores), 8px (inputs, buttons), 12px (cards). Focus: 2px accent outline, 2px offset. Motion: only a soft skeleton pulse, disabled under `prefers-reduced-motion`.
+- Hero headline: three lines at about 8 rem instead of Ruray's two lines at 10.5 rem, because the line is longer.
+- The hero illustration is an isometric model, where the Ruray site shows phone mockups.
+- Veedor has dense data (tables, evidence lists, long official names in capitals) that the marketing site does not. Those areas follow the tokens but are necessarily busier than the Ruray site.
+- Sections alternate ice / ink / terracotta on the home page only. Inner pages are ice with white cards (an ink band would hurt long reading and tables); the terracotta circle and the pills carry the brand there.
+- The Ruray site pins numbers on a single model; here the three steps each have their own panel (two with a model, one with a sample card).
+- English is not provided (Ruray's Australian audience does not use this product).

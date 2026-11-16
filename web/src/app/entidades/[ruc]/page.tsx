@@ -6,7 +6,7 @@ import { ApiError, getBuyer, getProcesses, getSignalIndex } from "@/lib/api";
 import { fmtInt, fmtNum, fmtPct, fmtUsd, NA } from "@/lib/format";
 import { ProcessTable } from "@/components/ProcessTable";
 import { canLinkSupplier, isRuc } from "@/lib/validate";
-import { BarList, Card, EmptyState, ErrorState, Mono, PageHeader, PageSkeleton, partyName, Section, Stat } from "@/components/ui";
+import { BarList, Card, EmptyState, ErrorState, Fig, Num, PageHeader, PageSkeleton, partyName, Section } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Entidad contratante" };
 
@@ -32,7 +32,7 @@ async function Content({ params }: { params: PageProps<"/entidades/[ruc]">["para
   if (!r.ok) {
     if (r.e instanceof ApiError && r.e.status === 404) notFound();
     return (
-      <div className="mt-10">
+      <div className="wrap" style={{ paddingBlock: 56 }}>
         <ErrorState detail={r.e instanceof Error ? r.e.message : undefined} />
       </div>
     );
@@ -43,80 +43,87 @@ async function Content({ params }: { params: PageProps<"/entidades/[ruc]">["para
   return (
     <>
       <PageHeader
+        eyebrow="Entidad contratante"
+        small
         title={b.name ?? "Entidad contratante"}
         lead={
           <>
-            RUC <Mono>{b.ruc}</Mono>
+            RUC <Num>{b.ruc}</Num>
             {b.first_year && b.last_year ? ` · Procesos de ${b.first_year} a ${b.last_year}` : ""}
           </>
         }
       />
-      <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Procesos" value={fmtInt(b.n_processes)} />
-        <Stat label="Con al menos una señal" value={fmtInt(b.n_flagged)} hint={b.n_processes ? fmtPct(b.n_flagged / b.n_processes) : undefined} />
-        <Stat label="Monto adjudicado" value={<span className="text-xl">{fmtUsd(b.total_awarded, true)}</span>} />
-        <Stat label="Puntaje medio" value={fmtNum(b.mean_risk_score)} />
-      </dl>
+      <div className="wrap">
+        <dl className="figs figs--4">
+          <Fig label="procesos" value={fmtInt(b.n_processes)} />
+          <Fig label="procesos con al menos una señal" value={fmtInt(b.n_flagged)} hint={b.n_processes ? `${fmtPct(b.n_flagged / b.n_processes)} del total` : undefined} />
+          <Fig label="monto adjudicado" value={fmtUsd(b.total_awarded, true)} medium />
+          <Fig label="puntaje medio" value={fmtNum(b.mean_risk_score)} />
+        </dl>
 
-      <div className="mt-12 grid gap-8 lg:grid-cols-2">
-        <section aria-labelledby="top-prov">
-          <h2 id="top-prov" className="mb-4 text-xl font-semibold tracking-tight text-ink">Principales proveedores</h2>
-          {b.top_suppliers.length ? (
-            <div className="overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0} role="region" aria-label="Principales proveedores (tabla desplazable)">
-              <table className="w-full min-w-[28rem] text-left text-sm">
-                <caption className="sr-only">Proveedores con mayor monto adjudicado por la entidad</caption>
-                <thead>
-                  <tr className="border-b border-line bg-surface-2 text-xs uppercase tracking-wide text-muted">
-                    <th scope="col" className="px-4 py-3 font-medium">Proveedor</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">Adjudic.</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">Monto</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">Parte</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {b.top_suppliers.map((s, i) => (
-                    <tr key={s.ruc ?? i} className="border-b border-line last:border-b-0">
-                      <td className="px-4 py-3">
-                        {canLinkSupplier(s.ruc, s.kind) ? (
-                          <Link href={`/proveedores/${s.ruc}`} className="text-accent underline-offset-2 hover:underline">
-                            {partyName(s.name, s.kind)}
-                          </Link>
-                        ) : (
-                          partyName(s.name, s.kind)
-                        )}
-                        <div className="text-muted">{s.ruc ? <Mono>{s.ruc}</Mono> : NA}</div>
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono">{fmtInt(s.n_awards)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{fmtUsd(s.total_awarded, true)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{fmtPct(s.share_of_awarded)}</td>
+        <div className="grid2" style={{ marginTop: "clamp(48px, 7vw, 88px)", alignItems: "start" }}>
+          <section aria-labelledby="top-prov">
+            <h2 id="top-prov" className="blk__title" style={{ marginBottom: 20 }}>A quién le compra más</h2>
+            {b.top_suppliers.length ? (
+              <div className="tbl-wrap" tabIndex={0} role="region" aria-label="Principales proveedores (tabla desplazable)">
+                <table className="tbl" style={{ minWidth: "28rem" }}>
+                  <caption className="sr-only">Proveedores con mayor monto adjudicado por la entidad</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Proveedor</th>
+                      <th scope="col" className="r">Adjudic.</th>
+                      <th scope="col" className="r">Monto</th>
+                      <th scope="col" className="r">Parte</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState>No hay proveedores para mostrar.</EmptyState>
-          )}
-        </section>
-        <section aria-labelledby="mix">
-          <h2 id="mix" className="mb-4 text-xl font-semibold tracking-tight text-ink">Señales de sus procesos</h2>
-          <Card>
-            {mix.length ? (
-              <BarList format={fmtInt} items={mix.map((c) => ({ key: c.code, label: c.label_es ?? labels[c.code] ?? c.code, value: c.count }))} />
+                  </thead>
+                  <tbody>
+                    {b.top_suppliers.map((s, i) => (
+                      <tr key={`${s.ruc ?? "x"}-${i}`}>
+                        <td>
+                          {canLinkSupplier(s.ruc, s.kind) ? (
+                            <Link href={`/proveedores/${s.ruc}`} className="cell-link">
+                              {partyName(s.name, s.kind)}
+                            </Link>
+                          ) : (
+                            partyName(s.name, s.kind)
+                          )}
+                          <div className="cell-sub">{s.ruc ? <Num>{s.ruc}</Num> : NA}</div>
+                        </td>
+                        <td className="r">{fmtInt(s.n_awards)}</td>
+                        <td className="r">{fmtUsd(s.total_awarded, true)}</td>
+                        <td className="r">{fmtPct(s.share_of_awarded)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <p className="text-sm text-muted">Ninguna señal activada en sus procesos.</p>
+              <EmptyState>No hay proveedores para mostrar.</EmptyState>
             )}
-          </Card>
-        </section>
-      </div>
+          </section>
+          <section aria-labelledby="mix">
+            <h2 id="mix" className="blk__title" style={{ marginBottom: 20 }}>Señales de sus procesos</h2>
+            <Card>
+              {mix.length ? (
+                <BarList format={fmtInt} items={mix.map((c) => ({ key: c.code, label: c.label_es ?? labels[c.code] ?? c.code, value: c.count }))} />
+              ) : (
+                <p className="muted">Ninguna señal activada en sus procesos.</p>
+              )}
+            </Card>
+          </section>
+        </div>
 
-      <Section title="Procesos con mayor puntaje" id="procesos">
-        {recent.items.length ? (
-          <ProcessTable rows={recent.items} labels={labels} context={index.context} caption="Procesos de la entidad con mayor puntaje" />
-        ) : (
-          <EmptyState>No hay procesos para mostrar.</EmptyState>
-        )}
-      </Section>
+        <Section title="Sus procesos con mayor puntaje" id="procesos">
+          {recent.items.length ? (
+            <ProcessTable rows={recent.items} labels={labels} context={index.context} caption="Procesos de la entidad con mayor puntaje" />
+          ) : (
+            <EmptyState art>
+              <p className="empty__t">No hay procesos para mostrar.</p>
+            </EmptyState>
+          )}
+        </Section>
+        <div className="page-end" />
+      </div>
     </>
   );
 }

@@ -1,15 +1,34 @@
 import Link from "next/link";
-import { Card } from "./ui";
+import snapshot from "@/data/eval-snapshot.json";
+import { fmtInt } from "@/lib/format";
 
-/** Static copy. Numbers are taken verbatim from docs/EVALUATION.md (eval/backtest.json, run 2026-11-16 07:48 UTC, seed 20260101). */
+const dec3 = new Intl.NumberFormat("es-EC", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
+/** Figures from the generated snapshot (eval/backtest.json via `pnpm sync:eval`), never typed by hand. */
+function backtestFigures() {
+  const b = snapshot.backtest;
+  if (!b || !b.auc || !Number.isFinite(b.auc.estimate)) return null;
+  return {
+    positives: fmtInt(b.n_positives),
+    unlabelled: fmtInt(b.n_unlabelled),
+    auc: dec3.format(b.auc.estimate),
+    low: dec3.format(b.auc.low),
+    high: dec3.format(b.auc.high),
+    includesHalf: b.auc.low <= 0.5 && b.auc.high >= 0.5,
+  };
+}
+
+/** The evaluation in plain words, for the methodology page. Same numbers as docs/EVALUATION.md. */
 export function EvaluationText() {
+  const f = backtestFigures();
+  if (!f) return <p>La evaluación no está disponible en esta compilación.</p>;
   return (
     <>
       <p>
-        Se probó si el puntaje coloca más arriba a las empresas del listado de &quot;empresas fantasmas&quot; publicado por el SRI:
-        9 empresas listadas que ganaron procesos públicos frente a 19.837 empresas adjudicatarias no listadas, sin usar las reglas que
-        dependen del propio listado. El AUC fue 0,447 (intervalo de confianza del 95 %: 0,303 a 0,598); el intervalo incluye 0,5, el
-        nivel del azar.
+        Probamos si el puntaje pone más arriba a las empresas del listado de «empresas fantasmas» que publicó el SRI: {f.positives}{" "}
+        empresas del listado que ganaron procesos públicos, frente a {f.unlabelled} empresas adjudicatarias que no figuran en él, sin
+        usar las reglas que dependen del propio listado. El AUC fue {f.auc} (intervalo de confianza del 95 %: {f.low} a {f.high})
+        {f.includesHalf ? "; el intervalo incluye 0,5, que es el nivel del azar" : ""}.
       </p>
       <p>
         La evidencia disponible no muestra que el puntaje distinga a los proveedores del listado. Por eso los indicadores son medidas
@@ -20,18 +39,23 @@ export function EvaluationText() {
   );
 }
 
-export function EvaluationCard() {
+/** One plain sentence for the home page (large text on terracotta). */
+export function EvaluationSentence() {
+  const f = backtestFigures();
+  if (!f) return <>La evaluación no está disponible en esta compilación.</>;
   return (
-    <Card>
-      <h3 className="font-semibold text-ink">Evaluación</h3>
-      <div className="mt-2 space-y-2 text-sm leading-relaxed text-muted">
-        <EvaluationText />
-      </div>
-      <p className="mt-3 text-sm">
-        <Link href="/metodologia#evaluacion" className="text-accent underline underline-offset-2">
-          Ver la metodología y la evaluación
-        </Link>
-      </p>
-    </Card>
+    <>
+      Lo probamos con {f.positives} empresas del listado del SRI frente a {f.unlabelled} que no figuran en él: el puntaje no{" "}
+      {f.includesHalf ? "mostró distinguirlas mejor que el azar" : "las distinguió como se esperaba"} (AUC {f.auc}, con un intervalo de {f.low} a{" "}
+      {f.high}; 0,5 es el azar). Por eso los indicadores describen, no predicen.
+    </>
+  );
+}
+
+export function EvaluationLink({ className = "link" }: { className?: string }) {
+  return (
+    <Link href="/metodologia#evaluacion" className={className}>
+      Ver la prueba completa
+    </Link>
   );
 }

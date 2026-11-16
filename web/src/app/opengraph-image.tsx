@@ -1,12 +1,16 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
-export const alt = "Veedor, radar abierto de riesgo en contratación pública del Ecuador";
+export const alt = "veedor. Mira cómo compra el Estado. Un producto de ruray.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+const bold = await readFile(join(process.cwd(), "assets/jakarta-800.ttf"));
+const medium = await readFile(join(process.cwd(), "assets/jakarta-500.ttf"));
+
+/** Same composition as the Ruray site's og image: ice background, huge wordmark, terracotta circle. */
 export default function OpengraphImage() {
-  const ink = "#ece5d6";
-  const accent = "#7cc0cc";
   return new ImageResponse(
     (
       <div
@@ -14,33 +18,34 @@ export default function OpengraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          background: "#161412",
-          color: ink,
-          padding: 72,
+          position: "relative",
+          background: "#E3EEFF",
+          color: "#1A1F36",
+          fontFamily: "Jakarta",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          <svg width="120" height="120" viewBox="0 0 32 32" fill="none">
-            <circle cx="16" cy="16" r="13" stroke={ink} strokeWidth="2.5" strokeLinecap="round" strokeDasharray="64 17.7" transform="rotate(-30 16 16)" />
-            <rect x="9.5" y="16" width="3.2" height="6" rx="1" fill={accent} />
-            <rect x="14.4" y="12" width="3.2" height="10" rx="1" fill={accent} />
-            <rect x="19.3" y="8" width="3.2" height="14" rx="1" fill={accent} />
-          </svg>
-          <div style={{ fontSize: 96, fontWeight: 700, letterSpacing: -2 }}>Veedor</div>
+        <div style={{ position: "absolute", width: 640, height: 640, borderRadius: 320, background: "#D9480F", right: -190, top: 20, display: "flex" }} />
+        <div style={{ position: "absolute", left: 72, top: 60, display: "flex", alignItems: "baseline", fontWeight: 800, fontSize: 40, letterSpacing: -1.6 }}>
+          <span>un producto de</span>
+          <span style={{ marginLeft: 12, display: "flex", alignItems: "baseline" }}>
+            ruray<span style={{ width: 8, height: 8, borderRadius: 4, background: "#D9480F", marginLeft: 3, display: "flex" }} />
+          </span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div style={{ fontSize: 56, lineHeight: 1.15, maxWidth: 940 }}>Radar abierto de riesgo en contratación pública</div>
-          <div style={{ fontSize: 30, color: "#ada594" }}>Indicadores con su evidencia. Sin acusaciones. Datos abiertos del SERCOP.</div>
+        <div style={{ position: "absolute", left: 72, top: 170, display: "flex", alignItems: "baseline", fontWeight: 800, fontSize: 156, lineHeight: 1, letterSpacing: -7.8 }}>
+          veedor
+          <div style={{ width: 26, height: 26, borderRadius: 13, background: "#D9480F", marginLeft: 8, display: "flex" }} />
         </div>
-        <div style={{ display: "flex", gap: 14 }}>
-          {["#4a4326", "#a8862a", "#d98a4a", "#f0b8d2"].map((c) => (
-            <div key={c} style={{ width: 120, height: 10, borderRadius: 5, background: c }} />
-          ))}
+        <div style={{ position: "absolute", left: 76, bottom: 56, display: "flex", fontWeight: 500, fontSize: 40, letterSpacing: -1, width: 560, lineHeight: 1.15 }}>
+          Mira cómo compra el Estado.
         </div>
       </div>
     ),
-    size,
+    {
+      ...size,
+      fonts: [
+        { name: "Jakarta", data: bold, weight: 800, style: "normal" },
+        { name: "Jakarta", data: medium, weight: 500, style: "normal" },
+      ],
+    },
   );
 }

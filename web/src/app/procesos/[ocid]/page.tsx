@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ApiError, getDossier, getInvestigation, getMeta, getProcess, getReviews, getSignals } from "@/lib/api";
-import { fmtDate, fmtDateTime, fmtInt, fmtNum, fmtUsd, NA, shortCode } from "@/lib/format";
+import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtNum, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessFacts, SignalDef } from "@/lib/types";
 import { SignalCard } from "@/components/SignalCard";
 import { DossierIndex, DossierSectionView } from "@/components/DossierSections";
@@ -12,7 +12,7 @@ import { SameBuyerToggle } from "@/components/SameBuyerToggle";
 import { SimilarBody } from "@/components/SimilarProcesses";
 import { canLinkBuyer, canLinkSupplier, isOcid } from "@/lib/validate";
 import { REVIEW_LABELS } from "@/lib/reviews";
-import { Card, EmptyState, ErrorState, Mono, PageSkeleton, partyName, RiskScore, Section, Skeleton } from "@/components/ui";
+import { Card, EmptyState, ErrorState, Num, PageSkeleton, partyName, RiskScore, Section, Skeleton } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Expediente de proceso" };
 
@@ -31,23 +31,38 @@ export default function ProcessPage({ params, searchParams }: PageProps<"/proces
   );
 }
 
-const PAGE_INDEX: [string, string][] = [
-  ["hechos", "Hechos"],
-  ["senales", "Señales"],
-  ["investigacion", "Investigación"],
-  ["similares", "Similares"],
-  ["texto", "Texto del expediente"],
-  ["fuentes", "Fuentes"],
-  ["verificar", "Cómo verificar"],
-  ["revision", "Revisión humana"],
-];
-
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="border-t border-line py-2.5 sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="text-sm text-ink">{children}</dd>
+    <div className="fact">
+      <dt>{label}</dt>
+      <dd>{children}</dd>
     </div>
+  );
+}
+
+function Toc({ items }: { items: [string, string][] }) {
+  const list = (
+    <ol>
+      {items.map(([id, label]) => (
+        <li key={id}>
+          <a href={`#${id}`}>{label}</a>
+        </li>
+      ))}
+    </ol>
+  );
+  return (
+    <>
+      <nav aria-label="En esta página" className="toc toc-d">
+        <p className="toc__title">En esta página</p>
+        {list}
+      </nav>
+      <nav aria-label="En esta página" className="toc toc-m">
+        <details>
+          <summary>En esta página</summary>
+          {list}
+        </details>
+      </nav>
+    </>
   );
 }
 
@@ -69,7 +84,7 @@ async function Dossier({
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) notFound();
     return (
-      <div className="mt-10">
+      <div className="wrap" style={{ paddingBlock: 56 }}>
         <ErrorState detail={e instanceof Error ? e.message : undefined} />
       </div>
     );
@@ -81,207 +96,295 @@ async function Dossier({
   const isContext = (s: { code: string; kind?: string }) => (s.kind ?? defByCode.get(s.code)?.kind) === "context";
   const riskSignals = detail.signals.filter((s) => !isContext(s));
   const contextSignals = detail.signals.filter(isContext);
+  const toc: [string, string][] = [
+    ["hechos", "Los datos del proceso"],
+    ["senales", "Señales de riesgo"],
+    ...(contextSignals.length ? ([["contexto", "Contexto del proveedor"]] as [string, string][]) : []),
+    ["investigacion", "Investigación con agentes"],
+    ["similares", "Procesos parecidos"],
+    ["texto", "Texto del expediente"],
+    ["fuentes", "Fuentes"],
+    ["verificar", "Cómo verificar"],
+    ["revision", "Revisión humana"],
+  ];
+  const winnerName = w && (w.ruc || w.name) ? partyName(w.name, w.kind) : null;
 
   return (
     <>
-      <p className="mt-8 text-sm">
-        <Link href="/procesos" className="text-accent underline underline-offset-2">
-          ← Procesos
-        </Link>
-      </p>
-      <div className="mb-8 mt-4 flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-semibold tracking-tight text-ink">
-            <Mono>{f.process_code ?? shortCode(ocid)}</Mono>
-          </h1>
-          {f.description ? (
-            <p className="mt-2 max-w-3xl text-base text-muted">{f.description}</p>
-          ) : detail.facts?.description_withheld ? (
-            <p className="mt-2 max-w-3xl text-base text-muted">Descripción omitida por contener datos personales.</p>
-          ) : null}
-        </div>
-        <Card className="min-w-48">
-          <p className="text-sm text-muted">Puntaje de riesgo</p>
-          <div className="mt-1">
-            {score ? <RiskScore score={score.risk_score} /> : <span className="text-sm text-muted">No disponible</span>}
-          </div>
-          {score?.anomaly_score != null ? (
-            <p className="mt-2 text-xs text-muted">
-              Puntaje de anomalía: <Mono>{fmtNum(score.anomaly_score)}</Mono>. Se informa por separado y no modifica el puntaje.
+      <header className="phead" style={{ paddingBottom: 28 }}>
+        <div className="wrap">
+          <div className="phead__circle" aria-hidden="true" />
+          <div className="phead__text">
+            <Link href="/procesos" className="crumb">
+              ← Todos los procesos
+            </Link>
+            <p className="eyebrow" style={{ marginTop: 18 }}>
+              Proceso de contratación
             </p>
-          ) : null}
-        </Card>
-      </div>
+            <h1 className="h1 h1--sm">
+              <Num>{f.process_code ?? shortCode(ocid)}</Num>
+            </h1>
+          </div>
+        </div>
+      </header>
 
-      <nav aria-label="En esta página" className="-mt-2 mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        {PAGE_INDEX.map(([id, label]) => (
-          <a key={id} href={`#${id}`} className="text-accent underline underline-offset-2">
-            {label}
-          </a>
-        ))}
-      </nav>
-
-      <Section title="Hechos del proceso" id="hechos">
-        <dl>
-          <Fact label="Entidad contratante">
-            {canLinkBuyer(f.buyer_ruc) ? (
-              <Link href={`/entidades/${f.buyer_ruc}`} className="text-accent underline underline-offset-2">
-                {f.buyer_name ?? NA}
-              </Link>
-            ) : (
-              (f.buyer_name ?? NA)
-            )}
-            {f.buyer_ruc ? (
-              <>
-                {" "}
-                · <Mono>{f.buyer_ruc}</Mono>
-              </>
+      <div className="wrap">
+        <section className="summary" aria-label="Resumen del proceso">
+          <div className="summary__cell summary__cell--what">
+            <p className="summary__q">Qué se compró</p>
+            <p className="summary__a summary__a--text">
+              {f.description ? f.description : detail.facts?.description_withheld ? "Descripción omitida por contener datos personales." : NA}
+            </p>
+            {f.main_cpc_description || f.category ? (
+              <p className="summary__sub">{[fmtCategory(f.category), f.main_cpc_description].filter(Boolean).join(" · ")}</p>
             ) : null}
-          </Fact>
-          <Fact label="Adjudicatario">
-            {w && (w.ruc || w.name) ? (
-              <>
-                {canLinkSupplier(w.ruc, w.kind) ? (
-                  <Link href={`/proveedores/${w.ruc}`} className="text-accent underline underline-offset-2">
-                    {partyName(w.name, w.kind)}
+          </div>
+          <div className="summary__cell summary__cell--who">
+            <p className="summary__q">Quién compró</p>
+            <p className="summary__a">
+              {canLinkBuyer(f.buyer_ruc) ? (
+                <Link href={`/entidades/${f.buyer_ruc}`} className="cell-link">
+                  {f.buyer_name ?? NA}
+                </Link>
+              ) : (
+                (f.buyer_name ?? NA)
+              )}
+            </p>
+            <p className="summary__sub">
+              {f.method ?? NA}
+              {f.release_date ? ` · publicado el ${fmtDate(f.release_date)}` : ""}
+            </p>
+          </div>
+          <div className="summary__cell summary__cell--won">
+            <p className="summary__q">Quién ganó</p>
+            <p className="summary__a">
+              {winnerName ? (
+                w && canLinkSupplier(w.ruc, w.kind) ? (
+                  <Link href={`/proveedores/${w.ruc}`} className="cell-link">
+                    {winnerName}
                   </Link>
                 ) : (
-                  partyName(w.name, w.kind)
-                )}
-                {w.ruc ? (
-                  <>
-                    {" "}
-                    · <Mono>{w.ruc}</Mono>
-                  </>
+                  winnerName
+                )
+              ) : (
+                "Sin adjudicatario registrado"
+              )}
+            </p>
+            <p className="summary__sub">
+              {w?.ruc ? (
+                <>
+                  RUC <Num>{w.ruc}</Num> ·{" "}
+                </>
+              ) : null}
+              {f.n_tenderers != null ? `${fmtInt(f.n_tenderers)} ${f.n_tenderers === 1 ? "oferente" : "oferentes"}` : "Oferentes: no disponible"}
+            </p>
+          </div>
+          <div className="summary__cell summary__cell--much">
+            <p className="summary__q">Cuánto</p>
+            <p className="summary__a summary__a--big">{fmtUsd(f.award_total)}</p>
+            <p className="summary__sub">Presupuesto referencial: {fmtUsd(f.budget)}</p>
+          </div>
+          <div className="summary__cell summary__cell--score">
+            <p className="summary__q">Puntaje</p>
+            {score ? (
+              <>
+                <RiskScore score={score.risk_score} big />
+                <p className="summary__sub" style={{ marginTop: 10 }}>
+                  {riskSignals.length === 1 ? "1 señal de riesgo" : `${fmtInt(riskSignals.length)} señales de riesgo`}. El puntaje es una guía
+                  para decidir qué mirar primero, no un veredicto.
+                </p>
+                {score.anomaly_score != null ? (
+                  <p className="summary__sub">
+                    Puntaje de anomalía: <Num>{fmtNum(score.anomaly_score)}</Num>. Se informa por separado y no cambia el puntaje.
+                  </p>
                 ) : null}
               </>
             ) : (
-              "Sin adjudicatario registrado"
+              <p className="summary__a">No disponible</p>
             )}
-          </Fact>
-          <Fact label="Método">{f.method ?? NA}</Fact>
-          <Fact label="Categoría">{f.category ?? NA}</Fact>
-          <Fact label="Estado">{f.status ?? NA}</Fact>
-          <Fact label="Fecha de publicación">{fmtDate(f.release_date)}</Fact>
-          <Fact label="Presupuesto referencial">
-            <span className="font-mono">{fmtUsd(f.budget)}</span>
-          </Fact>
-          <Fact label="Monto adjudicado">
-            <span className="font-mono">{fmtUsd(f.award_total)}</span>
-          </Fact>
-          <Fact label="Oferentes">
-            {detail.tenderers.length ? (
-              <ul className="space-y-0.5">
-                {detail.tenderers.map((t, i) => (
-                  <li key={`${t.ruc}-${i}`}>
-                    {partyName(t.name, t.kind)}
-                    {t.ruc ? (
-                      <>
-                        {" "}
-                        · <Mono>{t.ruc}</Mono>
-                      </>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              NA
-            )}
-          </Fact>
-          <Fact label="Oferentes / ofertas">
-            <span className="font-mono">
-              {fmtInt(f.n_tenderers)} / {fmtInt(f.n_bids)}
-            </span>
-          </Fact>
-          <Fact label="Periodo de ofertas">
-            {f.tender_start || f.tender_end ? `${fmtDate(f.tender_start)} a ${fmtDate(f.tender_end)}` : NA}
-          </Fact>
-          <Fact label="Fecha de firma">{fmtDate(f.date_signed)}</Fact>
-          <Fact label="CPC principal">
-            {f.main_cpc ? (
-              <>
-                <Mono>{f.main_cpc}</Mono>
-                {f.main_cpc_description ? ` · ${f.main_cpc_description}` : ""}
-              </>
-            ) : (
-              NA
-            )}
-          </Fact>
-          <Fact label="Identificador OCDS">
-            <Mono>{ocid}</Mono>
-          </Fact>
-        </dl>
-      </Section>
-
-      <Section title={`Señales de riesgo (${riskSignals.length})`} id="senales">
-        {riskSignals.length === 0 ? (
-          <EmptyState>Este proceso no activó ninguna señal de riesgo. Eso no significa que esté libre de problemas: solo que ninguna regla disponible lo marcó.</EmptyState>
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {riskSignals.map((s) => (
-              <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} />
-            ))}
           </div>
-        )}
-      </Section>
+        </section>
 
-      {contextSignals.length ? (
-        <Section title="Contexto registral" id="contexto">
-          <p className="mb-4 max-w-3xl text-sm text-muted">
-            Estos datos describen el registro del proveedor en relación con el proceso. No afectan el puntaje de riesgo.
-          </p>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {contextSignals.map((s) => (
-              <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quiet />
-            ))}
+        <div className="doc">
+          <Toc items={toc} />
+          <div className="doc__main">
+            <Section title="Los datos del proceso" id="hechos" note="Estos son los datos tal como los publica el SERCOP. Compáralos con el registro original.">
+              <dl className="facts">
+                <Fact label="Entidad contratante">
+                  {canLinkBuyer(f.buyer_ruc) ? (
+                    <Link href={`/entidades/${f.buyer_ruc}`} className="cell-link">
+                      {f.buyer_name ?? NA}
+                    </Link>
+                  ) : (
+                    (f.buyer_name ?? NA)
+                  )}
+                  {f.buyer_ruc ? (
+                    <>
+                      {" "}
+                      · <Num>{f.buyer_ruc}</Num>
+                    </>
+                  ) : null}
+                </Fact>
+                <Fact label="Quién ganó">
+                  {winnerName ? (
+                    <>
+                      {w && canLinkSupplier(w.ruc, w.kind) ? (
+                        <Link href={`/proveedores/${w.ruc}`} className="cell-link">
+                          {winnerName}
+                        </Link>
+                      ) : (
+                        winnerName
+                      )}
+                      {w?.ruc ? (
+                        <>
+                          {" "}
+                          · <Num>{w.ruc}</Num>
+                        </>
+                      ) : null}
+                    </>
+                  ) : (
+                    "Sin adjudicatario registrado"
+                  )}
+                </Fact>
+                <Fact label="Método">{f.method ?? NA}</Fact>
+                <Fact label="Categoría">{fmtCategory(f.category) ?? NA}</Fact>
+                <Fact label="Estado">{fmtStatus(f.status) ?? NA}</Fact>
+                <Fact label="Fecha de publicación">{fmtDate(f.release_date)}</Fact>
+                <Fact label="Presupuesto referencial">
+                  <Num>{fmtUsd(f.budget)}</Num>
+                </Fact>
+                <Fact label="Monto adjudicado">
+                  <Num>{fmtUsd(f.award_total)}</Num>
+                </Fact>
+                <Fact label="Empresas que ofertaron">
+                  {detail.tenderers.length ? (
+                    <ul>
+                      {detail.tenderers.map((t, i) => (
+                        <li key={`${t.ruc}-${i}`}>
+                          {partyName(t.name, t.kind)}
+                          {t.ruc ? (
+                            <>
+                              {" "}
+                              · <Num>{t.ruc}</Num>
+                            </>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    NA
+                  )}
+                </Fact>
+                <Fact label="Oferentes / ofertas">
+                  <Num>
+                    {fmtInt(f.n_tenderers)} / {fmtInt(f.n_bids)}
+                  </Num>
+                </Fact>
+                <Fact label="Periodo de ofertas">
+                  {f.tender_start || f.tender_end ? `${fmtDate(f.tender_start)} a ${fmtDate(f.tender_end)}` : NA}
+                </Fact>
+                <Fact label="Fecha de firma">{fmtDate(f.date_signed)}</Fact>
+                <Fact label="Tipo de bien o servicio (CPC)">
+                  {f.main_cpc ? (
+                    <>
+                      <Num>{f.main_cpc}</Num>
+                      {f.main_cpc_description ? ` · ${f.main_cpc_description}` : ""}
+                    </>
+                  ) : (
+                    NA
+                  )}
+                </Fact>
+                <Fact label="Identificador OCDS">
+                  <Num>{ocid}</Num>
+                </Fact>
+              </dl>
+            </Section>
+
+            <Section
+              title="Señales de riesgo"
+              id="senales"
+              note="Una señal es un patrón atípico, no una conclusión. Cada tarjeta responde tres preguntas: qué se observó, por qué puede importar y cómo puede ser normal."
+              aside={<p className="tag">{riskSignals.length === 1 ? "1 señal" : `${fmtInt(riskSignals.length)} señales`}</p>}
+            >
+              {riskSignals.length === 0 ? (
+                <EmptyState>
+                  <p className="empty__t">Este proceso no activó ninguna señal de riesgo.</p>
+                  <p style={{ marginTop: 8 }}>Eso no significa que esté libre de problemas: solo que ninguna regla disponible lo marcó.</p>
+                </EmptyState>
+              ) : (
+                <div className="sigs sigs--2">
+                  {riskSignals.map((s) => (
+                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} />
+                  ))}
+                </div>
+              )}
+            </Section>
+
+            {contextSignals.length ? (
+              <Section title="Contexto del proveedor" id="contexto" note="Estos datos describen el registro del proveedor en relación con el proceso. Son solo contexto: no suman puntos.">
+                <div className="sigs sigs--2">
+                  {contextSignals.map((s) => (
+                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quiet />
+                  ))}
+                </div>
+              </Section>
+            ) : null}
+
+            <Section title="Investigación con agentes" id="investigacion">
+              <Suspense fallback={<Skeleton style={{ height: 256 }} />}>
+                <InvestigationSection ocid={ocid} />
+              </Suspense>
+            </Section>
+
+            <Section
+              title="Procesos parecidos"
+              id="similares"
+              aside={<SameBuyerToggle checked={sameBuyer} />}
+              note="Se parecen por el tipo de bien o servicio y por su descripción. Que se parezcan no significa que estén relacionados: es una ayuda para buscar, no una señal de riesgo."
+            >
+              <Suspense fallback={<Skeleton style={{ height: 288 }} />}>
+                <SimilarBody ocid={ocid} sameBuyer={sameBuyer} />
+              </Suspense>
+            </Section>
+
+            <Suspense fallback={<Skeleton style={{ height: 256, marginTop: 64 }} />}>
+              <DossierText ocid={ocid} />
+            </Suspense>
+
+            <Section title="Cómo verificar" id="verificar" note="Veedor no es la última palabra. Estos pasos te llevan a la fuente oficial.">
+              <Card>
+                <ol className="stack">
+                  {[
+                    <>
+                      Copia el identificador OCDS (<Num>{ocid}</Num>) y búscalo en el portal de datos abiertos del SERCOP o en el archivo de liberaciones OCDS de la fuente.
+                    </>,
+                    <>Compara los campos de «Los datos del proceso» con el registro original: presupuesto, monto adjudicado, número de oferentes y fechas.</>,
+                    <>Revisa el valor observado y el umbral de cada señal; la evidencia lista los campos usados en el cálculo.</>,
+                    <>Para quien ganó, contrasta su estado con la consulta pública del SRI. El estado del registro es el de hoy, no el que tenía cuando se adjudicó.</>,
+                  ].map((t, i) => (
+                    <li key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                      <span className="pin pin--inline" aria-hidden="true">
+                        {i + 1}
+                      </span>
+                      <span style={{ paddingTop: 6 }}>{t}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="muted small" style={{ marginTop: 18, paddingTop: 14, borderTop: "2px solid var(--ice-deep)" }}>
+                  Un indicador no es un hallazgo. Si algo no concuerda con la fuente, regístralo en el panel de revisión.
+                </p>
+              </Card>
+            </Section>
+
+            <Section title="Revisión humana" id="revision">
+              <Suspense fallback={<Skeleton style={{ height: 192 }} />}>
+                <Reviews ocid={ocid} />
+              </Suspense>
+            </Section>
+            <div className="page-end" />
           </div>
-        </Section>
-      ) : null}
-
-      <Section title="Investigación" id="investigacion">
-        <Suspense fallback={<Skeleton className="h-64" />}>
-          <InvestigationSection ocid={ocid} />
-        </Suspense>
-      </Section>
-
-      <Section
-        title="Procesos similares"
-        id="similares"
-        aside={<SameBuyerToggle checked={sameBuyer} />}
-      >
-        <p className="mb-4 max-w-3xl text-sm text-muted">
-          La similitud se calcula según la clasificación y la descripción del objeto; no implica relación entre los procesos.
-          Es una ayuda de búsqueda y no una señal de riesgo.
-        </p>
-        <Suspense fallback={<Skeleton className="h-72" />}>
-          <SimilarBody ocid={ocid} sameBuyer={sameBuyer} />
-        </Suspense>
-      </Section>
-
-      <Suspense fallback={<Skeleton className="mt-12 h-64" />}>
-        <DossierText ocid={ocid} />
-      </Suspense>
-
-      <Section title="Cómo verificar" id="verificar">
-        <Card>
-          <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-ink">
-            <li>
-              Copie el identificador OCDS (<Mono>{ocid}</Mono>) y búsquelo en el portal de datos abiertos de SERCOP o en el
-              archivo de liberaciones OCDS de la fuente.
-            </li>
-            <li>Compare los campos de la sección &quot;Hechos del proceso&quot; con el registro original: presupuesto, monto adjudicado, número de oferentes y fechas.</li>
-            <li>Revise el valor observado y el umbral de cada señal; la evidencia lista los campos usados en el cálculo.</li>
-            <li>Para el adjudicatario, contraste el estado con la consulta pública del SRI. El estado del registro es el actual, no el vigente al momento de la adjudicación.</li>
-          </ol>
-          <p className="mt-3 text-sm text-muted">Un indicador no es un hallazgo. Si algo no concuerda con la fuente, regístrelo en el panel de revisión.</p>
-        </Card>
-      </Section>
-
-      <Section title="Revisión humana" id="revision">
-        <Suspense fallback={<Skeleton className="h-48" />}>
-          <Reviews ocid={ocid} />
-        </Suspense>
-      </Section>
+        </div>
+      </div>
     </>
   );
 }
@@ -291,8 +394,8 @@ async function InvestigationSection({ ocid }: { ocid: string }) {
     (v) => ({ ok: true as const, v }),
     (e: unknown) => ({ ok: false as const, e }),
   );
-  if (!r.ok) return <ErrorState title="No se pudo cargar la investigación" detail={r.e instanceof Error ? r.e.message : undefined} />;
-  if (!r.v) return <p className="text-sm text-muted">No hay una investigación registrada para este proceso.</p>;
+  if (!r.ok) return <ErrorState title="No pudimos cargar la investigación" detail={r.e instanceof Error ? r.e.message : undefined} />;
+  if (!r.v) return <p className="muted">Todavía no hay una investigación con agentes para este proceso.</p>;
   return <InvestigationPanel inv={r.v} />;
 }
 
@@ -307,11 +410,11 @@ async function DossierText({ ocid }: { ocid: string }) {
       <Section title="Texto del expediente" id="texto">
         {pending ? (
           <EmptyState>
-            <strong className="block text-ink">Expediente no disponible para este proceso</strong>
-            Los hechos y las señales de arriba sí provienen de los datos.
+            <p className="empty__t">El texto del expediente no está disponible para este proceso.</p>
+            <p style={{ marginTop: 8 }}>Los datos y las señales de arriba sí están disponibles.</p>
           </EmptyState>
         ) : (
-          <ErrorState title="No se pudo cargar el texto del expediente" detail={r.e instanceof Error ? r.e.message : undefined} />
+          <ErrorState title="No pudimos cargar el texto del expediente" detail={r.e instanceof Error ? r.e.message : undefined} />
         )}
       </Section>
     );
@@ -320,52 +423,53 @@ async function DossierText({ ocid }: { ocid: string }) {
   const grounded = d.grounding_report?.passed === true;
   const modeLabel =
     d.mode === "llm"
-      ? "Redactado con modelo de lenguaje y verificado"
+      ? "Redactado con un modelo de lenguaje y verificado"
       : d.mode === "template_minimal"
-        ? "Plantilla mínima: solo hechos del proceso"
-        : "Generado por plantilla determinista a partir de los datos";
+        ? "Plantilla mínima: solo los datos del proceso"
+        : "Escrito por una plantilla fija a partir de los datos";
   return (
     <>
-      <Section title="Texto del expediente" id="texto">
+      <Section
+        title="Texto del expediente"
+        id="texto"
+        note="Un resumen escrito a partir de los datos. Cada cifra, fecha y nombre se comprueba contra la evidencia antes de mostrarse."
+      >
         <Card>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line pb-3 text-sm">
-            <span className="font-medium text-ink">
+          <div className="dossier__meta">
+            <span className={`verified ${grounded ? "" : "verified--no"}`}>
               {grounded ? "Texto verificado contra los datos" : "Texto sin verificación disponible"}
             </span>
-            {d.grounding_report ? (
-              <span className="text-muted">{fmtInt(d.grounding_report.n_checked)} elementos comprobados</span>
-            ) : null}
-            <span className="text-muted">
-              Modo: <Mono>{d.mode ?? NA}</Mono> · {modeLabel}
-            </span>
-            {d.generated_at ? <span className="text-muted">Generado: {fmtDateTime(d.generated_at)}</span> : null}
+            {d.grounding_report ? <span className="muted">{fmtInt(d.grounding_report.n_checked)} elementos comprobados</span> : null}
+            <span className="muted">{modeLabel}</span>
+            {d.generated_at ? <span className="muted">Generado: {fmtDateTime(d.generated_at)}</span> : null}
           </div>
-          {d.summary_es ? <p className="mt-4 text-base leading-relaxed text-ink">{d.summary_es}</p> : null}
-          <div className="mt-4">
-            <DossierIndex sections={d.sections} />
-          </div>
+          {d.summary_es ? <p style={{ marginTop: 18, fontSize: "1.125rem", lineHeight: 1.55 }}>{d.summary_es}</p> : null}
+          <DossierIndex sections={d.sections} />
           {d.sections.map((s) => (
             <DossierSectionView key={s.title} section={s} />
           ))}
         </Card>
       </Section>
-      <Section title="Fuentes" id="fuentes">
+      <Section title="Fuentes" id="fuentes" note="De dónde salen los datos de este expediente.">
         {d.sources.length === 0 ? (
           <EmptyState>No hay fuentes registradas para este expediente.</EmptyState>
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="sources">
             {d.sources.map((s, i) => (
-              <li key={`${s.dataset}-${i}`} className="rounded-lg border border-line bg-surface p-4 text-sm">
-                <p className="font-medium text-ink">{s.dataset}</p>
-                <dl className="mt-2 space-y-1 text-muted">
+              <li key={`${s.dataset}-${i}`} className="card card--tight">
+                <p className="h4">{s.dataset}</p>
+                <dl className="stack small" style={{ marginTop: 10 }}>
                   <div>
-                    Licencia: <span className="text-ink">{s.licence ?? NA}</span>
+                    <dt className="tag">Licencia</dt>
+                    <dd>{s.licence ?? NA}</dd>
                   </div>
                   <div>
-                    Obtenido: <span className="text-ink">{fmtDate(s.retrieved_at)}</span>
+                    <dt className="tag">Obtenido</dt>
+                    <dd>{fmtDate(s.retrieved_at)}</dd>
                   </div>
-                  <div className="break-all">
-                    Registro: {s.record_id ? <Mono>{s.record_id}</Mono> : NA}
+                  <div style={{ overflowWrap: "anywhere" }}>
+                    <dt className="tag">Registro</dt>
+                    <dd>{s.record_id ? <Num>{s.record_id}</Num> : NA}</dd>
                   </div>
                 </dl>
               </li>
@@ -386,31 +490,31 @@ async function Reviews({ ocid }: { ocid: string }) {
     ),
   ]);
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid2">
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-ink">Revisiones registradas</h3>
+        <h3 className="h4" style={{ marginBottom: 12 }}>Revisiones registradas</h3>
         {!reviews.ok ? (
-          <p role="alert" className="text-sm text-muted">No se pudo cargar el historial de revisiones.</p>
+          <p role="alert" className="err">No pudimos cargar el historial de revisiones.</p>
         ) : reviews.v.length === 0 ? (
-          <p className="text-sm text-muted">Aún no hay revisiones humanas para este proceso.</p>
+          <p className="muted">Todavía no hay revisiones humanas para este proceso.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="reviews">
             {reviews.v.map((r) => (
-              <li key={r.id} className="rounded-md border border-line bg-surface p-3 text-sm">
-                <div className="flex flex-wrap justify-between gap-2">
-                  <span className="font-medium text-ink">{REVIEW_LABELS[r.status]}</span>
-                  <span className="text-muted">{fmtDateTime(r.created_at)}</span>
+              <li key={r.id} className="review">
+                <div className="review__top">
+                  <span>{REVIEW_LABELS[r.status]}</span>
+                  <time dateTime={r.created_at}>{fmtDateTime(r.created_at)}</time>
                 </div>
-                {r.note ? <p className="mt-1 whitespace-pre-line text-muted">{r.note}</p> : null}
+                {r.note ? <p style={{ marginTop: 6, whiteSpace: "pre-line" }}>{r.note}</p> : null}
               </li>
             ))}
           </ul>
         )}
       </div>
-      <p className="self-start rounded-lg border border-dashed border-line p-4 text-sm text-muted">
+      <p className="card card--quiet card--tight small" style={{ alignSelf: "start" }}>
         {meta.reviews_enabled
-          ? "Las revisiones las registran revisores autorizados; aquí se muestran solo en lectura."
-          : "El registro de revisiones está deshabilitado en esta instancia."}
+          ? "Las revisiones las registran revisores autorizados; aquí solo se pueden leer."
+          : "El registro de revisiones está desactivado en esta instancia."}
       </p>
     </div>
   );

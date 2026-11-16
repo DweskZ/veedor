@@ -2,7 +2,7 @@ import Link from "next/link";
 import { fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessSummary } from "@/lib/types";
 import { canLinkBuyer, canLinkSupplier } from "@/lib/validate";
-import { Mono, partyName, RiskScore, SignalChip } from "./ui";
+import { Num, partyName, RiskScore, SignalChip } from "./ui";
 
 export interface SortConfig {
   current: string;
@@ -12,7 +12,7 @@ export interface SortConfig {
 const COLUMNS: { field: string | null; label: string; align?: "right" }[] = [
   { field: "risk_score", label: "Puntaje" },
   { field: null, label: "Proceso y entidad" },
-  { field: null, label: "Adjudicatario" },
+  { field: null, label: "Quién ganó" },
   { field: "award_total", label: "Monto adjudicado", align: "right" },
   { field: null, label: "Método" },
   { field: null, label: "Señales" },
@@ -25,6 +25,49 @@ function ariaSort(field: string | null, current: string): "ascending" | "descend
   return "none";
 }
 
+function Buyer({ r }: { r: ProcessSummary }) {
+  return canLinkBuyer(r.buyer_ruc) ? (
+    <Link href={`/entidades/${r.buyer_ruc}`} className="cell-link">
+      {r.buyer_name ?? NA}
+    </Link>
+  ) : (
+    <>{r.buyer_name ?? NA}</>
+  );
+}
+
+function Winner({ r, withRuc = true }: { r: ProcessSummary; withRuc?: boolean }) {
+  if (!r.winner_name && !r.winner_kind) return <span className="muted">Sin adjudicatario</span>;
+  return (
+    <>
+      {canLinkSupplier(r.winner_ruc, r.winner_kind) ? (
+        <Link href={`/proveedores/${r.winner_ruc}`} className="cell-link">
+          {partyName(r.winner_name, r.winner_kind)}
+        </Link>
+      ) : (
+        partyName(r.winner_name, r.winner_kind)
+      )}
+      {withRuc && r.winner_ruc ? (
+        <div className="cell-sub">
+          <Num>{r.winner_ruc}</Num>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function Signals({ r, labels, context }: { r: ProcessSummary; labels: Record<string, string>; context: string[] }) {
+  return r.signal_codes.length ? (
+    <div className="chips">
+      {r.signal_codes.map((c) => (
+        <SignalChip key={c} code={c} labels={labels} quiet={context.includes(c)} />
+      ))}
+    </div>
+  ) : (
+    <span className="muted">Ninguna</span>
+  );
+}
+
+/** Table on wide screens, one card per process on narrow ones (same data, only one of them is displayed). */
 export function ProcessTable({
   rows,
   labels,
@@ -40,96 +83,103 @@ export function ProcessTable({
   context?: string[];
 }) {
   return (
-    <div
-      className="overflow-x-auto rounded-lg border border-line bg-surface"
-      tabIndex={0}
-      role="region"
-      aria-label={`${caption} (tabla desplazable)`}
-    >
-      <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
-        <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr className="border-b border-line bg-surface-2 text-xs uppercase tracking-wide text-muted">
-            {COLUMNS.map((c) => (
-              <th
-                key={c.label}
-                scope="col"
-                aria-sort={sort ? ariaSort(c.field, sort.current) : undefined}
-                className={`px-4 py-3 font-medium ${c.align === "right" ? "text-right" : ""}`}
-              >
-                {sort && c.field ? (
-                  <Link
-                    href={sort.href(c.field)}
-                    className="inline-flex items-center gap-1 text-ink underline-offset-2 hover:underline"
+    <>
+      <div className="only-wide">
+        <div className="tbl-wrap" tabIndex={0} role="region" aria-label={`${caption} (tabla desplazable)`}>
+          <table className="tbl tbl--proc" style={{ minWidth: "62rem" }}>
+            <caption className="sr-only">{caption}</caption>
+            <thead>
+              <tr>
+                {COLUMNS.map((c) => (
+                  <th
+                    key={c.label}
+                    scope="col"
+                    aria-sort={sort ? ariaSort(c.field, sort.current) : undefined}
+                    className={c.align === "right" ? "r" : undefined}
                   >
-                    {c.label}
-                    <span aria-hidden="true">{sort.current === c.field ? "↑" : sort.current === `-${c.field}` ? "↓" : "↕"}</span>
-                  </Link>
-                ) : (
-                  c.label
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.ocid} className="border-b border-line align-top last:border-b-0 hover:bg-surface-2/60">
-              <td className="px-4 py-3">
-                <RiskScore score={r.risk_score} />
-              </td>
-              <td className="px-4 py-3">
-                <Link href={`/procesos/${encodeURIComponent(r.ocid)}`} className="whitespace-nowrap font-medium text-accent underline-offset-2 hover:underline">
-                  <Mono>{shortCode(r.ocid)}</Mono>
-                </Link>
-                <div className="mt-0.5 text-muted">
-                  {canLinkBuyer(r.buyer_ruc) ? (
-                    <Link href={`/entidades/${r.buyer_ruc}`} className="hover:text-ink hover:underline">
-                      {r.buyer_name ?? NA}
-                    </Link>
-                  ) : (
-                    (r.buyer_name ?? NA)
-                  )}
-                  {r.year ? ` · ${r.year}` : ""}
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                {r.winner_name || r.winner_kind ? (
-                  <>
-                    {canLinkSupplier(r.winner_ruc, r.winner_kind) ? (
-                      <Link href={`/proveedores/${r.winner_ruc}`} className="hover:underline">
-                        {partyName(r.winner_name, r.winner_kind)}
+                    {sort && c.field ? (
+                      <Link href={sort.href(c.field)}>
+                        {c.label}
+                        <span aria-hidden="true">{sort.current === c.field ? "↑" : sort.current === `-${c.field}` ? "↓" : "↕"}</span>
                       </Link>
                     ) : (
-                      partyName(r.winner_name, r.winner_kind)
+                      c.label
                     )}
-                    {r.winner_ruc ? (
-                      <div className="text-muted">
-                        <Mono>{r.winner_ruc}</Mono>
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <span className="text-muted">Sin adjudicatario</span>
-                )}
-              </td>
-              <td className="px-4 py-3 text-right font-mono">{fmtUsd(r.award_total)}</td>
-              <td className="px-4 py-3 text-muted">{r.method ?? NA}</td>
-              <td className="px-4 py-3">
-                {r.signal_codes.length ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {r.signal_codes.map((c) => (
-                      <SignalChip key={c} code={c} labels={labels} quiet={context.includes(c)} />
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-muted">Ninguna</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.ocid}>
+                  <td>
+                    <RiskScore score={r.risk_score} />
+                  </td>
+                  <td>
+                    <Link href={`/procesos/${encodeURIComponent(r.ocid)}`} className="code">
+                      {shortCode(r.ocid)}
+                    </Link>
+                    <div className="cell-sub">
+                      <Buyer r={r} />
+                      {r.year ? ` · ${r.year}` : ""}
+                    </div>
+                  </td>
+                  <td>
+                    <Winner r={r} />
+                  </td>
+                  <td className="r">
+                    <Num>{fmtUsd(r.award_total)}</Num>
+                  </td>
+                  <td>{r.method ?? NA}</td>
+                  <td>
+                    <Signals r={r} labels={labels} context={context} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <ul className="only-narrow pcards" aria-label={caption}>
+        {rows.map((r) => (
+          <li key={r.ocid} className="pcard">
+            <div className="pcard__top">
+              <Link href={`/procesos/${encodeURIComponent(r.ocid)}`} className="pcard__code">
+                {shortCode(r.ocid)}
+              </Link>
+              <RiskScore score={r.risk_score} />
+            </div>
+            <dl>
+              <div>
+                <dt>Entidad</dt>
+                <dd>
+                  <Buyer r={r} />
+                  {r.year ? ` · ${r.year}` : ""}
+                </dd>
+              </div>
+              <div>
+                <dt>Quién ganó</dt>
+                <dd>
+                  <Winner r={r} withRuc={false} />
+                </dd>
+              </div>
+              <div>
+                <dt>Monto adjudicado</dt>
+                <dd>
+                  <Num>{fmtUsd(r.award_total)}</Num> · {r.method ?? NA}
+                </dd>
+              </div>
+              <div>
+                <dt>Señales</dt>
+                <dd>
+                  <Signals r={r} labels={labels} context={context} />
+                </dd>
+              </div>
+            </dl>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }

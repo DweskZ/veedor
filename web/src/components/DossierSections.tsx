@@ -33,7 +33,7 @@ function parse(body: string): Block[] {
 
 function Items({ items }: { items: string[] }) {
   return (
-    <ul className="list-disc space-y-1.5 pl-5">
+    <ul>
       {items.map((t, i) => (
         <li key={i}>{t}</li>
       ))}
@@ -46,11 +46,9 @@ function List({ items }: { items: string[] }) {
   return (
     <>
       <Items items={items.slice(0, VISIBLE)} />
-      <details className="mt-2 rounded-md border border-line bg-surface-2/50 px-3 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-accent">
-          Mostrar {items.length - VISIBLE} elementos más
-        </summary>
-        <div className="mt-2">
+      <details className="fold">
+        <summary>Mostrar {items.length - VISIBLE} elementos más</summary>
+        <div>
           <Items items={items.slice(VISIBLE)} />
         </div>
       </details>
@@ -62,13 +60,11 @@ function List({ items }: { items: string[] }) {
 export function DossierIndex({ sections }: { sections: DossierSection[] }) {
   if (sections.length < 3) return null;
   return (
-    <nav aria-label="Secciones del texto del expediente" className="border-b border-line pb-3">
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+    <nav aria-label="Secciones del texto del expediente" className="dossier-index">
+      <ul>
         {sections.map((s) => (
           <li key={s.title}>
-            <a href={`#${slug(s.title)}`} className="text-accent underline underline-offset-2">
-              {s.title}
-            </a>
+            <a href={`#${slug(s.title)}`}>{s.title}</a>
           </li>
         ))}
       </ul>
@@ -79,13 +75,11 @@ export function DossierIndex({ sections }: { sections: DossierSection[] }) {
 export function DossierSectionView({ section }: { section: DossierSection }) {
   const id = slug(section.title);
   return (
-    <div className="mt-6 scroll-mt-4">
-      <h3 id={id} className="text-sm font-semibold text-ink">
-        <a href={`#${id}`} className="hover:underline">
-          {section.title}
-        </a>
+    <div className="dossier__sec">
+      <h3 id={id}>
+        <a href={`#${id}`}>{section.title}</a>
       </h3>
-      <div className="mt-1 space-y-2 text-sm leading-relaxed text-muted">
+      <div className="dossier__body">
         {parse(section.body).map((b, i) =>
           b.kind === "p" ? <p key={i}>{b.text}</p> : <List key={i} items={b.items} />,
         )}

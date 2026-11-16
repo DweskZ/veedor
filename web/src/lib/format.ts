@@ -115,3 +115,13 @@ export function fmtEvidence(key: string, v: unknown): string {
   if (typeof v === "string") return /^\d{4}-\d{2}-\d{2}/.test(v) ? (v.length > 10 ? fmtDateTime(v) : fmtDate(v)) : v;
   return JSON.stringify(v);
 }
+
+/** Procurement category as published in the open data, in plain Spanish. */
+const CATEGORY_LABELS: Record<string, string> = { goods: "Bienes", works: "Obras", services: "Servicios" };
+export const fmtCategory = (value: string | null | undefined) =>
+  value == null ? null : (CATEGORY_LABELS[value] ?? value);
+
+/** Process status as published in the open data, in plain Spanish. */
+const STATUS_LABELS: Record<string, string> = { complete: "Finalizado", active: "En curso" };
+export const fmtStatus = (value: string | null | undefined) =>
+  value == null ? null : (STATUS_LABELS[value] ?? value);

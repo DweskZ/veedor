@@ -1,33 +1,38 @@
 import Link from "next/link";
-import { USE_MOCKS } from "@/lib/api";
-import { Wordmark } from "./Logo";
 import { Suspense } from "react";
+import { USE_MOCKS } from "@/lib/api";
+import { RurayMark, Wordmark } from "./Logo";
 import { Nav, NavLinks } from "./Nav";
-import { ThemeToggle } from "./ThemeToggle";
+
+export const RURAY_URL = "https://www.instagram.com/ruray.tech/";
 
 export function MockBanner() {
   if (!USE_MOCKS) return null;
   return (
-    <div role="status" className="border-b border-line bg-surface-2 px-4 py-1.5 text-center text-sm text-ink">
-      <strong className="font-semibold">Datos de ejemplo.</strong> Las entidades, cifras y procesos son ficticios y no describen
-      contratación real.
+    <div role="status" className="notice">
+      <b>Datos de ejemplo.</b> Las entidades, cifras y procesos son ficticios y no describen contratación real.
     </div>
   );
 }
 
 export function Header() {
   return (
-    <header className="border-b border-line bg-bg">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
-        <Link href="/" aria-label="Veedor, inicio" className="text-ink">
-          <Wordmark />
-        </Link>
-        <div className="flex flex-wrap items-center gap-2">
-          <Suspense fallback={<NavLinks pathname={null} />}>
-            <Nav />
-          </Suspense>
-          <ThemeToggle />
+    <header className="header">
+      <div className="wrap header__in">
+        <div className="brandline">
+          <Link href="/" aria-label="Veedor, inicio" className="wm">
+            veedor
+          </Link>
+          <p className="brandline__by">
+            un producto de{" "}
+            <a href={RURAY_URL} rel="noopener" target="_blank">
+              ruray.<span className="sr-only"> (se abre en una pestaña nueva)</span>
+            </a>
+          </p>
         </div>
+        <Suspense fallback={<NavLinks pathname={null} />}>
+          <Nav />
+        </Suspense>
       </div>
     </header>
   );
@@ -35,20 +40,49 @@ export function Header() {
 
 export function Footer() {
   return (
-    <footer className="mt-16 border-t border-line bg-surface">
-      <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-sm text-muted sm:px-6 md:grid-cols-2">
-        <p className="text-ink">
-          Veedor muestra indicadores de riesgo calculados sobre datos públicos. No constituyen acusaciones ni determinan
-          responsabilidades.
-        </p>
-        <p>
-          Datos: Servicio Nacional de Contratación Pública (SERCOP), datos abiertos, licencia CC BY 3.0 EC. Registros del
-          SRI y de la Superintendencia de Compañías. Más detalle en{" "}
-          <Link href="/metodologia" className="text-accent underline underline-offset-2">
-            Metodología
-          </Link>
-          .
-        </p>
+    <footer className="footer">
+      <div className="wrap">
+        <div className="footer__in">
+          <div>
+            <Wordmark />
+            <p className="footer__tag">Mira cómo compra el Estado.</p>
+            <p style={{ marginTop: 10, maxWidth: "26em" }}>
+              Veedor muestra indicadores de riesgo calculados sobre datos públicos. No constituyen acusaciones ni
+              determinan responsabilidades.
+            </p>
+          </div>
+          <div>
+            <h2>Datos</h2>
+            <p>
+              Servicio Nacional de Contratación Pública (SERCOP), datos abiertos, licencia CC BY 3.0 EC. Registros del SRI y de
+              la Superintendencia de Compañías.
+            </p>
+          </div>
+          <nav aria-label="Pie de página" className="footer__links">
+            <h2>Páginas</h2>
+            <ul>
+              <li>
+                <Link href="/procesos">Procesos</Link>
+              </li>
+              <li>
+                <Link href="/agentes">Agentes de investigación</Link>
+              </li>
+              <li>
+                <Link href="/metodologia">Metodología y límites</Link>
+              </li>
+            </ul>
+          </nav>
+          <div className="footer__credit">
+            <span className="footer__made">
+              Hecho por
+              <a href={RURAY_URL} rel="noopener" target="_blank" aria-label="Ruray en Instagram (se abre en una pestaña nueva)">
+                <RurayMark />
+              </a>
+            </span>
+            <span className="footer__author">Luis Figueroa, fundador de Ruray.</span>
+            <span className="footer__place">Hazlo real. · Ecuador · Australia</span>
+          </div>
+        </div>
       </div>
     </footer>
   );

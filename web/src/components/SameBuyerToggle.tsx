@@ -9,7 +9,7 @@ export function SameBuyerToggle({ checked }: { checked: boolean }) {
   const pathname = usePathname();
   const id = useId();
   return (
-    <label htmlFor={id} className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink">
+    <label htmlFor={id} className="check">
       <input
         id={id}
         type="checkbox"
@@ -21,9 +21,8 @@ export function SameBuyerToggle({ checked }: { checked: boolean }) {
           const qs = sp.toString();
           router.replace(`${pathname}${qs ? `?${qs}` : ""}#similares`, { scroll: false });
         }}
-        className="h-4 w-4 accent-[var(--accent)]"
       />
-      Solo la misma entidad
+      Solo de la misma entidad
     </label>
   );
 }

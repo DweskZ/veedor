@@ -1,66 +1,79 @@
 import { evidenceLabel, fmtEvidence, fmtNum } from "@/lib/format";
+import { FALLBACK_COPY, SIGNAL_COPY } from "@/lib/signal-copy";
 import type { FiredSignal, SignalDef } from "@/lib/types";
-import { Mono } from "./ui";
 
-/** Observed value against its threshold on a shared scale. Decorative; the numbers are the content. */
+/** Observed value against its threshold on a shared scale. Decorative: the numbers are the content. */
 function Comparison({ value, threshold }: { value: number; threshold: number }) {
   const max = Math.max(Math.abs(value), Math.abs(threshold), 1e-9) * 1.15;
-  const pos = (n: number) => `${Math.min(100, Math.max(0, (Math.abs(n) / max) * 100))}%`;
+  const pos = (n: number) => `${Math.round(Math.min(100, Math.max(0, (Math.abs(n) / max) * 100)) * 10) / 10}%`;
   return (
-    <div className="mt-3">
-      <div className="relative h-2 rounded-sm bg-surface-2" aria-hidden="true">
-        <div className="absolute inset-y-0 left-0 rounded-sm bg-accent" style={{ width: pos(value) }} />
-        <div className="absolute -inset-y-1 w-0.5 bg-ink" style={{ left: pos(threshold) }} />
+    <div className="meter">
+      <div className="meter__track" aria-hidden="true">
+        <div className="meter__fill" style={{ width: pos(value) }} />
+        <div className="meter__mark" style={{ left: pos(threshold) }} />
       </div>
-      <p className="mt-1.5 text-xs text-muted">
-        Barra: valor observado. Línea: umbral de la regla.
-      </p>
+      <p className="meter__cap">Barra: lo observado. Marca vertical: el umbral de la regla.</p>
     </div>
   );
 }
 
+/**
+ * One signal, answering three questions in plain words: what was observed, why it can matter,
+ * and how it can be perfectly normal. Context signals are quieter and do not add points.
+ */
 export function SignalCard({ signal, def, quiet = false }: { signal: FiredSignal; def: SignalDef | undefined; quiet?: boolean }) {
   const evidence = Object.entries(signal.evidence);
+  const copy = SIGNAL_COPY[signal.code] ?? FALLBACK_COPY;
+  const label = signal.label_es ?? def?.label_es ?? signal.code;
   return (
-    <article className={`rounded-lg p-5 ${quiet ? "border border-dashed border-line" : "border border-line bg-surface"}`}>
-      <header>
-        <h3 className={`text-lg font-semibold ${quiet ? "text-muted" : "text-ink"}`}>{signal.label_es ?? def?.label_es ?? signal.code}</h3>
-        <p className="mt-0.5 text-xs text-muted">
-          <Mono>{signal.code}</Mono>
-        </p>
+    <article className={`sig ${quiet ? "sig--quiet" : ""}`}>
+      <header className="sig__head">
+        {quiet ? <p className="tag">Solo contexto · no suma puntos</p> : null}
+        <h3 className="h3">{label}</h3>
+        <p className="sig__code">{signal.code}</p>
       </header>
-      {def?.description_es ? <p className="mt-3 text-sm leading-relaxed text-ink">{def.description_es}</p> : null}
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="text-muted">Valor observado</dt>
-          <dd className="font-mono text-base text-ink">{fmtNum(signal.value)}</dd>
+      <div className="sig__qa">
+        <div className="sig__q">
+          <h4>Qué se observó</h4>
+          {def?.description_es ? <p>{def.description_es}</p> : null}
+          <dl className="sig__vals">
+            <div>
+              <dt>Valor observado</dt>
+              <dd>{fmtNum(signal.value)}</dd>
+            </div>
+            <div>
+              <dt>Umbral de la regla</dt>
+              <dd>{fmtNum(signal.threshold)}</dd>
+            </div>
+          </dl>
+          {def?.threshold_rule_es ? <p className="muted small" style={{ marginTop: 8 }}>Regla: {def.threshold_rule_es}</p> : null}
+          {signal.value != null && signal.threshold != null ? <Comparison value={signal.value} threshold={signal.threshold} /> : null}
         </div>
-        <div>
-          <dt className="text-muted">Umbral</dt>
-          <dd className="font-mono text-base text-ink">{fmtNum(signal.threshold)}</dd>
+        <div className="sig__q">
+          <h4>Por qué puede importar</h4>
+          <p>{copy.why}</p>
         </div>
-        <div>
-          <dt className="text-muted">Regla</dt>
-          <dd className="text-ink">{def?.threshold_rule_es ?? "No disponible"}</dd>
+        <div className="sig__q">
+          <h4>Cómo puede ser perfectamente normal</h4>
+          <p>{copy.normal}</p>
         </div>
-      </dl>
-      {signal.value != null && signal.threshold != null ? <Comparison value={signal.value} threshold={signal.threshold} /> : null}
+      </div>
       {evidence.length ? (
-        <details className="mt-4" open>
-          <summary className="cursor-pointer text-sm font-medium text-ink">Evidencia ({evidence.length} campos)</summary>
-          <table className="mt-2 w-full text-sm">
-            <caption className="sr-only">Evidencia de la señal {signal.label_es ?? def?.label_es ?? signal.code}</caption>
-            <tbody>
-              {evidence.map(([k, v]) => (
-                <tr key={k} className="border-t border-line">
-                  <th scope="row" className="w-1/2 py-1.5 pr-3 text-left font-normal text-muted">
-                    {evidenceLabel(k)}
-                  </th>
-                  <td className="py-1.5 font-mono text-ink">{fmtEvidence(k, v)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <details>
+          <summary>De dónde sale: evidencia ({evidence.length} campos)</summary>
+          <div className="ev-wrap">
+            <table className="ev">
+              <caption className="sr-only">Evidencia de la señal {label}</caption>
+              <tbody>
+                {evidence.map(([k, v]) => (
+                  <tr key={k}>
+                    <th scope="row">{evidenceLabel(k)}</th>
+                    <td>{fmtEvidence(k, v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </details>
       ) : null}
     </article>
