@@ -1,0 +1,31 @@
+{
+ "no_fila": "64985.0",
+ "expediente": "100001",
+ "ruc": "0992764473001",
+ "nombre": "EMPRESA EJEMPLO DOS S.A.",
+ "situacion_legal": "DISOLUCIÓN Y LIQUIDACIÓN OFICIO INSCRITA EN RM",
+ "fecha_constitucion": "19/06/2014",
+ "tipo": "ANÓNIMA",
+ "pais": "ECUADOR",
+ "region": "COSTA",
+ "provincia": "GUAYAS",
+ "canton": "MILAGRO",
+ "ciudad": "MILAGRO",
+ "calle": "CALLE PLACEHOLDER",
+ "numero": "",
+ "interseccion": "PLACEHOLDER",
+ "barrio": "",
+ "telefono": "000000000",
+ "representante": "NOMBRE REPRESENTANTE PLACEHOLDER",
+ "cargo": "GERENTE GENERAL",
+ "capital_suscrito": "800,00",
+ "ciiu_nivel_1": "C",
+ "ciiu_nivel_6": "C2012.01",
+ "ultimo_balance": "",
+ "presento_balance_inicial": "NO APLICA",
+ "fecha_presentacion_balance_inicial": "NO APLICA",
+ "metadatos": {
+  "contrato": "ecudatamcp.response.v1",
+  "consultado_en": "2026-11-16T00:00:00+00:00"
+ }
+}

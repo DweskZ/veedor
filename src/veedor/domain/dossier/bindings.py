@@ -60,6 +60,11 @@ def _evidence(pack: EvidencePack, key: str) -> list[Any]:
 def build_bindings(pack: EvidencePack) -> list[Binding]:
     p, w, h, c = pack.process, pack.winner, pack.history, pack.comparison
     r = w.registry if w else None
+    inv = pack.investigation
+    co = inv.company if inv else None
+    fin = inv.financials if inv else None
+    pair = inv.pair_history if inv else None
+    sim = inv.similar if inv else None
     num = lambda keys: [_dec(v) for v in keys]  # noqa: E731
     days = lambda *values: [_day(v) for v in values if isinstance(v, str)]  # noqa: E731
     ev = lambda key: _evidence(pack, key)  # noqa: E731
@@ -126,6 +131,17 @@ def build_bindings(pack: EvidencePack) -> list[Binding]:
             "date",
             days(r.suspension_date if r else None, *ev("suspension_date")),
         ),
+        _binding(("capital suscrito",), "amount", num([co.subscribed_capital] if co else [])),
+        _binding(("fecha de constitución",), "date", days(co.incorporation_date if co else None)),
+        _binding(("patrimonio",), "amount", num([fin.equity] if fin else [])),
+        _binding(("activos",), "amount", num([fin.assets] if fin else [])),
+        _binding(("empleados reportados",), "count", num([fin.employees] if fin else [])),
+        _binding(
+            ("monto acumulado de esas adjudicaciones",),
+            "amount",
+            num([pair.total_other_amount] if pair else []),
+        ),
+        _binding(("su monto combinado",), "amount", num([sim.combined_amount] if sim else [])),
         _binding(("primera adjudicación previa",), "date", days(h.first_award_date if h else None)),
         _binding(("última adjudicación previa",), "date", days(h.last_award_date if h else None)),
     ]
@@ -183,6 +199,13 @@ def build_noun_bindings(pack: EvidencePack) -> list[NounBinding]:
     ev = lambda *keys: [v for k in keys for v in _evidence(pack, k)]  # noqa: E731
     from veedor.domain.dossier.signal_text import is_informational
 
+    inv = pack.investigation
+    co = inv.company if inv else None
+    pair = inv.pair_history if inv else None
+    sim = inv.similar if inv else None
+    days_inc = co.days_incorporation_to_process if co else None
+    incorporation_days = abs(days_inc) if days_inc else None
+
     n_context = sum(1 for s in pack.signals if is_informational(s))
     values: dict[str, list[Any]] = {
         "oferentes": [
@@ -191,6 +214,7 @@ def build_noun_bindings(pack: EvidencePack) -> list[NounBinding]:
         ],
         "adjudicaciones": [
             p.n_awards, h.n_previous_awards if h else None, h.n_pair_awards if h else None,
+            pair.n_other_awards if pair else None,
             *ev("n_awards_buyer_year"),
         ],
         "procesos": [
@@ -198,10 +222,18 @@ def build_noun_bindings(pack: EvidencePack) -> list[NounBinding]:
             *ev("n_in_window", "n_same_buyer_supplier_cpc", "n_meetings", "n_method_year"),
         ],
         "señales": [pack.n_signals, pack.n_signals - n_context, n_context],
-        "días": ev("window_days", "p05_days", "days_between"),
+        "días": [
+            *ev("window_days", "p05_days", "days_between"),
+            incorporation_days,
+            sim.window_days if sim else None,
+        ],
         "años": [],
         "proveedores": [w.n_award_suppliers if w else None],
-        "veces": ev("ratio", "factor"),
+        "veces": [
+            *ev("ratio", "factor"),
+            co.award_to_capital_times if co and (co.award_to_capital_times or 0) >= 0.01 else None,
+            0.01,
+        ],
     }  # fmt: skip
     return [
         NounBinding(

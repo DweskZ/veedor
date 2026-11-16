@@ -4,7 +4,7 @@ from veedor.core.settings import Settings
 from veedor.infrastructure.llm.factory import build_chat_model
 from veedor.infrastructure.llm.fake import FakeChatModel
 from veedor.infrastructure.llm.pricing import estimate_cost_usd
-from veedor.infrastructure.mcp.ecudata_client import NoOpRegistryLookup, build_ecudata_client
+from veedor.infrastructure.mcp.ecudata_client import UnavailableBackend
 
 
 def _settings(**kw):
@@ -51,6 +51,6 @@ def test_cost_is_null_without_a_price_table(tmp_path):
     assert estimate_cost_usd("other", 1000, 500, tmp_path) is None
 
 
-def test_ecudata_default_is_a_no_op():
-    client = build_ecudata_client()
-    assert isinstance(client, NoOpRegistryLookup) and client.lookup("1790012345001") is None
+def test_unavailable_backend_is_a_recorded_failure():
+    result = UnavailableBackend().call("get_compania_info", {"ruc": "0992764473001"})
+    assert result.status == "upstream_error" and result.reason == "server_unavailable"

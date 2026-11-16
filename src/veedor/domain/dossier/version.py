@@ -4,4 +4,4 @@ Bump it whenever a change would alter the text of an already cached dossier: cac
 different version are ignored and rebuilt.
 """
 
-RENDERER_VERSION = 5
+RENDERER_VERSION = 6

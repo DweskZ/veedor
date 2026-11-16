@@ -146,6 +146,14 @@ def _valid_groups(groups: list[str]) -> bool:
     return bool(groups[0]) and 1 <= len(groups[0]) <= 3 and all(len(g) == 3 for g in groups[1:])
 
 
+def _short(value: Decimal) -> str:
+    """The matched pack value for the report: at most 4 decimals, so float artifacts never leak in."""
+    try:
+        return format(value.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP).normalize(), "f")
+    except InvalidOperation:
+        return str(value)[:24]
+
+
 def _token(kind, text, span, matched=None, reason=None) -> GroundedToken:  # noqa: ANN001
     return GroundedToken(kind=kind, text=text, start=span[0], end=span[1], matched=matched, reason=reason)
 
@@ -405,7 +413,7 @@ class _Run:
                     kind,
                     match.group(),
                     match.span(),
-                    None if hit is None else str(hit),
+                    None if hit is None else _short(hit),
                     reason,
                 ),
             )

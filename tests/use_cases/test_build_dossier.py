@@ -55,10 +55,22 @@ def test_corrupt_cache_is_rebuilt(tmp_path):
     assert service.build(OCID).mode == "template"
 
 
-@pytest.mark.parametrize("bad", ["../etc/passwd", "a/b", "", "x" * 300, ".hidden"])
+@pytest.mark.parametrize("bad", ["", "x" * 300, "a\x00b", "line\nbreak", " padded "])
 def test_malformed_ocid_is_rejected_before_touching_disk(tmp_path, bad):
     with pytest.raises(ValueError):
         _service(tmp_path, StubReader()).build(bad)
+
+
+ODD = ["../etc/passwd", "a/b", ".hidden", "CCD\u2013GAD\u20132017", "con espacio,coma", "Ñandú"]
+
+
+@pytest.mark.parametrize("odd", ODD)
+def test_unusual_real_identifiers_get_a_hashed_file_name_inside_the_directory(tmp_path, odd):
+    service = _service(tmp_path, StubReader())
+    path = service._path(odd)  # noqa: SLF001
+    assert path.parent == tmp_path / "dossiers" and path.name.endswith(".json")
+    assert len(path.stem) == 64 and path.stem.isalnum()
+    assert service._path(OCID).name == f"{OCID}.json"  # noqa: SLF001
 
 
 def test_unknown_process_raises_and_caches_nothing(tmp_path):

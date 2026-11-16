@@ -1,0 +1,122 @@
+{
+  "no_llm": {
+    "dossier_modes": {
+      "template": 20
+    },
+    "dossiers_passing_verification": 20,
+    "errors": 0,
+    "facts_added_by_type": {
+      "investigation.audit.count": 20,
+      "investigation.company.capital": 20,
+      "investigation.company.filing": 20,
+      "investigation.company.incorporation": 20,
+      "investigation.company.legal_status": 20,
+      "investigation.financials.latest": 20,
+      "investigation.pair.others": 20,
+      "investigation.run.lookups": 20,
+      "investigation.run.note": 20,
+      "investigation.run.specialists": 20,
+      "investigation.similar.window": 20,
+      "investigation.tax.live": 20,
+      "investigation.tax.matches_download": 20
+    },
+    "investigations": 20,
+    "model": {
+      "calls": 0,
+      "completion_tokens": 0,
+      "invalid_choices": 0,
+      "model": null,
+      "prompt_tokens": 0
+    },
+    "specialists_dispatched": {
+      "audit": 20,
+      "company": 20,
+      "history": 20,
+      "tax_registry": 20
+    },
+    "tool_calls_by_tool_and_outcome": {
+      "get_compania_info": {
+        "ok": 20
+      },
+      "get_contraloria_informe": {
+        "ok": 60
+      },
+      "get_financials": {
+        "ok": 20
+      },
+      "get_sri_ruc_info": {
+        "ok": 20
+      },
+      "list_catalogo": {
+        "ok": 20
+      },
+      "pair_awards": {
+        "ok": 20
+      },
+      "similar_processes": {
+        "ok": 20
+      }
+    },
+    "withheld_by_privacy_guard": 0
+  },
+  "with_llm": {
+    "dossier_modes": {
+      "llm": 10
+    },
+    "dossiers_passing_verification": 10,
+    "errors": 0,
+    "facts_added_by_type": {
+      "investigation.audit.count": 10,
+      "investigation.company.capital": 10,
+      "investigation.company.filing": 10,
+      "investigation.company.incorporation": 10,
+      "investigation.company.legal_status": 10,
+      "investigation.financials.latest": 10,
+      "investigation.pair.others": 10,
+      "investigation.run.lookups": 10,
+      "investigation.run.note": 10,
+      "investigation.run.specialists": 10,
+      "investigation.similar.window": 10,
+      "investigation.tax.live": 3,
+      "investigation.tax.matches_download": 3
+    },
+    "investigations": 10,
+    "model": {
+      "calls": 54,
+      "completion_tokens": 3600,
+      "invalid_choices": 0,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 45003
+    },
+    "specialists_dispatched": {
+      "audit": 10,
+      "company": 10,
+      "history": 10,
+      "tax_registry": 3
+    },
+    "tool_calls_by_tool_and_outcome": {
+      "get_compania_info": {
+        "ok": 10
+      },
+      "get_contraloria_informe": {
+        "ok": 29,
+        "upstream_error": 1
+      },
+      "get_financials": {
+        "ok": 10
+      },
+      "get_sri_ruc_info": {
+        "ok": 3
+      },
+      "list_catalogo": {
+        "ok": 10
+      },
+      "pair_awards": {
+        "ok": 10
+      },
+      "similar_processes": {
+        "ok": 10
+      }
+    }
+  }
+}

@@ -35,9 +35,9 @@ class LLMPlan(BaseModel):
     que_se_contrato: list[str] = Field(default_factory=list, max_length=12)
     senales_detectadas: list[str] = Field(default_factory=list, max_length=14)
     contexto_registral: list[str] = Field(default_factory=list, max_length=6)
-    proveedor_adjudicado: list[str] = Field(default_factory=list, max_length=8)
-    relacion_entidad_proveedor: list[str] = Field(default_factory=list, max_length=4)
-    contexto_comparativo: list[str] = Field(default_factory=list, max_length=6)
+    proveedor_adjudicado: list[str] = Field(default_factory=list, max_length=16)
+    relacion_entidad_proveedor: list[str] = Field(default_factory=list, max_length=8)
+    contexto_comparativo: list[str] = Field(default_factory=list, max_length=14)
     reviewer_note: str | None = Field(default=None, max_length=32)
 
     def to_render_plan(self) -> RenderPlan:

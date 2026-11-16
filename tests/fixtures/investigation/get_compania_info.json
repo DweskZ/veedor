@@ -1,0 +1,31 @@
+{
+ "no_fila": "1.0",
+ "expediente": "100000",
+ "ruc": "0992764473001",
+ "nombre": "EMPRESA EJEMPLO CIA. LTDA.",
+ "situacion_legal": "ACTIVA",
+ "fecha_constitucion": "19/12/2014",
+ "tipo": "RESPONSABILIDAD LIMITADA",
+ "pais": "ECUADOR",
+ "region": "ORIENTE",
+ "provincia": "SUCUMBIOS",
+ "canton": "LAGO AGRIO",
+ "ciudad": "NUEVA LOJA",
+ "calle": "CALLE PLACEHOLDER",
+ "numero": "000",
+ "interseccion": "INTERSECCION PLACEHOLDER",
+ "barrio": "BARRIO PLACEHOLDER",
+ "telefono": "000000000",
+ "representante": "NOMBRE REPRESENTANTE PLACEHOLDER",
+ "cargo": "GERENTE GENERAL",
+ "capital_suscrito": "400,00",
+ "ciiu_nivel_1": "C",
+ "ciiu_nivel_6": "C2511.01",
+ "ultimo_balance": "2025",
+ "presento_balance_inicial": "NO APLICA",
+ "fecha_presentacion_balance_inicial": "NO APLICA",
+ "metadatos": {
+  "contrato": "ecudatamcp.response.v1",
+  "consultado_en": "2026-11-16T00:00:00+00:00"
+ }
+}

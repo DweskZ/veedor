@@ -10,6 +10,7 @@ SECTION_REGISTRAL = "Contexto registral"
 SECTION_WINNER = "Proveedor adjudicado"
 SECTION_RELATION = "Relación entidad–proveedor"
 SECTION_CONTEXT = "Contexto comparativo"
+SECTION_INVESTIGATION = "Investigación realizada"
 SECTION_LIMITS = "Limitaciones y cómo verificar"
 
 SECTION_TITLES: tuple[str, ...] = (
@@ -19,6 +20,7 @@ SECTION_TITLES: tuple[str, ...] = (
     SECTION_WINNER,
     SECTION_RELATION,
     SECTION_CONTEXT,
+    SECTION_INVESTIGATION,
     SECTION_LIMITS,
 )
 
@@ -38,12 +40,13 @@ STATIC_TERMS: tuple[str, ...] = (
     "CPC",
     "CIIU",
     "Superintendencia de Compañías",
+    "Contraloría General del Estado",
     "Persona natural",
     *SECTION_TITLES,
 )
 
 # Numbers that are part of the product, not of a process (scale of the risk score).
-STATIC_NUMBERS: tuple[int, ...] = (100,)
+STATIC_NUMBERS: tuple[int | str, ...] = (100, "0.01")  # 0.01: the bound of "menos de 0,01 veces"
 
 # Capitalised only because they open a sentence; ignored when they stand alone at sentence start.
 SENTENCE_STARTERS: frozenset[str] = frozenset(
@@ -184,6 +187,14 @@ SENTENCE_STARTERS: frozenset[str] = frozenset(
         "Estadísticas",
         "Ingresos",
         "Puntaje",
+        "Estados",
+        "Consulta",
+        "Capital",
+        "Últimos",
+        "Compras",
+        "Informes",
+        "Especialistas",
+        "Pueden",
     }
 )
 

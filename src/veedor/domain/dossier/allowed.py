@@ -34,7 +34,7 @@ CODE = re.compile(rf"^(?=.*\d)[A-Za-z]{_SEG}(?:-{_SEG}){{2,}}$")
 CODE_IN_TEXT = re.compile(rf"(?<![\w-])[A-Za-z]{_SEG}(?:-{_SEG}){{2,}}(?![\w-])")
 LONG_DIGITS = re.compile(r"^\d{8,}$")
 DIGIT_GROUPS = re.compile(r"\d+(?:[.,]\d+)*")
-QUOTABLE_KEYS = frozenset({"main_cpc_description", "activity", "ciiu_code"})
+QUOTABLE_KEYS = frozenset({"main_cpc_description", "activity", "ciiu_code", "title"})
 RATIO_SUFFIXES = ("_ratio", "_share")
 
 

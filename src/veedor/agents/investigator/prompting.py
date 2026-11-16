@@ -13,6 +13,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
+from veedor.domain.dossier.investigation_facts import OMITTED_QUOTE, UNTRUSTED_QUOTE_IDS
 from veedor.domain.dossier.models import EvidencePack
 from veedor.domain.dossier.plan import CONNECTIVES, applicable_notes
 from veedor.domain.dossier.template import catalogue, risk_signals
@@ -62,11 +63,19 @@ def _connectives_offered(pack: EvidencePack, facts: list) -> list[dict[str, Any]
     return offered
 
 
+_QUOTE = re.compile(r"«[^»]*»")
+
+
+def _model_text(fact) -> str:  # noqa: ANN001
+    """Facts that quote third-party text (tool results) are shown to the model with the quote removed."""
+    return _QUOTE.sub(OMITTED_QUOTE, fact.text) if fact.id in UNTRUSTED_QUOTE_IDS else fact.text
+
+
 def catalogue_payload(pack: EvidencePack) -> dict[str, Any]:
     """The facts a plan may select: id, section and the exact sentence the renderer will write."""
     facts = catalogue(pack)
     return {
-        "hechos": [{"id": f.id, "seccion": f.section, "texto": f.text} for f in facts],
+        "hechos": [{"id": f.id, "seccion": f.section, "texto": _model_text(f)} for f in facts],
         "codigos_de_senal_de_riesgo": [s.code for s in risk_signals(pack)],
         "conectores": _connectives_offered(pack, facts),
         "notas_para_quien_revisa": {i: p.text for i, p in applicable_notes(pack).items()},

@@ -6,6 +6,7 @@ writes every sentence from the template catalogue. Without one, the full templat
 
 from __future__ import annotations
 
+from veedor.agents.investigation import obs
 from veedor.agents.investigator.outputs import OutputRejected, parse_plan, screen
 from veedor.agents.investigator.prompting import system_prompt, user_prompt
 from veedor.agents.investigator.state import InvestigatorState
@@ -25,6 +26,10 @@ def write_narrative(state: InvestigatorState, *, chat_model: ChatModelPort | Non
         response = chat_model.complete(system_prompt(), user_prompt(pack, state.get("rejected")))
     except Exception as exc:  # noqa: BLE001 - any provider failure degrades to the template
         return {**update, "narrative": None, "rejected": [], "attempt_log_error": type(exc).__name__}
+    if not getattr(chat_model, "reports_usage", False):  # the metered wrapper reports by itself
+        obs.record_llm_usage(
+            chat_model.model_name, response.prompt_tokens or 0, response.completion_tokens or 0
+        )
     update["prompt_tokens"] = state.get("prompt_tokens", 0) + (response.prompt_tokens or 0)
     update["completion_tokens"] = state.get("completion_tokens", 0) + (response.completion_tokens or 0)
     try:

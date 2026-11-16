@@ -1,0 +1,4 @@
+{
+ "is_error": true,
+ "text": "Error executing tool get_sri_ruc_info: Error al consultar la ficha pública del RUC en el SRI: Server error '500 Internal Server Error' for url 'https://srienlinea.sri.gob.ec/facturacion-internet/consultas/publico/ruc-establec.jspa?ruc=0992764473001'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+}

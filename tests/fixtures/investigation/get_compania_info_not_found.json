@@ -1,0 +1,4 @@
+{
+ "is_error": true,
+ "text": "Error executing tool get_compania_info: Error: no se encontró ninguna compañía con RUC '0990000000001'. Prueba search_companias para buscar por nombre."
+}

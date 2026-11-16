@@ -19,7 +19,8 @@ def test_template_passes_grounding(fixture, request):
     narrative, text = _text(pack)
     report = verify(text, pack)
     assert report.passed, [t.model_dump() for t in report.unsupported + report.forbidden]
-    expected = [t for t in SECTION_TITLES if t != "Contexto registral"]  # omitted when empty
+    omitted = ("Contexto registral", "Investigación realizada")  # omitted when empty
+    expected = [t for t in SECTION_TITLES if t not in omitted]
     assert [s.title for s in narrative.sections] == expected
 
 

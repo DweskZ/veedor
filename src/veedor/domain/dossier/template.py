@@ -25,6 +25,7 @@ from veedor.domain.dossier.formatting import (
     fmt_year,
 )
 from veedor.domain.dossier.formatting import quote as _quote
+from veedor.domain.dossier.investigation_facts import investigation_facts
 from veedor.domain.dossier.models import EvidencePack, HistoryFacts, Section, SignalFact
 from veedor.domain.dossier.plan import CONNECTIVES, REVIEWER_NOTES, PlanError, RenderPlan
 from veedor.domain.dossier.safety import is_unsafe_text
@@ -32,6 +33,7 @@ from veedor.domain.dossier.signal_text import is_informational
 from veedor.domain.dossier.vocabulary import (
     NOT_AVAILABLE,
     SECTION_CONTEXT,
+    SECTION_INVESTIGATION,
     SECTION_LIMITS,
     SECTION_REGISTRAL,
     SECTION_RELATION,
@@ -160,14 +162,16 @@ def _registral_facts(pack: EvidencePack) -> list[Fact]:
 
 
 def _revenue_text(pack: EvidencePack) -> str:
+    """Revenue lines. A reported zero is missing data, like everywhere else in the project."""
     r = pack.winner.registry if pack.winner else None
     if r is None:
         return ""
-    lines = [f"Ingresos del año del proceso: {fmt_usd(r.revenue_award_year)} (año {fmt_year(r.award_year)})."]
-    if r.latest_revenue is not None and r.latest_revenue_year != r.award_year:
+    in_year = r.revenue_award_year or None
+    latest = r.latest_revenue or None
+    lines = [f"Ingresos del año del proceso: {fmt_usd(in_year)} (año {fmt_year(r.award_year)})."]
+    if latest is not None and r.latest_revenue_year != r.award_year:
         lines.append(
-            f"Ingresos más recientes reportados: {fmt_usd(r.latest_revenue)} "
-            f"(año {fmt_year(r.latest_revenue_year)})."
+            f"Ingresos más recientes reportados: {fmt_usd(latest)} (año {fmt_year(r.latest_revenue_year)})."
         )
     return "\n".join(lines)
 
@@ -284,6 +288,7 @@ def catalogue(pack: EvidencePack) -> list[Fact]:
         *_winner_facts(pack),
         *_relation_facts(pack),
         *_context_facts(pack),
+        *[Fact(i, section, text) for i, section, text in investigation_facts(pack)],
     ]
 
 
@@ -364,8 +369,8 @@ def validate_plan(plan: RenderPlan, pack: EvidencePack) -> None:
             continue
         if title not in by_section and title != SECTION_LIMITS:
             raise PlanError(f"unknown or empty section: {title!r}")
-        if title == SECTION_LIMITS:
-            raise PlanError("the limitations section is fixed")
+        if title in (SECTION_LIMITS, SECTION_INVESTIGATION):
+            raise PlanError(f"the section {title!r} is fixed")
         connectives = [i for i in ids if i in CONNECTIVES]
         if len(connectives) > 1:
             raise PlanError(f"more than one connective in {title!r}")
@@ -394,6 +399,8 @@ def render_plan(pack: EvidencePack, plan: RenderPlan) -> Narrative:
             selected += [f for f in default if f not in selected]
         elif not selected:
             selected = default
+        else:  # investigation facts (including "no disponible" ones) are never hidden, only ordered
+            selected += [f for f in default if f.id.startswith("investigation.") and f not in selected]
         connective = next((CONNECTIVES[i].text for i in chosen if i in CONNECTIVES), None)
         if connective:
             lines.append(connective)

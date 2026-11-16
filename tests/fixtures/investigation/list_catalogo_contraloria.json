@@ -1,0 +1,64 @@
+{
+ "fuente": "contraloria",
+ "total": 9,
+ "informes": [
+  {
+   "id": "67",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados enero - marzo 2023",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=67&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "68",
+   "tipo": "pesdoc",
+   "label": "Glosario",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=68&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "78",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados 2022",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=78&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "81",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados abril - junio 2023",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=81&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "82",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados julio- septiembre 2023",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=82&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "84",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados octubre - diciembre 2023",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=84&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "87",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados enero - marzo 2024",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=87&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "88",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados julio- septiembre 2024",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=88&tipo=pesdoc&op=d"
+  },
+  {
+   "id": "89",
+   "tipo": "pesdoc",
+   "label": "Informes aprobados abril - junio 2024",
+   "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=89&tipo=pesdoc&op=d"
+  }
+ ],
+ "metadatos": {
+  "contrato": "ecudatamcp.response.v1",
+  "consultado_en": "2026-11-16T00:00:00+00:00"
+ }
+}

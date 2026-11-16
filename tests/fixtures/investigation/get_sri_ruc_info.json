@@ -1,0 +1,22 @@
+{
+ "ruc": "0992764473001",
+ "razon_social": "EMPRESA EJEMPLO S.A.",
+ "nombre_comercial": null,
+ "estado": "Activo",
+ "clase_contribuyente": "Especial",
+ "tipo_contribuyente": "Sociedad",
+ "obligado_contabilidad": "SI",
+ "actividad_economica_principal": "CONSTRUCCIÓN DE CARRETERAS, CALLES, AUTOPISTAS Y OTRAS VÍAS PARA VEHÍCULOS O PEATONES.",
+ "fecha_inicio_actividades": "30-09-2010",
+ "fecha_cese_actividades": null,
+ "fecha_reinicio_actividades": null,
+ "fecha_actualizacion": "11-06-2026",
+ "categoria_mipymes": "Mediana",
+ "url_fuente": "https://srienlinea.sri.gob.ec/facturacion-internet/consultas/publico/ruc-datos2.jspa",
+ "incluye_declaraciones_individuales": false,
+ "nota_alcance": "La consulta pública muestra información registral del RUC; no expone declaraciones, ventas, retenciones ni pagos tributarios individuales.",
+ "metadatos": {
+  "contrato": "ecudatamcp.response.v1",
+  "consultado_en": "2026-11-16T00:00:00+00:00"
+ }
+}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from veedor.infrastructure.llm.factory import build_chat_model
 from veedor.infrastructure.llm.port import ChatModelPort
 
 _SAFE_OCID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$")
+_MAX_OCID_CHARS = 250
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 
 class DossierService:
@@ -35,9 +38,12 @@ class DossierService:
         )
 
     def _path(self, ocid: str) -> Path:
-        if not _SAFE_OCID.match(ocid):
-            raise ValueError(f"Invalid ocid: {ocid!r}")
-        return self._dossiers_dir / f"{ocid}.json"
+        if _SAFE_OCID.match(ocid):
+            return self._dossiers_dir / f"{ocid}.json"  # the common case keeps its readable name
+        if not ocid or len(ocid) > _MAX_OCID_CHARS or _CONTROL.search(ocid) or ocid != ocid.strip():
+            raise ValueError("Invalid ocid")
+        # Real identifiers with spaces, dashes of another kind, commas or non-ASCII letters: hashed name.
+        return self._dossiers_dir / f"{hashlib.sha256(ocid.encode('utf-8')).hexdigest()}.json"
 
     @staticmethod
     def _read_cache(path: Path) -> Dossier | None:

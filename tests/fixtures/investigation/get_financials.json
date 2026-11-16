@@ -1,0 +1,131 @@
+{
+ "expediente": 183295,
+ "nombre": "EMPRESA EJEMPLO",
+ "ruc": "0992764473001",
+ "years": [
+  {
+   "anio": 2025,
+   "expediente": 183295,
+   "ingresos_ventas": 0.0,
+   "activos": 400.0,
+   "patrimonio": 400.0,
+   "n_empleados": 2,
+   "ingresos_totales": 0.0,
+   "utilidad_neta": 0.0
+  },
+  {
+   "anio": 2024,
+   "expediente": 183295,
+   "ingresos_ventas": 0.0,
+   "activos": 75633.74,
+   "patrimonio": 75633.74,
+   "n_empleados": 2,
+   "ingresos_totales": 0.0,
+   "utilidad_neta": 0.0
+  },
+  {
+   "anio": 2023,
+   "expediente": 183295,
+   "ingresos_ventas": 31973.09,
+   "activos": 76521.31,
+   "patrimonio": 75633.74,
+   "n_empleados": 6,
+   "ingresos_totales": 31973.09,
+   "utilidad_neta": 2831.7
+  },
+  {
+   "anio": 2022,
+   "expediente": 183295,
+   "ingresos_ventas": 109756.04,
+   "activos": 74496.79,
+   "patrimonio": 72802.04,
+   "n_empleados": 6,
+   "ingresos_totales": 109756.04,
+   "utilidad_neta": 6646.64
+  },
+  {
+   "anio": 2021,
+   "expediente": 183295,
+   "ingresos_ventas": 11908.95,
+   "activos": 95719.45,
+   "patrimonio": 66155.4,
+   "n_empleados": 10,
+   "ingresos_totales": 11913.06,
+   "utilidad_neta": 0.0
+  },
+  {
+   "anio": 2020,
+   "expediente": 183295,
+   "ingresos_ventas": 145857.38,
+   "activos": 72793.14,
+   "patrimonio": 69839.08,
+   "n_empleados": 10,
+   "ingresos_totales": 145857.38,
+   "utilidad_neta": 4824.02
+  },
+  {
+   "anio": 2019,
+   "expediente": 183295,
+   "ingresos_ventas": 365334.98,
+   "activos": 96545.6,
+   "patrimonio": 41139.49,
+   "n_empleados": 5,
+   "ingresos_totales": 365334.98,
+   "utilidad_neta": 0.0
+  },
+  {
+   "anio": 2018,
+   "expediente": 183295,
+   "ingresos_ventas": 268786.76,
+   "activos": 27388.89,
+   "patrimonio": 21037.46,
+   "n_empleados": 5,
+   "ingresos_totales": 268786.76,
+   "utilidad_neta": 16200.83
+  },
+  {
+   "anio": 2017,
+   "expediente": 183295,
+   "ingresos_ventas": 15420.22,
+   "activos": 5074.84,
+   "patrimonio": 4836.63,
+   "n_empleados": 10,
+   "ingresos_totales": 15420.22,
+   "utilidad_neta": -32.66
+  },
+  {
+   "anio": 2016,
+   "expediente": 183295,
+   "ingresos_ventas": 11833.4,
+   "activos": 5023.07,
+   "patrimonio": 4553.02,
+   "n_empleados": 3,
+   "ingresos_totales": 11833.4,
+   "utilidad_neta": 873.01
+  },
+  {
+   "anio": 2015,
+   "expediente": 183295,
+   "ingresos_ventas": 0.0,
+   "activos": 3436.25,
+   "patrimonio": 3236.25,
+   "n_empleados": 2,
+   "ingresos_totales": 0.0,
+   "utilidad_neta": 0.0
+  },
+  {
+   "anio": 2014,
+   "expediente": 183295,
+   "ingresos_ventas": 0.0,
+   "activos": 400.0,
+   "patrimonio": 400.0,
+   "n_empleados": 2,
+   "ingresos_totales": 0.0,
+   "utilidad_neta": 0.0
+  }
+ ],
+ "metadatos": {
+  "contrato": "ecudatamcp.response.v1",
+  "consultado_en": "2026-11-16T00:00:00+00:00"
+ }
+}

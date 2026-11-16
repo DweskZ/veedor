@@ -1,0 +1,299 @@
+{
+ "headers": [
+  "No",
+  "Unidad de Control",
+  "Entidad",
+  "Diligencia",
+  "Periodo\nDesde",
+  "Periodo\nHasta",
+  "Tipo de informe",
+  "Nº Informe",
+  "Fecha Aprobación"
+ ],
+ "rows": [
+  [
+   "1",
+   "AUDITORÍA EXTERNA DP BOLÍVAR",
+   "GOBIERNO AUTÓNOMO DESCENTRALIZADO MUNICIPAL DEL CANTÓN CHILLANES",
+   "Examen Especial a los procesos de planificación, clasificación, reclutamiento y selección de personal, bajo las modalidades de contratación y nombramiento; y, a los contratos de prestación de servicios profesionales, por el período comprendido entre el 1 de abril de 2017 y el 30 de abril de 2021",
+   "2017-04-01",
+   "2021-04-30",
+   "General",
+   "DPB-0001-2022",
+   "2022-01-06"
+  ],
+  [
+   "2",
+   "UAI",
+   "BANCO CENTRAL DEL ECUADOR (QUITO)",
+   "Examen Especial al cumplimiento de las recomendaciones formuladas en los Informes de auditoría interna y externa aprobados por la Contraloría General del Estado, por el período comprendido entre el 1 de agosto de 2020 y el 30 de junio de 2021; e informes DNA3-0012-2020, DNAI-AI-0236-2020 y DNAI-AI-0255-2020., por el período comprendido entre el 1 de agosto de 2020 y el 30 de junio de 2021",
+   "2020-08-01",
+   "2021-06-30",
+   "General",
+   "DNA3-0001-2022",
+   "2022-01-06"
+  ],
+  [
+   "3",
+   "UAI",
+   "GOBIERNO AUTÓNOMO DESCENTRALIZADO MUNICIPAL DEL CANTÓN CUENCA",
+   "Examen Especial A los procesos administrativos y de control, para el otorgamiento de líneas de fábrica, certificados de afectación y licencia urbanística y de permisos de construcción; así como, a la administración y uso del Centro de Integración Comunitaria de la ciudadela Tomebamba, por el período comprendido entre el 1 de enero de 2016 y el 31 de diciembre de 2020",
+   "2016-01-01",
+   "2020-12-31",
+   "General",
+   "DPA-0001-2022",
+   "2022-01-06"
+  ],
+  [
+   "4",
+   "UAI",
+   "EMPRESA PÚBLICA- EMPRESA MUNICIPAL DE AGUA POTABLE Y ALCANTARILLADO DE AMBATO EP-EMAPA-A",
+   "Examen Especial a la Administración, uso; y, control del parque automotor, por el período comprendido entre el 1 de enero de 2017 y el 30 de septiembre de 2021",
+   "2017-01-01",
+   "2021-09-30",
+   "General",
+   "DPT-0001-2022",
+   "2022-01-06"
+  ],
+  [
+   "5",
+   "UAI",
+   "EMPRESA PÚBLICA METROPOLITANA DE AGUA POTABLE Y SANEAMIENTO",
+   "Examen Especial a las fases preparatoria, precontractual, contractual y de ejecución; su liquidación y pagos; así como al registro de los procesos del proyecto LICO-EPMAPS-06-2016 de los interceptores oriental y occidental de la quebrada Caupicho, zona Quitumbe, por el período comprendido entre el 1 de enero de 2016 y el 31 de diciembre de 2020",
+   "2016-01-01",
+   "2020-12-31",
+   "General",
+   "DNA5-GAD-0001-2022",
+   "2022-01-07"
+  ],
+  [
+   "6",
+   "UAI",
+   "EMPRESA PÚBLICA METROPOLITANA DE AGUA POTABLE Y SANEAMIENTO",
+   "Examen Especial a las fases preparatoria, precontractual, contractual, de ejecución, recepción, liquidación y pagos por los procesos de contratación; así como, a la generación y registro de convenios de pago celebrados para el servicio de vigilancia y seguridad privada en las instalaciones de la EPMAPS, por el período comprendido entre el 1 de abril de 2018 y el 31 de diciembre de 2020",
+   "2018-04-01",
+   "2020-12-31",
+   "General",
+   "DNA5-GAD-0002-2022",
+   "2022-01-07"
+  ],
+  [
+   "7",
+   "UAI",
+   "EMPRESA PÚBLICA DE HIDROCARBUROS DEL ECUADOR EP PETROECUADOR",
+   "Examen Especial a los procesos de adquisición, movimiento, almacenamiento, administración y acciones realizadas en base a los resultados de las tomas de inventarios en la bodega de la Refinería de Shushufindi, por el período comprendido entre el 1 de enero de 2016 y el 31 de diciembre de 2020",
+   "2016-01-01",
+   "2020-12-31",
+   "General",
+   "DNA6-RN-0002-2022",
+   "2022-01-07"
+  ],
+  [
+   "8",
+   "UAI",
+   "INSTITUTO NACIONAL DE INVESTIGACIONES AGROPECUARIAS (INIAP)",
+   "Examen Especial A los procesos de registro, control, custodia, ingresos y egresos de bienes de larga duración, inventario de materiales y existencias en la Estación Experimental Santa Catalina, por el período comprendido entre el 1 de enero de 2016 y el 31 de diciembre de 2020",
+   "2016-01-01",
+   "2020-12-31",
+   "General",
+   "DNA6-RN-0001-2022",
+   "2022-01-07"
+  ],
+  [
+   "9",
+   "UAI",
+   "CONSEJO DE LA JUDICATURA",
+   "Examen Especial a las fases preparatoria, precontractual, contractual, ejecución, liquidación y pago, su registro, control, uso y destino de las adquisiciones de suministros y materiales, mediante subasta inversa electrónica, del Consejo de la Judicatura - Matriz, por el período comprendido entre el 1 de enero de 2016 y el 31 de diciembre de 2020",
+   "2016-01-01",
+   "2020-12-31",
+   "General",
+   "DNA1-0002-2022",
+   "2022-01-10"
+  ],
+  [
+   "10",
+   "UAI",
+   "MINISTERIO DE GOBIERNO",
+   "Examen Especial a los gastos efectuados por la Escuela de Estado Mayor de la Policía Nacional actual Academia de Estudios Estratégicos de la Policía Nacional, por el período comprendido entre el 1 de enero de 2015 y el 31 de diciembre de 2020",
+   "2015-01-01",
+   "2020-12-31",
+   "General",
+   "DNA1-0004-2022",
+   "2022-01-10"
+  ],
+  [
+   "11",
+   "UAI",
+   "BANECUADOR B.P.",
+   "Examen Especial a los procesos precontractual, contractual, ejecución, liquidación y  pago para la contratación de bienes y servicios, incluidos consultoría e ínfimas cuantías en la Zonal 5 Guayaquil de BANECUADOR B.P., por el período comprendido entre el 9 de mayo de 2016 y el 31 de diciembre de 2019",
+   "2016-05-09",
+   "2019-12-31",
+   "General",
+   "DNA3-0002-2022",
+   "2022-01-10"
+  ],
+  [
+   "12",
+   "UAI",
+   "MINISTERIO DE RELACIONES EXTERIORES Y MOVILIDAD HUMANA",
+   "Examen Especial a la gestión administrativa y financiera, y a la concesión, registro y control de los gastos por educación en el exterior pagados a los servidores de servicio en el exterior del consulado del Ecuador en Toronto, Canadá, por el período comprendido entre el 1 de enero de 2015 y el 31 de diciembre de 2020",
+   "2015-01-01",
+   "2020-12-31",
+   "General",
+   "DNA1-0003-2022",
+   "2022-01-10"
+  ],
+  [
+   "13",
+   "DNA 1 - DIRECCIÓN NACIONAL DE AUDITORÍA DE ADMINISTRACIÓN CENTRAL",
+   "INSTITUTO GEOGRÁFICO MILITAR IGM",
+   "Examen Especial a los ingresos, gastos y contratos en el que se incluirá la administración de talento humano, por el período comprendido entre el 1 de mayo de 2017 y el 31 de mayo de 2021",
+   "2017-05-01",
+   "2021-05-31",
+   "General",
+   "DNA1-0001-2022",
+   "2022-01-10"
+  ],
+  [
+   "14",
+   "AUDITORÍA EXTERNA DP CHIMBORAZO",
+   "GOBIERNO AUTÓNOMO DESCENTRALIZADO PARROQUIAL RURAL LA PROVIDENCIA",
+   "Examen Especial a las fases preparatoria, precontractual, contractual y de ejecución, uso y distribución de adquisiciones de bienes y servicios; Inversiones en Bienes de Larga Duración; Ingresos y Gastos de Gestión, del Gobierno Autónomo Descentralizado Parroquial Rural La Providencia, por el período comprendido entre el 2 de enero de 2016 y el 31 de julio de 2021",
+   "2016-01-02",
+   "2021-07-31",
+   "General",
+   "DPCH-0001-2022",
+   "2022-01-10"
+  ],
+  [
+   "15",
+   "UAI",
+   "MINISTERIO DEL TRABAJO",
+   "Examen Especial al proceso de ingreso al servicio público, asistencia y permanencia, pago de remuneraciones y beneficios de ley de los servidores de la Dirección de Control del Servicio Público; y, Dirección Regional del Trabajo y Servicio Público de Guayaquil del Ministerio del Trabajo, por el período comprendido entre el 1 de enero de 2017 y el 30 de junio de 2021",
+   "2017-01-01",
+   "2021-06-30",
+   "General",
+   "DNA2-0001-2022",
+   "2022-01-10"
+  ],
+  [
+   "16",
+   "AUDITORÍA EXTERNA DP ZAMORA CHINCHIPE",
+   "EMPRESA MUNICIPAL DE VIVIENDA-EL PANGUI-EMUVIP-EP",
+   "Examen Especial a la presentación del informe de rendición de cuentas correspondiente al periodo 2018, conforme lo establecen los artículos 11 y 12 de la Ley Orgánica del Consejo de Participación Ciudadana y Control Social , por el período comprendido entre el 1 de enero de 2019 y el 31 de julio de 2019",
+   "2019-01-01",
+   "2019-07-31",
+   "General",
+   "DPZCH-0001-2022",
+   "2022-01-10"
+  ],
+  [
+   "17",
+   "AUDITORÍA EXTERNA DP MORONA SANTIAGO",
+   "GOBIERNO AUTÓNOMO DESCENTRALIZADO MUNICIPAL DE GUALAQUIZA",
+   "Examen Especial a los procesos de contratación de bienes y servicios, incluido consultoría; al cumplimiento de recomendaciones de informes de auditoría; y, al uso de los recursos públicos provenientes de la Ley Orgánica para la Planificación Integral de la Circunscripción Territorial Especial Amazónica, por el período comprendido entre el 2 de enero de 2016 y el 31 de marzo de 2021",
+   "2016-01-02",
+   "2021-03-31",
+   "General",
+   "DPMS-0002-2022",
+   "2022-01-11"
+  ],
+  [
+   "18",
+   "AUDITORÍA EXTERNA DP SUCUMBÍOS",
+   "DIRECCIÓN DISTRITAL 21D02 - LAGO AGRIO - EDUCACIÓN",
+   "Examen Especial a las operaciones administrativas y financieras; fases preparatoria, precontractual, contractual y de ejecución de la contratación de bienes y servicios; al registro control, utilización y disposición final de bienes en la DIRECCIÓN DISTRITAL 21D02 - LAGO AGRIO - EDUCACIÓN, y entidades relacionadas, por el período comprendido entre el 2 de enero de 2016 y el 31 de marzo de 2021",
+   "2016-01-02",
+   "2021-03-31",
+   "General",
+   "DPS-0001-2022",
+   "2022-01-11"
+  ],
+  [
+   "19",
+   "UAI",
+   "GOBIERNO AUTÓNOMO DESCENTRALIZADO PROVINCIAL DEL GUAYAS",
+   "Examen Especial a la administración, uso, custodia y registro de los bienes inmuebles de administración, ubicados en los cantones de Guayaquil, Daule, El Triunfo, Milagro, Samborondón y Santa Lucía, por el período comprendido entre el 1 de abril de 2016 y el 31 de julio de 2021",
+   "2016-04-01",
+   "2021-07-31",
+   "General",
+   "DPGY-0001-2022",
+   "2022-01-11"
+  ],
+  [
+   "20",
+   "UAI",
+   "EMPRESA PÚBLICA METROPOLITANA DE ASEO",
+   "Examen Especial a la administración, control y mantenimiento de la flota vehicular y maquinaria pesada de EMASEO EP, por el período comprendido entre el 1 de enero de 2018 y el 30 de abril de 2021",
+   "2018-01-01",
+   "2021-04-30",
+   "General",
+   "DNA5-GAD-0004-2022",
+   "2022-01-12"
+  ],
+  [
+   "21",
+   "UAI",
+   "GOBIERNO AUTÓNOMO DESCENTRALIZADO MUNICIPAL DE RUMIÑAHUI",
+   "Examen Especial al control, administración, uso, custodia, mantenimiento y pagos de los vehículos del GADMUR, por el período comprendido entre el 1 de enero de 2017 y el 31 de diciembre de 2020",
+   "2017-01-01",
+   "2020-12-31",
+   "General",
+   "DNA5-GAD-0003-2022",
+   "2022-01-12"
+  ],
+  [
+   "22",
+   "AUDITORÍA EXTERNA DP ORELLANA",
+   "GOBIERNO AUTÓNOMO DESCENTRALIZADO PARROQUIAL RURAL EL DORADO",
+   "Examen Especial a las operaciones administrativas y financieras; y, al uso de los recursos públicos provenientes de la ley orgánica para la planificación integral de la circunscripción territorial especial amazónica, en el Gobierno Autónomo Descentralizado Parroquial Rural El Dorado, por el período comprendido entre el 2 de enero de 2016 y el 30 de abril de 2021",
+   "2016-01-02",
+   "2021-04-30",
+   "General",
+   "DPO-0001-2022",
+   "2022-01-12"
+  ],
+  [
+   "23",
+   "UAI",
+   "UNIVERSIDAD DE LAS FUERZAS ARMADAS ESPE",
+   "Examen Especial a las fases preparatoria, precontractual, contractual, ejecución y liquidación de los procesos de contratación para la adquisición de bienes y servicios, su uso y destino; efectuados en la Matriz, por el período comprendido entre el 1 de enero de 2016 y el 31 de diciembre de 2020",
+   "2016-01-01",
+   "2020-12-31",
+   "General",
+   "DNA2-0003-2022",
+   "2022-01-12"
+  ],
+  [
+   "24",
+   "UAI",
+   "EMPRESA PÚBLICA MUNICIPAL DE TELECOMUNICACIONES, AGUA POTABLE, ALCANTARILLADO Y SANEAMIENTO DE CUENCA - \"ETAPA EP\"",
+   "Examen Especial a las fases preparatoria, precontractual, contractual, ejecución; su liquidación y pagos; así como, el registro, uso y destino de las adquisiciones efectuadas mediante Subasta Inversa Electrónica, por la Gerencia de Telecomunicaciones; y, al proceso de contratación LICS-ETAPA-02-2020, por el período comprendido entre el 1 de enero de 2017 y el 30 de junio de 2021",
+   "2017-01-01",
+   "2021-06-30",
+   "General",
+   "DPA-0002-2022",
+   "2022-01-12"
+  ],
+  [
+   "25",
+   "UAI",
+   "COMISIÓN DE TRÁNSITO DEL ECUADOR (CTE)",
+   "Examen Especial Al cumplimiento de recomendaciones constantes en los informes DR1-DPGY-AE-0156-2015, DR1-DPGY-AI-0075-2015, DR1-DPGY-AI-0088-2015, DR1-DPGY-AI-0113-2015, DR1-DPGY-AI-0158-2015, DR1-DPGY-CTE-AI-0042-2018, DR1-DPGY-CTE-AI-0048-2016, DR1-DPGY-CTE-AI-0089-2016, DR1-DPGY-CTE-AI-0176-2018, DR1-DPGY-CTE-AI-0191-2018, DNAI-AI-0453-2019, DNAI-AI-0024-2020, DNAI-AI-0193-2020, DPGY-0092-2020 y DPGY-CTE-AI-0004-2021., por el período comprendido entre el 1 de enero de 2020 y el 31 de agosto de 2021",
+   "2020-01-01",
+   "2021-08-31",
+   "General",
+   "DPGY-0002-2022",
+   "2022-01-12"
+  ]
+ ],
+ "total_rows_in_preview": 25,
+ "truncated": true,
+ "format": "csv",
+ "label": "Informes aprobados 2022",
+ "url": "https://www.contraloria.gob.ec/WFDescarga.aspx?id=78&tipo=pesdoc&op=d",
+ "metadatos": {
+  "contrato": "ecudatamcp.response.v1",
+  "consultado_en": "2026-11-16T00:00:00+00:00"
+ }
+}
