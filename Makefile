@@ -1,4 +1,4 @@
-.PHONY: setup lint test lake signals serve db-up db-migrate up down logs smoke bundle
+.PHONY: setup lint test lake signals serve db-up db-migrate up down logs smoke bundle obs-up obs-verify
 
 setup:
 	uv sync
@@ -42,3 +42,12 @@ smoke:
 # Deployment data bundle (dist/veedor-data-<date>.tar.gz + manifest).
 bundle:
 	scripts/build_data_bundle.sh
+
+# Observability stack (Grafana http://localhost:3001, OTLP :4318); see docs/OBSERVABILITY.md.
+obs-up:
+	docker compose up -d --build --wait observability api
+
+# Generates traffic, then asserts the spans and metric series exist in Tempo and Prometheus.
+obs-verify:
+	uv run python scripts/generate_traffic.py
+	uv run python scripts/verify_telemetry.py

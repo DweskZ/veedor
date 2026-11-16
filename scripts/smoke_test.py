@@ -11,13 +11,19 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
+from pathlib import Path
 
 API = os.environ.get("API_URL", "http://localhost:8000/api/v1").rstrip("/")
 WEB = os.environ.get("WEB_URL", "http://localhost:3000").rstrip("/")
 EXPECTED = int(os.environ.get("EXPECTED_PROCESSES", "2251027"))
+
+# The API accepts only identifiers with this shape (see src/veedor/api/params.py).
+API_OCID = re.compile(r"ocds-5wno2w-[A-Za-z0-9._\-]{1,120}")
 
 results: list[tuple[bool, str]] = []
 
@@ -72,6 +78,29 @@ def main() -> int:
     status, dossier = get_json(f"/processes/{ocid}/dossier")
     check("api dossier", status == 200 and bool(dossier.get("summary_es")), f"mode={dossier.get('mode')}")
 
+    status, similar = get_json(f"/processes/{ocid}/similar?k=3")
+    neighbours = similar.get("items", []) if isinstance(similar, dict) else similar
+    check(
+        "api similar processes",
+        status == 200 and 1 <= len(neighbours) <= 3 and all(n.get("ocid") != ocid for n in neighbours),
+        f"http {status}, {len(neighbours)} neighbours",
+    )
+
+    stored_ocid = first_stored_investigation()
+    if stored_ocid is None:
+        check("api stored investigation", False, "no stored investigation found under data/investigations")
+    else:
+        encoded = urllib.parse.quote(stored_ocid, safe="")
+        status, investigation = get_json(f"/processes/{encoded}/investigation")
+        specialists = investigation.get("specialists") or []
+        check(
+            "api stored investigation",
+            status == 200 and investigation.get("ocid") == stored_ocid and bool(specialists),
+            f"http {status}, specialists={len(specialists)}",
+        )
+    status, _ = get_json("/processes/ocds-5wno2w-NO-EXISTE-0001/investigation")
+    check("api investigation is never started on demand", status == 404, f"http {status}")
+
     if supplier:
         status, profile = get_json(f"/suppliers/{supplier}")
         check(
@@ -104,6 +133,19 @@ def main() -> int:
         code, body = request(f"{WEB}{path}")
         check(f"web {path[:48]}", code == 200 and b"Veedor" in body, f"http {code}, {len(body)} bytes")
     return finish()
+
+
+def first_stored_investigation() -> str | None:
+    """Return the ocid of one investigation stored on the host, if any."""
+    folder = Path(os.environ.get("INVESTIGATIONS_DIR", "data/investigations"))
+    for path in sorted(folder.glob("*.json")):
+        try:
+            ocid = json.loads(path.read_text(encoding="utf-8")).get("ocid")
+        except (OSError, ValueError):
+            continue
+        if isinstance(ocid, str) and API_OCID.fullmatch(ocid):
+            return ocid
+    return None
 
 
 def finish() -> int:

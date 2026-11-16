@@ -5,6 +5,9 @@
 # The API never calls an LLM (dossiers served over HTTP are always template mode), so no LLM
 # variable is passed to any container. LLM-written dossiers are produced only with the CLI.
 # Nothing secret is stored in this file or in the images.
+# Observability (docs/OBSERVABILITY.md): Grafana http://localhost:3001 (user admin, password
+# ${GRAFANA_ADMIN_PASSWORD:-veedor_dev}; loopback only), OTLP/HTTP 127.0.0.1:4318, Prometheus
+# 127.0.0.1:9090, Tempo 127.0.0.1:3200.
 
 x-api-env: &api-env
   VEEDOR_DATA_DIR: /app/data
@@ -54,12 +57,19 @@ services:
       VEEDOR_REVIEWS_ENABLED: ${VEEDOR_REVIEWS_ENABLED:-false}
       VEEDOR_REVIEWS_TOKEN: ${VEEDOR_REVIEWS_TOKEN:-}
       VEEDOR_DOCS_ENABLED: ${VEEDOR_DOCS_ENABLED:-true}
+      # Performance: uvicorn processes and DuckDB threads per process (docs/DEPLOYMENT.md).
+      VEEDOR_API_WORKERS: ${VEEDOR_API_WORKERS:-2}
+      VEEDOR_LAKE_THREADS: ${VEEDOR_LAKE_THREADS:-2}
+      VEEDOR_OTEL_ENDPOINT: http://observability:4318
+      VEEDOR_OTEL_SERVICE_NAME: veedor-api
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       # The lake and marts are read-only; only generated dossiers and traces are writable.
       - ./data/lake:/app/data/lake:ro
       - ./data/marts:/app/data/marts:ro
+      # Stored investigations are produced by the CLI on the host and only read by the API.
+      - ./data/investigations:/app/data/investigations:ro
       - veedor_dossiers:/app/data/dossiers
       - veedor_traces:/app/data/traces
     healthcheck:
@@ -68,6 +78,37 @@ services:
       timeout: 5s
       retries: 6
       start_period: 15s
+
+  # One all-in-one image: OpenTelemetry Collector + Tempo (traces) + Prometheus (metrics) +
+  # Loki + Grafana. Development use only; every port is bound to loopback.
+  observability:
+    image: grafana/otel-lgtm:0.41.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-veedor_dev}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json
+      PROMETHEUS_EXTRA_ARGS: --storage.tsdb.retention.time=7d
+      ENABLE_LOGS_TEMPO: "true"
+    ports:
+      - "127.0.0.1:3001:3000"   # Grafana (3000 is the web app)
+      - "127.0.0.1:4318:4318"   # OTLP/HTTP receiver
+      - "127.0.0.1:9090:9090"   # Prometheus HTTP API
+      - "127.0.0.1:3200:3200"   # Tempo HTTP API
+    volumes:
+      - veedor_obsdata:/data
+      - ./ops/observability/grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor.yaml:ro
+      - ./ops/observability/grafana/dashboards/veedor.json:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json:ro
+    mem_limit: 1536m
+    cpus: 1.5
+    healthcheck:
+      test: ["CMD", "/otel-lgtm/docker/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
 
   web:
     build:
@@ -95,3 +136,4 @@ volumes:
   veedor_pgdata:
   veedor_dossiers:
   veedor_traces:
+  veedor_obsdata:
