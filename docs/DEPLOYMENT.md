@@ -165,3 +165,53 @@ one API replica makes the review rate limiter per replica, so put a shared limit
 5. Ship the bundle to the host, extract it, delete the `veedor_dossiers` volume (cached dossiers are
    per process and would be stale), restart `api`, run `scripts/smoke_test.py` (update `EXPECTED_PROCESSES`).
 6. Update the retrieval date in `docs/DATA_SOURCES.md`.
+
+## Performance
+
+What the API does per process (`src/veedor/infrastructure/lake/reader.py`):
+
+- **One DuckDB database per process**, locked down once (allowed directories = lake and marts,
+  external access off, configuration locked) with a view over each Parquet file. Each call takes
+  a `cursor()` from it (DuckDB's Python client is not safe for one connection shared by threads;
+  cursors are the documented per-thread pattern) and closes it. Only a single `SELECT`/`WITH`
+  statement is accepted, because the database now outlives a request and a stacked statement
+  would persist.
+- **Rebuilds are picked up without a restart.** The reader compares the modification time and
+  size of every table and of `data/marts/build_summary.json` (at most once per second) and builds
+  a fresh database when anything changed. `GET /health` returns `data_built_at`, the UTC time of
+  `build_summary.json`.
+- **`/stats` is cached in memory per process**, keyed by that file signature, so it is
+  recomputed once after each rebuild and never served stale.
+- **Threads and workers** are settings: `VEEDOR_LAKE_THREADS` (DuckDB threads per process,
+  default 2) and `VEEDOR_API_WORKERS` (uvicorn processes, default 2; the container reads it at
+  start). Plan for roughly workers x threads <= CPU count. Each worker has its own database,
+  cache and in-memory rate limiters, so the effective rate limit is multiplied by the worker
+  count (see `docs/SECURITY.md`). The transient `IOException` retry (one retry, then 503
+  `data_unavailable`) is unchanged and now also discards the shared database before retrying.
+
+Measure with `scripts/load_test.py` (standard library only):
+
+```
+uv run python scripts/load_test.py --requests 600 --concurrency 8
+```
+
+Measured on the local compose stack (Colima VM, 4 CPU, 6 GB, lake and marts bind-mounted from
+macOS), same mixed route set, one run each:
+
+| Load | Before (new connection per request, 1 worker) | After (reused database, 2 workers x 2 threads) |
+|---|---|---|
+| 200 req @ 8 | p50 1.00 s, p95 2.25 s, 7.7 req/s | p50 0.22 s, p95 0.87 s, 25.1 req/s |
+| 600 req @ 8 | p50 1.04 s, p95 2.26 s, 7.5 req/s | p50 0.24 s, p95 1.31 s, 22.5 req/s |
+| 300 req @ 32 | p50 3.83 s, p95 14.35 s, 6.2 req/s, 44 transport errors | p50 0.86 s, p95 7.40 s, 20.8 req/s, no errors |
+
+Still slow, and why:
+
+- `GET /processes?q=...` scans `process_code` and `main_cpc_description` of the 2.25 M-row `processes`
+  table on every call (about 0.2 s on the host, 1.4-8 s in the container under load). It needs
+  a precomputed search column or index in the marts to improve; it is not changed here.
+- Bind-mounted Parquet reads on macOS are slower than on the host: the same code run directly
+  on the host served the same 600-request mix at about 46 req/s against 22 req/s in the
+  container. That cost is in Docker's file sharing, not in the code; a Linux host with the data
+  on a local disk does not pay it.
+- At concurrency 32 on 4 CPUs the queue, not the query, dominates the tail.
+- The dossier route is rate limited (30 per minute per IP per process), so load runs see some 429.

@@ -13,6 +13,8 @@ Settings are read from environment variables prefixed `VEEDOR_` (and from a loca
 | `VEEDOR_LLM_API_KEY` | unset | API key for the provider. Never commit it. |
 | `VEEDOR_REVIEWS_ENABLED` | `false` | Master switch for human reviews. Off: `POST .../reviews` answers 403 `reviews_disabled` and `GET` returns an empty list. |
 | `VEEDOR_REVIEWS_TOKEN` | unset | Bearer token required by `POST .../reviews` (constant-time comparison). Unset means posting stays disabled even when the flag is on. Keep it secret; never commit it. |
+| `VEEDOR_LAKE_THREADS` | `2` | DuckDB threads per API process (1-64). Total CPU use is roughly `VEEDOR_API_WORKERS` x this value. |
+| `VEEDOR_API_WORKERS` | `2` | uvicorn worker processes started by `veedor serve` and by the container (1-16). Each worker has its own DuckDB database, `/stats` cache and rate-limit counters. |
 | `VEEDOR_DOCS_ENABLED` | `true` | Serves `/docs` (Swagger UI with pinned, integrity-checked assets) and `/openapi.json`. Set `false` in any shared deployment. |
 | `VEEDOR_CORS_ORIGINS` | `["http://localhost:3000"]` | Allowed browser origins, as a JSON list. No other origin receives CORS headers. |
 

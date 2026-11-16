@@ -37,6 +37,14 @@ class LakePort(Protocol):
 
     def availability(self) -> dict[str, bool]: ...
 
+    def data_version(self) -> str:
+        """Changes whenever the underlying tables are replaced (used to invalidate caches)."""
+        ...
+
+    def built_at(self) -> str | None:
+        """UTC ISO timestamp of the last marts build, when known."""
+        ...
+
 
 class DossierUnavailableError(Exception):
     """The dossier builder is not installed or could not run."""

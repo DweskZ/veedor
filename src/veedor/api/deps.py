@@ -30,7 +30,7 @@ DEFAULT_PAGE_SIZE = 25
 @lru_cache
 def get_reader() -> LakeReader:
     settings = get_settings()
-    return LakeReader(settings.lake_dir, settings.marts_dir)
+    return LakeReader(settings.lake_dir, settings.marts_dir, threads=settings.lake_threads)
 
 
 def get_lake(reader: Annotated[LakeReader, Depends(get_reader)]) -> LakePort:

@@ -13,9 +13,10 @@ class Health(BaseModel):
     status: str
     version: str
     tables: dict[str, bool]
+    data_built_at: str | None = None  # UTC time the marts were last built (build_summary.json)
 
 
 @router.get("/health", response_model=Health, summary="Estado del servicio")
 def health(lake: Lake) -> Health:
     """Liveness plus which Parquet tables are present on disk."""
-    return Health(status="ok", version=VERSION, tables=lake.availability())
+    return Health(status="ok", version=VERSION, tables=lake.availability(), data_built_at=lake.built_at())

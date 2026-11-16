@@ -13,6 +13,6 @@ router = APIRouter(tags=["resumen"])
 @router.get("/stats", response_model=Stats, responses=UNAVAILABLE, summary="Resumen general")
 def get_stats(lake: Lake) -> dict:
     """Totales, cobertura, distribución de puntajes y conteo de señales por código."""
-    stats = use_case.get_stats(lake)
+    stats = use_case.get_stats_cached(lake)
     stats["available_tables"] = lake.availability()
     return stats

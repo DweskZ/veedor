@@ -10,7 +10,10 @@ from veedor.api.errors import register_error_handlers
 from veedor.api.meta import VERSION
 from veedor.api.security import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from veedor.api.v1 import router as v1_router
+from veedor.api.v1.investigations import router as investigations_router
+from veedor.api.v1.similar import router as similar_router
 from veedor.core.settings import get_settings
+from veedor.infrastructure.telemetry import instrument_app, setup_telemetry
 
 DESCRIPTION = """
 Radar abierto de riesgo en la contratación pública del Ecuador.
@@ -73,8 +76,12 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
+    setup_telemetry(get_settings().otel_service_name)  # no-op without VEEDOR_OTEL_ENDPOINT
+    instrument_app(app)  # outermost: request span and RED metrics by route template
     register_error_handlers(app)
     app.include_router(v1_router, prefix="/api/v1")
+    app.include_router(investigations_router, prefix="/api/v1")
+    app.include_router(similar_router, prefix="/api/v1")
     return app
 
 

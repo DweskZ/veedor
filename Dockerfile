@@ -27,4 +27,5 @@ USER veedor
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
   CMD ["python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)"]
-CMD ["uvicorn", "veedor.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Worker count comes from VEEDOR_API_WORKERS (default 2); `exec` keeps uvicorn as PID 1 for signals.
+CMD ["sh", "-c", "exec uvicorn veedor.api.main:app --host 0.0.0.0 --port 8000 --workers ${VEEDOR_API_WORKERS:-2}"]

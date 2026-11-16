@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from veedor.use_cases.queries.catalogue import signal_kind, signal_label
 from veedor.use_cases.queries.ports import LakePort
 
 _TABLES = ("process_scores", "process_signals")
+_cache_lock = threading.Lock()
+_cached: tuple[str, dict[str, Any]] | None = None
+
+
+def get_stats_cached(lake: LakePort) -> dict[str, Any]:
+    """`get_stats` memoised per process; the entry is keyed by the lake's data version, so a
+    rebuilt table is never served stale. Concurrent callers wait for one computation."""
+    global _cached
+    version = lake.data_version()
+    with _cache_lock:
+        if _cached is None or _cached[0] != version:
+            _cached = (version, get_stats(lake))
+        return dict(_cached[1])  # shallow copy: callers may add top-level keys
 
 
 def get_stats(lake: LakePort) -> dict[str, Any]:

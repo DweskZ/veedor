@@ -62,7 +62,7 @@ The second review swept 1,640 processes and found 0 personal-data leaks, confirm
 - Free-text name masking is heuristic. A person who is not a party of the process and has no honorific can still appear in a description shown by the process detail endpoint.
 - The forbidden-wording list is a safety net, not a guarantee. New phrasings will pass until they are added to the vocabulary.
 - Reviews use one shared bearer token, not per-user identities. Failed token attempts are not rate limited separately.
-- All rate limits (reviews, dossier) are in memory and per process; a multi-instance deployment needs a shared limiter.
+- All rate limits (reviews, dossier) are in memory and per process; a multi-instance deployment needs a shared limiter. With `VEEDOR_API_WORKERS` > 1 each worker counts separately, so the effective limit is the configured limit multiplied by the number of workers.
 
 ## Not covered yet
 
