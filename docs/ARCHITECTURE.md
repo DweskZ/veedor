@@ -108,7 +108,7 @@ finished when this was written: treat the code as the reference ("see code").
 | Decision | Reason |
 |---|---|
 | Parquet + DuckDB for analytics, PostgreSQL only for mutable state | The 2.25 M-process dataset is read-only between monthly rebuilds and scanned column-wise; Parquet files ship as a ~190 MiB bundle and need no server. Reviews are small, concurrent writes that need transactions, so they live in PostgreSQL. |
-| Fresh in-memory DuckDB connection per query, locked down | `LakeReader` registers views over known files, restricts `allowed_directories`, disables external access and accepts only `SELECT`/`WITH` (`docs/SECURITY.md`); no shared mutable engine to corrupt. |
+| One locked-down in-memory DuckDB database per worker process, a cursor per request | `LakeReader` registers views over known files, restricts `allowed_directories`, disables external access and accepts only `SELECT`/`WITH` (`docs/SECURITY.md`); no shared mutable engine to corrupt. |
 | Signals as documented SQL, thresholds from the data | Every indicator has a code, fields, threshold rule and caveats (`docs/METHODOLOGY.md`), so a reader can audit why a process scores as it does. The anomaly score is reported separately and never changes the risk score. |
 | Deterministic facts first, LLM only for prose | Facts, signals and registry matches are computed by code into an `EvidencePack`; a model may only phrase them. With no provider the system is fully functional (template mode). |
 | Grounding verifier as the control | Prompt instructions cannot stop a model from inventing or being steered by text planted in tender descriptions; checking the output against the pack can. Failure falls back to the template; unverified text is never stored or shown. |

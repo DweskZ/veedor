@@ -35,7 +35,7 @@ down:
 logs:
 	docker compose logs -f --tail=100
 
-# Needs the stack from `make up`; creates and deletes one review row.
+# Needs the stack from `make up`. Writes nothing: it checks that an anonymous review write is refused.
 smoke:
 	python3 scripts/smoke_test.py
 

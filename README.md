@@ -1,6 +1,6 @@
 # Veedor
 
-An open risk radar for public procurement in Ecuador. It computes transparent risk indicators over SERCOP's open contracting data, cross-checks winners against public registries, and writes an evidence dossier for each alert.
+An open risk radar for public procurement in Ecuador. It computes transparent risk indicators over SERCOP's open contracting data, cross-checks winners against public registries, and writes an evidence dossier for each alert. A second stage adds an investigation step: a supervisor and four specialist agents gather extra evidence about a flagged process through read-only tools, including live lookups through EcuDataMCP (the author's own open-source MCP server), and the result goes through the same grounding checks as every other dossier.
 
 > *Indicadores de riesgo, con su evidencia.* (Risk indicators, with their evidence.)
 
@@ -8,11 +8,13 @@ An open risk radar for public procurement in Ecuador. It computes transparent ri
 
 In Ecuador a *veedor* is a citizen overseer: someone who watches a public process and reports what the records show. The tool is meant for that role.
 
+**Contents:** [What it is](#what-it-is-and-what-it-is-not) · [Example](#a-real-example) · [Key numbers](#key-numbers) · [Evaluation](#does-it-work-an-honest-evaluation) · [Multi-agent investigation](#multi-agent-investigation) · [Vector search](#vector-search) · [Observability](#observability) · [Performance](#performance) · [Grounding](#how-it-stays-grounded) · [Architecture](#architecture) · [Security](#security-summary) · [Reviews](#independent-reviews) · [Quickstart](#quickstart) · [Testing](#testing) · [Limits](#known-limitations) · [Roadmap](#roadmap) · [What it demonstrates](#what-this-project-demonstrates)
+
 ## What it is, and what it is not
 
-- **It is** a set of documented rules (10 risk indicators and 2 zero-weight context indicators) applied to every process, a score that adds the risk indicators up, and a dossier that shows, for each fired indicator, the value, the threshold and the source field.
+- **It is** a set of documented rules (10 risk indicators and 2 zero-weight context indicators) applied to every process, a score that adds the risk indicators up, and a dossier that shows, for each fired indicator, the value, the threshold and the source field. For the highest-risk processes, an investigation adds registry and history facts gathered by agents.
 - **It reports indicators, never accusations.** A fired indicator means a field is atypical under a stated rule. It does not mean anything improper happened. Single bidders, for example, are common in some procurement methods for ordinary reasons.
-- **It is not a detector.** The evaluation below finds no evidence that the score singles out the one external list available.
+- **It is not a detector.** The evaluation below finds no evidence that the score singles out the one external list available. The agents add context for a human reader; they do not change the score.
 - **Out of scope:** emergency procurement (absent from the open data) and catalogue purchases (no bidder data) are outside the competition analysis. Bidder and tender-window indicators never fire for them.
 - Natural persons are masked in the API and the UI. Every dossier is a draft for human review.
 
@@ -38,41 +40,28 @@ riesgo: Oferente único; Plazo de ofertas atípicamente corto; Concentración de
 en un proveedor; Contrato desproporcionado frente a los ingresos del año anterior de la
 empresa. Puntaje de riesgo: 60 sobre 100. Este documento es un borrador para revisión humana.
 
-## Qué se contrató
-Objeto según la clasificación CPC: «OTRAS OBRAS DE INGENIERIA CIVIL». La descripción
-publicada por la entidad puede consultarse en el registro de origen.
-
-## Señales detectadas
-- Oferente único: El proceso recibió un solo oferente. Un solo oferente puede deberse a
-  proveedores exclusivos; requiere verificación humana. Dato técnico: valor observado 1; umbral 1.
-- Contrato desproporcionado frente a los ingresos del año anterior de la empresa: El monto
-  adjudicado (USD 70.573,10) equivale a 4,58 veces los ingresos reportados por la empresa para
-  2017 (USD 15.420,22); el umbral de la señal es 3 veces. Depende de los ingresos reportados a
-  la Superintendencia de Compañías.
-
 ## Contexto comparativo
 Procesos del mismo procedimiento (Menor Cuantía) y año (2018): 8.415.
 Proporción de procesos con un solo oferente: 51,9 %.
 ```
 
-Note the last line: in this method and year, about half of the processes have a single bidder. The dossier shows that context next to the indicator so a reader can discount it.
+Note the last line: in this method and year, about half of the processes have a single bidder. The dossier shows that context next to the indicator so a reader can discount it. What an investigation adds to a dossier is shown [below](#what-an-investigation-adds).
 
 ## Key numbers
 
-All counts come from `data/marts/build_summary.json`, `eval/coverage.json` and `docs/DATA_SOURCES.md`, built on 2026-11-16.
+Counts come from `data/marts/build_summary.json`, `eval/coverage.json` and `docs/DATA_SOURCES.md`, built on 2026-11-16. The two generated files agree on every figure below.
 
-| Item | Value |
-|---|---|
-| Processes analysed | 2,251,027 |
-| Release dates | 2015-01-05 to 2026-11-09 (2026 is a partial year; a DuckDB query on the lake) |
-| Catalogue purchases | 1,865,093 |
-| Competitive | 267,037 |
-| Direct | 95,445 |
-| Without tender block | 19,862 |
-| Other | 3,590 |
-| Processes with at least one risk indicator | 87,217 (3.9 %) |
-| Competitive processes with at least one risk indicator | 81,936 (30.7 %) |
-| Processes with at least one context indicator | 658 |
+| Item | Value | Source |
+|---|---|---|
+| Processes analysed | 2,251,027 | `build_summary.json` `marts_rows.process_scores`; `coverage.json` `n_processes` |
+| Release dates | 2015-01-05 to 2026-11-09 (2026 is a partial year; a DuckDB query on the lake) | query on the lake |
+| Catalogue / competitive / direct / without tender block / other | 1,865,093 / 267,037 / 95,445 / 19,862 / 3,590 | `coverage.json` `by_method_group` |
+| Processes with at least one risk indicator | 87,217 (3.9 %) | `coverage.json` `n_with_any_signal` |
+| Competitive processes with at least one risk indicator | 81,936 (30.7 %) | `coverage.json` `by_method_group` |
+| Processes with at least one context indicator | 658 | `coverage.json` `context_signals` |
+| Indexed for vector search | 365,864 | `eval/vector_search.json` `index.rows` |
+| Stored investigations on the development machine | 26 | file count of `data/investigations/` |
+| Marts build time | 4.7 s | `build_summary.json` `duration_seconds` |
 
 Times each indicator fired:
 
@@ -102,11 +91,11 @@ Risk score distribution (weights are uncalibrated judgement calls; a score of 0 
 
 Maximum 60; 99th percentile 20; 99.9th percentile 30.
 
-Registry coverage (`docs/DATA_SOURCES.md`): the SRI registry matches 68,584 of 68,587 awarded RUCs; the Superintendencia de Compañías matches 15,401 of 19,847 awarded company RUCs; 16 awarded RUCs appear on the SRI "empresas fantasmas" list (1,113 RUCs in total). Registry-derived indicators (ghost list, supplier not active, new supplier, contract versus company size) are computed only for company and public-entity winners: attaching a registry qualification, tax status or start date to an identifiable individual would publish information about that person. The build summary records what this excluded (for example 1,291 `NEW_SUPPLIER` firings and 16 `SUPPLIER_NOT_ACTIVE` firings).
+Registry coverage (`docs/DATA_SOURCES.md`): the SRI registry matches 68,584 of 68,587 awarded RUCs; the Superintendencia de Compañías matches 15,401 of 19,847 awarded company RUCs; 16 awarded RUCs appear on the SRI "empresas fantasmas" list (1,113 RUCs in total). Registry-derived indicators are computed only for company and public-entity winners: attaching a registry qualification, tax status or start date to an identifiable individual would publish information about that person. The build summary records what this excluded (for example 1,291 `NEW_SUPPLIER` firings and 16 `SUPPLIER_NOT_ACTIVE` firings).
 
 ## Does it work? An honest evaluation
 
-Short answer: **the available evidence does not show that the score singles out suppliers on the one external list we could use.** The full report is [docs/EVALUATION.md](docs/EVALUATION.md); this is the summary.
+Short answer: **the available evidence does not show that the score singles out suppliers on the one external list we could use.** The full report is [docs/EVALUATION.md](docs/EVALUATION.md); this is the summary. It evaluates the indicator score only; the agents are not part of it.
 
 **Setup.** The only official outside label is the SRI list of "empresas fantasmas" (shell companies). Of its 1,113 RUCs, 9 are companies that won public contracts as process winner. We asked whether a score that excludes the indicators derived from the label ranks these 9 above the other 19,837 contract-winning companies.
 
@@ -136,57 +125,175 @@ The headline interval includes 0.5. The matched comparison lies entirely below 0
 | 3 | Rules refined after review: `SINGLE_BIDDER` 74,964 to 59,268; `GHOST_COMPANY_LIST` 165 to 6 (159 moved to a context indicator); `BUYER_CONCENTRATION` 13,496 to 3,231; `CONTRACT_VS_COMPANY_SIZE` 4,023 to 5,957 | 0.447 (0.303 to 0.598) |
 | 4 | Registry-derived indicators restricted to company and public-entity winners, for data-protection reasons | 0.447 (0.303 to 0.598) |
 
-The rules were changed for correctness reasons found by review, and the project record says no rule was changed to move the metric. The metric moved down, not up, and the conclusion did not change. Even so, adjusting rules after looking at a metric on the same labels is a source of optimism: the labels are no longer a clean, independent test of the final rules. Read the latest figure as a descriptive check, not as an unbiased estimate of performance.
+The rules were changed for correctness reasons found by review, and the project record says no rule was changed to move the metric. The metric moved down, not up, and the conclusion did not change. Even so, adjusting rules after looking at a metric on the same labels is a source of optimism: the labels are no longer a clean, independent test of the final rules. Read the latest figure as a descriptive check, not as an unbiased estimate of performance. In earlier runs the full production score gave an inflated AUC because it contained the label itself; that was leakage, not skill, and it is gone after the timing split.
 
-In earlier runs the full production score gave an inflated AUC because it contained the label itself; that was leakage, not skill. After the timing split the label-derived indicator almost never fires on the listed companies' own processes, and the production score gives the same AUC as the headline.
+**Lessons from looking at things by hand.**
 
-**A caution about naive readings.** Across all processes `SINGLE_BIDDER` has a ratio of 2.29 (interval 0.00 to 5.94) between listed and other companies; among non-catalogue processes it is 0.24 (0.00 to 0.46). Part of any all-process gap is method mix: 1 of the 44 processes of listed companies is a catalogue purchase, against 89.9 % of the others, and catalogue purchases cannot fire most indicators.
-
-**A defect that tests did not catch.** Reading one dossier by hand showed a supplier flagged as not active that was still active when the process happened. The rule used the supplier's current SRI status. `SUPPLIER_NOT_ACTIVE` fired 27,291 times before the fix and 32 times after, because 27,259 of those suspensions came after the process date (it fires 16 times today, after the registry restriction described below). All automated tests were green before the fix. The rule is now time-aware (`docs/METHODOLOGY.md`).
-
-**Three lessons from looking at things by hand.** Reading one dossier showed the `SUPPLIER_NOT_ACTIVE` defect above. An independent adversarial review broke guarantees (masking, and the trust placed in generated text) that the author believed were met, while every test was green; as a result the model stopped writing prose. And looking at one rendered process page showed a registry qualification attached to an identifiable individual, so registry-derived indicators are now computed only for companies and public entities.
+- **A defect that tests did not catch.** Reading one dossier showed a supplier flagged as not active that was still active when the process happened. The rule used the supplier's current SRI status. `SUPPLIER_NOT_ACTIVE` fired 27,291 times before the fix and 32 after, because 27,259 of those suspensions came after the process date (16 today, after the registry restriction). All automated tests were green before the fix.
+- **Reviews broke guarantees the author believed were met**, with every test green (masking, and the trust placed in generated text). As a result the model stopped writing prose.
+- **One rendered page** showed a registry qualification attached to an identifiable individual, so registry-derived indicators are now computed only for companies and public entities.
+- **Naive readings mislead.** Across all processes `SINGLE_BIDDER` has a ratio of 2.29 (interval 0.00 to 5.94) between listed and other companies; among non-catalogue processes it is 0.24 (0.00 to 0.46). Part of any all-process gap is method mix.
 
 **What this means.** The indicators are descriptive transparency measures that point to atypical features of a process for a human to look at. They are not validated predictors of wrongdoing, and no labelled set of proven problem contracts exists in the open data to test that. A high score is not an accusation.
 
+## Multi-agent investigation
+
+For a flagged process, `veedor investigate` runs a **supervisor plus four specialists** (LangGraph). Each specialist has one objective, an allow-list of read-only tools and a budget of 4 tool calls. Facts are gathered and computed by code; a model, when configured, only chooses among enumerated options. Full design and threat model: [docs/AGENTS.md](docs/AGENTS.md).
+
+| Agent | Objective | Tools |
+|---|---|---|
+| Supervisor | Decide which specialists run and in what order, with a reason from a closed list. Budget: 6 dispatches per investigation, at most 2 per specialist. | none |
+| `company` | Incorporation date and days to the process, subscribed capital and the award/capital multiple, legal status, latest financial statements before the process year. | `get_compania_info`, `get_financials` (EcuDataMCP) |
+| `tax_registry` | Live SRI public record: status, taxpayer class, size category, activity start, and whether it agrees with the downloaded table. | `get_sri_ruc_info` (EcuDataMCP) |
+| `history` | Other awards between this buyer and supplier; similar purchases by the same buyer within 180 days, from the vector index. | `pair_awards` (lake), `similar_processes` (vector index) |
+| `audit` | Contraloría approved-report rows whose audited entity equals the buyer by exact normalised name. | `list_catalogo`, `get_contraloria_informe` (EcuDataMCP) |
+
+**Safety design**
+
+- **Enumerated actions, targets resolved by code.** A specialist picks from (tool, target) pairs where the target is `winner`, `buyer` or `process`. Code turns it into the real RUC, ocid or buyer name after strict pattern checks. A model never writes a tool argument.
+- **Read-only, allow-listed tools.** `ToolRunner` is the only code path that calls a backend and refuses any tool outside the specialist's list.
+- **Tool results are data, never instructions.** Every result is parsed into typed fields by a pydantic model that declares only the fields used (a legal representative's name is never declared, so it is dropped), vocabularies are closed, and the returned RUC must equal the requested one. No string from a tool is placed in a prompt, used as an argument, a path, a URL or SQL.
+- **Budgets and timeouts.** Dispatch and per-specialist limits are enforced in code. Every call has a timeout, at most one retry and a recorded outcome (`ok`, `timeout`, `upstream_error`, `invalid_result`, `skipped`). A failed lookup becomes "no disponible (la fuente no respondió)" and never aborts the run.
+- **Deterministic policy without a model.** A rule table maps fired indicators to specialists. With no model, every decision falls back to it; with a model, an invalid reply is retried once and then replaced by the policy.
+- **Natural persons.** Registry lookups run only for companies and public entities. The store refuses to write a record that contains a natural person's RUC or cédula.
+- **The HTTP API never starts an investigation.** Investigations come from the CLI and are stored; the API serves the stored record (`GET /api/v1/processes/{ocid}/investigation`, 404 when none).
+
+**Measured results** (`eval/investigations_run.json`, live EcuDataMCP; the batch takes the highest-risk processes, so it is not a random sample):
+
+| | Without a model (policy) | Model-assisted |
+|---|---|---|
+| Investigations / errors | 20 / 0 | 10 / 0 |
+| Dossiers passing verification | 20 (all `template`) | 10 (all `llm` mode) |
+| Withheld by the privacy guard | 0 | not recorded in the file |
+| Specialists dispatched | all four, in all 20 | `company`, `history`, `audit` in all 10; `tax_registry` in 3 |
+| Tool calls | 180, all `ok` | 83: 82 `ok`, 1 `upstream_error` |
+| Model calls / invalid choices | 0 / 0 | 54 / 0 (`gpt-5.4-mini`; 45,003 prompt and 3,600 completion tokens) |
+
+**The model-assisted run of 10 predates the last fixes (review 3 and review 4) and was not repeated.** The file does not record when the no-model block was run. The model path was reviewed only with a scripted fake model, not a real one.
+
+### What an investigation adds
+
+One stored investigation, shown with `uv run veedor investigate show <ocid>`. This one ran in `template` mode with no model calls, 4 specialists, 9 tool calls (all `ok`) and 13 facts added; verification passed. Company, entity, RUC, process code and dates are replaced by placeholders; the other values are as generated. Lines are quoted without interpretation.
+
+```text
+Capital suscrito: USD 400,00 (cifra registrada a la fecha de la consulta; no es necesariamente el
+vigente al momento del proceso). La relación compara el monto adjudicado con el capital registrado
+a la fecha de la consulta: el monto adjudicado equivale a 452,5 veces el capital suscrito.
+Fecha de constitución: [fecha]. Entre la constitución y la fecha de referencia del proceso
+(fecha de adjudicación: [fecha]) transcurrieron 675 días.
+Consulta en línea al SRI (estado a la fecha de la consulta): estado activo; clase de contribuyente:
+otro; categoría de empresa: micro. Inicio de actividades según la consulta: [fecha].
+El estado de la consulta en línea coincide con el estado del listado descargado del SRI.
+
+Entre las 50 compras más similares de la misma entidad según la descripción del objeto, 50 superan
+una similitud mínima de 0,75, y 3 de ellas están a 180 días o menos de la fecha de referencia del
+proceso; su monto combinado es USD 495.355,97 (monto informado en 3 de ellas).
+
+Informes de la Contraloría General del Estado referidos a la entidad compradora: no se pudo
+establecer. Se examinaron 600 filas de 3 de los 8 archivos de informes aprobados del catálogo; el
+servicio entrega solo una parte de las filas de cada archivo. Que no aparezcan en las filas
+examinadas no implica que no existan.
+```
+
+The last item is typical: the audit specialist reads part of the catalogue, so it can confirm "at least N reports" but cannot rule any out, and says so.
+
+## Vector search
+
+"Similar processes" finds what a process bought by looking at others that bought something alike. It is a search aid used by the `history` agent and the dashboard. It never feeds the risk score. Details: [docs/VECTOR_SEARCH.md](docs/VECTOR_SEARCH.md).
+
+- **What is embedded, and why.** For every non-catalogue process, `"<CPC description>. <description>"` truncated to 1,000 characters. The CPC description gives the category; the description gives the object.
+- **Privacy.** The description passes `safe_free_text` masking first. It is withheld, and only the CPC description is embedded, when the winner is a masked party or masking finds any personal item. The table `process_vectors` has no text column: it stores the vector, a SHA-256 of the text, the model name and non-sensitive metadata. 46.9 % of indexed rows are embedded from the classification alone because of this (171,498 of 365,864).
+- **Model and index.** `minishlab/potion-multilingual-128M` through `fastembed` (multilingual, 256 dimensions, MIT licence, local, no API key). PostgreSQL with pgvector and an HNSW index (`vector_cosine_ops`, `m=16`, `ef_construction=64`).
+- **Coverage.** 365,864 rows indexed; 206 in-scope processes had no safe text and were not indexed. Query latency of `find_similar` over 200 queries: p50 14.1 ms, p95 20.3 ms.
+
+**Evaluation** (`eval/vector_search.json`; the proxy label is the CPC 5-digit prefix; mean and 95 % bootstrap interval, 1,000 query processes, top 10):
+
+| Measure | Value |
+|---|---|
+| Full index: agreement, embedding neighbours | 81.3 % (79.2 to 83.4) |
+| Full index: random neighbours | 1.7 % (1.4 to 2.1) |
+| Pool of 20,000, classification text included in the embedding | 63.3 % (61.0 to 65.8) |
+| Pool of 20,000, description only | 29.8 % (27.7 to 31.8) |
+| Pool of 20,000, random neighbours | 2.4 % (2.0 to 2.8) |
+
+**Honest reading.** The headline 81.3 % is optimistic. The embedded text contains the CPC description, which is the same thing the proxy label measures; almost half of the index is represented by the classification alone, so those neighbours are same-category by construction; and CPC agreement is a proxy, not relevance (similar purchases can carry different codes). Removing the classification text from the embedding drops agreement from 63.3 % to 29.8 % on a 20,000-process pool, against 2.4 % for random neighbours. Removing identical descriptions changes that by less than 0.5 points. The figure to trust is therefore the description-only one: well above random, far from the headline.
+
+## Observability
+
+OpenTelemetry traces and metrics for every API request and every investigation step, with a Grafana dashboard in the local stack. Off unless `VEEDOR_OTEL_ENDPOINT` is set; without it every helper is a no-op. Details: [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
+
+- **Traced:** one server span per HTTP request named by route template (`/health` excluded), and spans for the investigation, each specialist, each tool call and each graph node.
+- **Measured:** HTTP rate, errors and latency by route; investigations by final mode; specialist runs; tool calls by tool and outcome; tool latency; model tokens; grounding pass rate.
+- **Attribute allow-list (privacy).** Public procurement data contains people, and telemetry is easy to copy and keep. A span attribute or metric label whose key is not on an allow-list is dropped, and each allowed key has its own value rule: closed vocabularies for tool, specialist, outcome and mode (anything else becomes `other`), exact shapes for `ocid` and route templates, ranges for counts and durations. Exceptions are recorded by class name only, never with their message. The stock FastAPI instrumentor was not used because it records raw paths. Tests with in-memory exporters check that RUC-shaped and free-text values never reach the exporter.
+- **Dashboard.** Grafana "Veedor" is provisioned with 10 panels (request rate, errors and latency by route; investigations by mode; specialist runs; tool outcomes and latency; tokens; grounding pass rate; recent traces). It runs in one development image, `grafana/otel-lgtm` (Collector, Tempo, Prometheus, Loki, Grafana). A screenshot is in `ops/observability/screenshots/`.
+- **How it was verified.** `make obs-verify` generates traffic (API requests and investigations) and `scripts/verify_telemetry.py` queries Tempo and Prometheus, failing unless the expected spans and series exist, `/health` is absent, and no span or label holds a 13-digit number or a stray `ocds-` id. Review 3 also searched stored records, traces, spans and metric labels for names, streets and phones returned by the registry for 14 companies: 0 hits. I did not rerun `make obs-verify` for this README.
+
+Limits: local single node, 100 % sampling, no alerting, no authentication on the loopback collector ports.
+
+## Performance
+
+The API reuses one locked-down DuckDB database per worker (a cursor per call) instead of opening one per request. Measured on the local compose stack (Colima VM, 4 CPU, 6 GB, lake bind-mounted from macOS) with `scripts/load_test.py`, same mixed route set, one run each (`docs/DEPLOYMENT.md`):
+
+| Load | Before (new connection per request, 1 worker) | After (reused database, 2 workers x 2 threads) |
+|---|---|---|
+| 200 req @ 8 | p50 1.00 s, p95 2.25 s, 7.7 req/s | p50 0.22 s, p95 0.87 s, 25.1 req/s |
+| 600 req @ 8 | p50 1.04 s, p95 2.26 s, 7.5 req/s | p50 0.24 s, p95 1.31 s, 22.5 req/s |
+| 300 req @ 32 | p50 3.83 s, p95 14.35 s, 6.2 req/s, 44 transport errors | p50 0.86 s, p95 7.40 s, 20.8 req/s, no errors |
+
+**Still slow, and why.**
+
+- Search by text (`GET /processes?q=...`) scans two text columns of the 2.25 M-row table on every call (about 0.2 s on the host, 1.4 to 8 s in the container under load). It needs a precomputed search column or index.
+- Bind-mounted Parquet on macOS is slower than on the host (about 46 req/s on the host against 22 in the container for the same mix). That is Docker's file sharing, not the code.
+- At concurrency 32 on 4 CPUs the queue, not the query, dominates the tail.
+
 ## How it stays grounded
 
-1. **Deterministic facts first.** Facts, indicators and registry matches are computed by code into an evidence pack. With no LLM configured, a template renders the dossier.
-2. **The model does not write prose.** In LLM mode it receives a catalogue of fact ids and returns a plan: the order of fact ids per section, which context facts to include, one connective per section from a closed set and one reviewer note from a closed set. The renderer writes every sentence from the same templates as template mode. A plan with an unknown id, free text or more than one connective is rejected; after two failed attempts the template is used. The model cannot add or change a figure, name an entity, drop a risk signal, touch the limitations section or add a source. It can hide context facts and choose emphasis, so it can change what a reviewer reads first. That is all of its influence (`src/veedor/agents/investigator/README.md`).
-3. **Grounding verifier, still applied.** Every number, date, RUC, code, spelled-out number and capitalised name in the rendered text must exist in the evidence pack, forbidden wording is rejected, and free text may appear only as a verbatim `« »` quote of the data. Unverified text is never stored or shown. The guarantee is structural rather than lexical: code writes every sentence, and the free-text process description is not loaded, not quoted in the dossier and not offered to the model ("Qué se contrató" uses the CPC classification and structured fields).
-4. **The HTTP API never calls an LLM.** Dossiers served over HTTP are always template mode. LLM dossiers are produced only by the CLI, and no LLM variable is passed to the containers.
-5. **Prompt-injection threat model.** Tender descriptions, names and registry text are written by third parties and can contain planted instructions. Untrusted strings travel only inside a delimited data block, with control characters removed and lengths capped, and the model has no tools or access to the lake, files or network. The structural defence is that the model's output is a plan over fact ids, not text.
+1. **Deterministic facts first.** Facts, indicators, registry matches and investigation findings are computed by code into an evidence pack. With no LLM configured, a template renders the dossier.
+2. **The model does not write prose.** In LLM mode it receives a catalogue of fact ids and returns a plan: the order of fact ids per section, which context facts to include, one connective per section from a closed set and one reviewer note from a closed set. The renderer writes every sentence from the same templates as template mode. A plan with an unknown id, free text or more than one connective is rejected; after two failed attempts the template is used. The model cannot add or change a figure, name an entity, drop a risk signal, hide a failed lookup, touch the limitations section or add a source. It can hide context facts and choose emphasis, so it can change what a reviewer reads first. That is all of its influence.
+3. **Grounding verifier, still applied.** Every number, date, RUC, code, spelled-out number and capitalised name in the rendered text must exist in the evidence pack, forbidden wording is rejected, and free text may appear only as a verbatim `« »` quote of the data. Unverified text is never stored or shown. The guarantee is structural rather than lexical: code writes every sentence, and the free-text process description is not loaded or quoted in the dossier.
+4. **The HTTP API never calls an LLM and never starts a lookup.** Dossiers served over HTTP are always template mode. LLM dossiers and investigations are produced only by the CLI, and no LLM variable is passed to the containers.
+5. **Prompt-injection threat model.** Tender descriptions, names, registry text and tool results are written by third parties and can contain planted instructions. Untrusted strings travel only inside a delimited data block with control characters removed and lengths capped, tool results are parsed into typed fields (see the safety design above), and the structural defence is that the model's output is a plan over ids, not text.
 
-**Known limits of the verifier.** It checks that values exist in the evidence, with field binding only for values that follow a known label. A bare figure that follows no label is checked by membership only, only capitalised names are detected, and meaning is not checked: a true figure used in a misleading sentence would pass. Constrained generation reduces that exposure for LLM output because the model no longer writes sentences.
+**Known limits of the verifier.** It checks that values exist in the evidence, with field binding only for values that follow a known label. A bare figure that follows no label is checked by membership only, only capitalised names are detected, and meaning is not checked: a true figure used in a misleading sentence would pass. In review 2, 35 of 82 fresh evasions passed the forbidden-word list, which is why the guarantee is structural.
 
-**Real-model results** (`eval/llm_grounding_runs.json`, model `gpt-5.4-mini`, "top 20 by risk score" in each run, one run each, small samples):
+**Real-model results for the dossier plan** (`eval/llm_grounding_runs.json`, model `gpt-5.4-mini`, "top 20 by risk score" in each run, one run each, small samples):
 
 | Run | Passed first attempt | Passed after retry | Fell back to template | LLM calls | Prompt / completion tokens | Median latency |
 |---|---|---|---|---|---|---|
 | 1. Free prose under the strict verifier (field binding, prompt v1) | 2 | 5 | 13 | 38 | 67,340 / 22,643 | 6,184 ms |
 | 2. Constrained generation (model selects fact ids, renderer writes all text) | 5 | 9 | 6 | 35 | 73,924 / 6,107 | 2,673 ms |
 
-In both runs all 20 final dossiers passed grounding, because failures fall back to the template. The file does not state that the two runs used the same 20 processes. Even with constrained generation, 6 of 20 plans were still rejected twice and fell back to the template.
+In both runs all 20 final dossiers passed grounding, because failures fall back to the template. The file does not state that the two runs used the same 20 processes. Even with constrained generation, 6 of 20 plans were rejected twice and fell back to the template.
 
 ## Architecture
 
-Parquet files hold the read-only analytics data and DuckDB queries them in memory. PostgreSQL holds only human reviews, which are disabled by default. The API serves masked responses and the Next.js dashboard renders them.
+Parquet files hold the read-only analytics data and DuckDB queries them in memory. PostgreSQL (with the pgvector extension) holds human reviews, which are disabled by default, and the vector index. Investigations are stored as JSON files written by the CLI and read by the API. The API serves masked responses and the Next.js dashboard renders them.
 
 ```mermaid
 flowchart LR
   B[SERCOP OCDS bulk file] -->|veedor lake build| LK[(Parquet lake)]
   R[SRI and Supercias files] -->|veedor registries| LK
   LK -->|veedor signals build| MT[(Marts: signals, scores, profiles)]
+  LK -->|veedor vectors build| EMB[fastembed model] --> PG[(PostgreSQL + pgvector: vectors, reviews)]
   LK --> API[FastAPI]
   MT --> API
-  API --> UC[Use cases]
-  UC --> DS[Dossier service, template mode]
-  CLI[CLI dossier build] --> G[LangGraph investigator]
-  G -.optional.-> LLM[[LLM provider: plan only]]
-  API --> PG[(PostgreSQL: reviews)]
+  PG --> API
   API --> WEB[Next.js dashboard]
+  CLI[CLI investigate run / batch] --> SUP[LangGraph supervisor]
+  SUP --> SPEC[company, tax_registry, history, audit]
+  SPEC -->|read-only, allow-listed| MCP[EcuDataMCP over stdio]
+  SPEC --> LK
+  SPEC --> PG
+  SUP -.optional.-> LLM[[LLM: choices from enumerations]]
+  SPEC --> VER[Renderer and grounding verifier]
+  VER --> INV[(data/investigations)]
+  INV -->|stored only| API
+  API -.-> OT[OpenTelemetry]
+  CLI -.-> OT
+  OT --> GR[Grafana, Tempo, Prometheus]
 ```
 
-**Layer rule.** `domain` (indicators, scoring, dossier templates, grounding verifier, masking) imports nothing from the other layers. `use_cases` depend on `domain` and on ports; `infrastructure` implements the ports; `api` and `cli` only call use cases. One known deviation is documented in `docs/ARCHITECTURE.md`.
+**Layer rule.** `domain` (indicators, scoring, dossier and investigation templates and policies, grounding verifier, masking) imports nothing from the other layers. `use_cases` depend on `domain` and on ports; `infrastructure` implements the ports; `api` and `cli` only call use cases. One known deviation is documented in `docs/ARCHITECTURE.md`.
 
 | Piece | What it does |
 |---|---|
@@ -194,34 +301,44 @@ flowchart LR
 | DuckDB + Parquet | read-only analytics; indicators are set-based SQL |
 | scikit-learn | Isolation Forest anomaly score, reported separately and never part of the risk score |
 | FastAPI + Pydantic | API and response models, where masking is applied |
-| LangGraph | dossier graph: load evidence, assess, plan, render, verify, finalize or fall back |
-| PostgreSQL (pgvector image) + SQLAlchemy + Alembic | human reviews |
+| LangGraph | dossier graph (load evidence, assess, plan, render, verify, finalize or fall back) and the investigation graph (supervisor and four specialist subgraphs) |
+| MCP Python client + EcuDataMCP | live registry and Contraloría lookups over stdio, read-only |
+| PostgreSQL (pgvector image) + SQLAlchemy + Alembic | human reviews and the vector index (HNSW) |
+| fastembed (`potion-multilingual-128M`) | local multilingual embeddings, 256 dimensions |
+| OpenTelemetry + Grafana (`otel-lgtm`: Tempo, Prometheus, Loki) | traces, metrics, provisioned dashboard |
 | Typer | the `veedor` command line |
-| Next.js 16, React 19, Tailwind 4 | dashboard |
-| Docker Compose | local stack: web, api, db, one-off migration |
+| Next.js 16, React 19, Tailwind 4 | dashboard, including stored investigations, similar processes and an agents page |
+| Docker Compose | local stack: web, api, db, observability, one-off migration |
 
 ## Security summary
 
-Full threat model and findings: [docs/SECURITY.md](docs/SECURITY.md).
+Full threat model and findings: [docs/SECURITY.md](docs/SECURITY.md) and, for the agents, [docs/AGENTS.md](docs/AGENTS.md).
 
 - **SQL injection.** All values are bound parameters. The only variable SQL text is the sort column, taken from a closed mapping. Path and query parameters are validated and bounded.
-- **DuckDB lockdown.** Each query runs in a fresh in-memory connection with views over known Parquet files only, `allowed_directories` restricted, external access disabled, configuration locked and only `SELECT`/`WITH` accepted.
+- **DuckDB lockdown.** The API reuses one in-memory database per worker, locked down once: views over known Parquet files only, `allowed_directories` restricted, external access disabled, configuration locked, one `SELECT`/`WITH` statement per call (because the database outlives a request). Review 4 ran 65 attacks through this reader and found them refused or harmless.
 - **Masking of natural persons.** A RUC whose third digit is 0 to 5 is a natural person: the name becomes "Persona natural" and the RUC keeps four digits. A party with no usable RUC is masked unless its name carries a legal-entity marker (default is to mask). Free-text descriptions are withheld when they contain personal identifiers, including 10-digit cédulas. Supplier pages of natural persons return the same 404 as an unknown RUC. Masking is applied in the response models.
-- **Limits, stated plainly.** Name masking in free text is heuristic: a name that is neither a known party of the process nor preceded by an honorific can still appear in a description shown by the process detail page. Dossiers do not quote descriptions. **The data directory and the Parquet files contain unmasked personal data (names, RUCs, cédulas) and must never be published or shared as-is.** Masking exists only at the API boundary.
+- **Agents and tools.** Read-only, allow-listed tools; arguments built by code; results parsed into typed fields; no registry lookup for natural persons; legal-representative names never declared, stored, logged or sent to a model; stored records are scanned for natural-person identifiers (values and keys, normalised) and withheld when one is found; every call has a timeout and a recorded outcome.
+- **Telemetry carries no personal data by construction** (attribute allow-list, see above).
+- **Limits, stated plainly.** Name masking in free text is heuristic: a name that is neither a known party of the process nor preceded by an honorific can still appear in a description shown by the process detail page. Dossiers do not quote descriptions. **The data directory and the Parquet files contain unmasked personal data (names, RUCs, cédulas) and must never be published or shared as-is.** Masking exists only at the API boundary. Investigation facts about legal status and capital are snapshots of today's registries, labelled as such.
 - **Reviews are disabled by default.** Writing a review requires `VEEDOR_REVIEWS_ENABLED=true` and a bearer token. The token is one shared secret, not a per-user identity. There is still no user authentication, so do not expose the API to the internet. The rate limiter is per process.
-- **Ports** (web 3000, api 8000, PostgreSQL 5433) are bound to `127.0.0.1`.
+- **Ports** (web 3000, api 8000, PostgreSQL 5433, Grafana 3001, OTLP 4318, Prometheus 9090, Tempo 3200) are bound to `127.0.0.1`. The Grafana password in compose is a local-development default.
 
-### Independent review
+## Independent reviews
 
-After the first build, an independent adversarial read-only review was run against the system. Its findings, recorded in `docs/REVIEWS.md` and `docs/SECURITY.md`, concerned masking and API behaviour: personal data leaking through free text, parties without a RUC never masked, an oracle for natural-person suppliers, search by a person's name, an unhandled error on the dossier endpoint, anonymous callers able to trigger paid LLM calls and unbounded cache writes, open and unvalidated review writes, oversized `page` values causing server errors, and PostgreSQL published on all interfaces with a default password. The document lists no finding against the SQL-injection defences or the DuckDB lockdown. All listed findings are marked fixed. The grounding verifier was also hardened (hidden and look-alike characters, figure binding) and the model stopped writing prose.
+Four independent, adversarial, read-only reviews were run on 2026-11-16, each by a reviewer who started without knowledge of the codebase and was asked to break the project's claims. Full record, including what remains open: [docs/REVIEWS.md](docs/REVIEWS.md).
 
-A second reviewer then re-tested every finding and tried to bypass each fix. It confirmed the high-severity items fixed and ran a privacy sweep over 1,640 processes (3,280 API responses, plus the page source of 20 web pages): 0 leaked names, 0 unmasked natural-person RUCs, 0 valid cédulas. It also found new, smaller defects — over-masking that damaged some hospital names in dossiers, a burst of transient file-open errors surfacing as HTTP 500, and a weaker wording filter on the (disabled-by-default) review path — and showed that the forbidden-word list alone is easy to evade (35 of 82 fresh evasions passed it), which is why the guarantee for dossier text is structural rather than lexical. Those items were fixed afterwards; that last round was verified by the project's own tests and sweeps, not by a third independent review.
+| Review | When | Result |
+|---|---|---|
+| 1 | After the first build, every test green | Broke masking (personal data in free text, parties without a RUC) and the text verifier, and found HTTP 500s and open review writes. Held: 40 SQL-injection payloads and 19 file-access attempts had no effect. The model stopped writing prose as a result. |
+| 2 | After those fixes | Confirmed the high-severity fixes; a privacy sweep of 1,640 processes (3,280 responses) found 0 leaked names, 0 unmasked natural-person RUCs, 0 valid cédulas. Found over-masking, transient 500s, a weaker review wording filter, and that 35 of 82 fresh evasions passed the word list. |
+| 3 | Stage 2: agents, vectors, telemetry | Re-derived the facts of six processes from primary sources (all matched); a hostile fake tool server leaked nothing; budgets held. Broke it: a privacy-scan crash (7 of 80 offline runs, 1 of 15 live) and the API returning 404 for every stored investigation in compose; plus fiscal-year, out-of-range-value and snapshot-labelling defects. |
+| 4 | Re-test of the stage 2 fixes | The crash was gone (13 of 13 live and 320 offline investigations completed); 65 attacks on the shared database reader refused; 200 requests at concurrency 8 gave p95 0.64 s. Found the privacy scan narrowed too far (no cédula, no formatted RUC), an unchecked report-number field, and a Contraloría list that silently omitted 3 of 9 reports. |
 
-The first review also confirmed what held: 40 SQL-injection payloads across every parameter and 19 attempts to read or write outside the data folders had no effect. The full record of both reviews, including what remains open, is in [`docs/REVIEWS.md`](docs/REVIEWS.md).
+Reviews 3 and 4 tested the agent graph with a scripted fake model; no model behaviour was reviewed adversarially with a real model. **The final round of fixes after review 4 was verified by the project's own tests and runs (21 attack forms caught; 400 offline investigations with no false alarm), not by a further independent review.** The same is true of the fixes after review 2.
 
 ## Quickstart
 
-**Prerequisites:** Docker with Compose v2; [uv](https://docs.astral.sh/uv/) and Python 3.12 to run the CLI and tests; free ports 3000, 8000 and 5433 on localhost.
+**Prerequisites:** Docker with Compose v2; [uv](https://docs.astral.sh/uv/) and Python 3.12 to run the CLI and tests; free ports 3000, 3001, 4318, 5433, 8000, 9090 and 3200 on localhost. Live investigations also need network access and `uvx` (the CLI starts `ecuador-mcp` over stdio; the first company lookup loads a large directory and takes about 25 s).
 
 **The `data/` folder is not in the repository.** The API needs `data/lake/` and `data/marts/`, so build them first (below) or restore a data bundle (`make bundle` creates one; `docs/DEPLOYMENT.md`). A bundle holds unmasked personal data: do not publish it.
 
@@ -235,63 +352,105 @@ uv run python scripts/smoke_test.py     # or: make smoke
 |---|---|
 | Web dashboard | http://localhost:3000 |
 | API and docs | http://localhost:8000, docs at `/docs` |
-| PostgreSQL | localhost:5433 |
+| Grafana (dashboard "Veedor") | http://localhost:3001 (user `admin`, local-development password in `docs/OBSERVABILITY.md`) |
+| PostgreSQL (pgvector) | localhost:5433 |
+| OTLP, Prometheus, Tempo | localhost:4318, 9090, 3200 |
 
-The smoke test runs 12 checks and writes nothing: on the current local stack the result is `12/12 checks passed`, including a refused anonymous review write and no stored review row. Dossiers are in template mode unless you run the CLI with an LLM configured (`docs/CONFIGURATION.md`).
+| `make` target | What it does |
+|---|---|
+| `up`, `down`, `logs` | start, stop, follow the full stack |
+| `smoke` | end-to-end check of the running stack |
+| `obs-up`, `obs-verify` | start the observability service and API; generate traffic and assert spans and series exist |
+| `db-up`, `db-migrate`, `serve` | PostgreSQL only, migrations, API on the host |
+| `lake`, `signals` | rebuild the lake and the marts |
+| `lint`, `test`, `bundle` | checks and the data bundle |
 
-**Rebuild the data** (about 1 minute for the lake and 4.7 seconds for the marts on the development machine; the registry download was not timed):
+**Rebuild the data and the stage 2 artefacts** (about 1 minute for the lake and 4.7 seconds for the marts on the development machine; the registry download was not timed; the vector build took 4 min 25 s for 365,864 rows):
 
 ```bash
 uv run veedor lake build                # needs data/raw/sercop_ocds_full.jsonl.gz
 uv run veedor registries download
 uv run veedor registries load
 uv run veedor signals build
+uv run alembic upgrade head             # needs the db service (make db-up)
+uv run veedor vectors build             # then: vectors status, vectors evaluate
+uv run veedor investigate run <ocid>    # one process; add --no-llm or --offline as needed
+uv run veedor investigate batch --top 20 --no-llm
+uv run veedor investigate show <ocid>   # shows a stored record, never runs one
 uv run veedor evaluate backtest         # optional, then: evaluate coverage, evaluate report
 ```
+
+Dossiers are in template mode unless you run the CLI with an LLM configured (`docs/CONFIGURATION.md`).
 
 ## Project layout
 
 ```text
 src/veedor/
-  core/  domain/  use_cases/  infrastructure/  agents/investigator/
-  api/  schemas/  cli/  evaluation/
+  core/  domain/  use_cases/  schemas/  cli/  evaluation/  api/
+  domain/investigation/      investigation policies, typed facts, identifier scan, bounds
+  agents/investigator/       dossier graph
+  agents/investigation/      supervisor, specialists, tool runner, targets
+  infrastructure/            lake, registries, db, llm, mcp, vectors, telemetry, investigations
+alembic/      migrations (reviews, process_vectors)
 tests/        mirrors src; synthetic fixtures only, no network
 web/          Next.js dashboard
-eval/         back-test, coverage, history and LLM-run outputs
-docs/         CONTRACT, METHODOLOGY, EVALUATION, ARCHITECTURE, DATA_SOURCES,
-              DEPLOYMENT, SECURITY, CONFIGURATION, BRAND
-scripts/      smoke test, data bundle
+eval/         back-test, coverage, history, LLM-run, investigation and vector-search outputs
+ops/          Grafana dashboard and its generator
+docs/         CONTRACT, CONTRACT_V2, METHODOLOGY, EVALUATION, ARCHITECTURE, AGENTS, VECTOR_SEARCH,
+              OBSERVABILITY, REVIEWS, DATA_SOURCES, DEPLOYMENT, SECURITY, CONFIGURATION, BRAND
+scripts/      smoke test, load test, telemetry verification, traffic generator, data bundle
 ```
 
 ## Testing
 
 ```bash
-uv run pytest -q
+uv run pytest -o addopts=""
 uv run ruff check src tests scripts
+uv run python scripts/smoke_test.py
 ```
 
-Results of the last run (`uv run pytest -o addopts=""`, `uv run ruff check src tests scripts`, `uv run python scripts/smoke_test.py`): **682 passed**; ruff **all checks passed**; smoke test **12/12 checks passed** against the local stack. Tests use small synthetic fixtures and never need the real data.
+Results of the last run (2026-11-16, local stack up): **1226 passed** in 13.64 s; ruff **all checks passed**; smoke test **15/15 checks passed**, including a refused anonymous review write, no stored review row, similar processes, a stored investigation served by the API and a 404 for an unknown investigation (nothing is started on demand). Tests use small synthetic fixtures and never need the real data. CI (`.github/workflows/ci.yml`) runs ruff, the migrations against a pgvector service, and pytest.
 
 ## Known limitations
 
-- **Detail pages for some processes cannot be opened.** 891 of 2,251,027 processes (0.04 %) have characters in their identifier (spaces, slashes, dashes, Ñ, commas) that the strict identifier validation rejects.
+- **Detail pages for some processes cannot be opened.** 891 of 2,251,027 processes (0.04 %) have characters in their identifier that the strict identifier validation rejects.
 - No evidence that the score singles out any external reference list (see the evaluation).
-- Registry facts are current, not historical; the signals that use them say so.
+- Registry facts are current, not historical; the indicators and investigation facts that use them say so.
+- **Live lookups depend on an unofficial MCP server over public sources.** Schemas can change and upstream services fail; failures are recorded and rendered as "no disponible".
+- **The audit specialist reads part of the Contraloría catalogue**, so it can show that at least N reports exist but not that there are none.
+- **Vector similarity is not relevance** (see the vector-search evaluation).
+- **The model-assisted investigation run predates the last fixes** and no model behaviour was reviewed adversarially with a real model.
 - Emergency procurement is absent from the open data and untested.
 - No user authentication; free-text name masking is heuristic.
 
 ## Roadmap
 
-- EcuDataMCP live lookups: a client port exists, it is not wired.
+- Cloud deployment (not done; `docs/DEPLOYMENT.md` describes two paths, none verified on a provider).
 - Legal-text retrieval: deliberately postponed.
+- Cross-check of a shared legal representative across bidders: not built, it needs one registry call per bidder, beyond the 4-call budget.
 - Real user authentication for reviews, and a shared rate limiter.
-- Calibration of the weights, which needs better labels than the SRI list.
-- Emergency-procurement data, if it becomes available.
-- A way to open the 891 processes with unusual identifiers.
+- Calibration of the weights, which needs procurement-specific labels better than the SRI list.
+- Faster search by text (precomputed column or index).
+- Repeat the model-assisted investigation run after the fixes, and review it with a real model.
+- Emergency-procurement data, if it becomes available; a way to open the 891 processes with unusual identifiers.
+
+## What this project demonstrates
+
+| Topic | Where |
+|---|---|
+| Agents and tool use | supervisor and four specialists with budgets: `src/veedor/agents/investigation/`, `docs/AGENTS.md` |
+| MCP | client for the author's EcuDataMCP server: `src/veedor/infrastructure/mcp/`; tool allow-list in `agents/investigation/tools.py` |
+| Retrieval and a vector database | embeddings, pgvector HNSW index, `find_similar`: `src/veedor/infrastructure/vectors/`, `alembic/versions/`, `docs/VECTOR_SEARCH.md` |
+| Evaluation | back-test against an external label with a null result, vector-search proxy evaluation: `src/veedor/evaluation/`, `eval/`, `docs/EVALUATION.md` |
+| Observability | OpenTelemetry with an attribute allow-list and a provisioned dashboard: `src/veedor/infrastructure/telemetry/`, `ops/observability/`, `scripts/verify_telemetry.py` |
+| Guardrails and prompt-injection defence | grounding verifier, plan-over-ids generation, typed tool results, identifier scan: `src/veedor/domain/dossier/`, `src/veedor/domain/investigation/`, `tests/agents/test_investigator_injection.py` |
+| API and frontend | FastAPI with masking response models, Next.js dashboard: `src/veedor/api/`, `web/` |
+| Containers and CI | compose stack and images, GitHub Actions: `docker-compose.yml`, `Dockerfile`, `.github/workflows/ci.yml` |
+| Independent review practice | four reviews and what each found: `docs/REVIEWS.md` |
 
 ## Data sources and licences
 
-All data is public and was retrieved on 2026-11-16 (`docs/DATA_SOURCES.md`).
+All data is public and was retrieved on 2026-11-16 (`docs/DATA_SOURCES.md`). Live lookups in investigations query the same public sources through EcuDataMCP.
 
 | Source | Licence |
 |---|---|

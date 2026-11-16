@@ -1,12 +1,12 @@
 # Contributing
 
-Thanks for looking at Veedor. Read `docs/CONTRACT.md` first: it is the binding rule set.
+Thanks for looking at Veedor. Read `docs/CONTRACT.md` and `docs/CONTRACT_V2.md` (agents, vector search, observability) first: they are the binding rule set. `docs/REVIEWS.md` lists the defects four independent reviews found; do not reintroduce them.
 
 ## Setup
 
 ```bash
 uv sync                  # Python 3.12 environment
-uv run pytest -q         # tests
+uv run pytest -o addopts=""   # tests
 uv run ruff check src tests scripts
 uv run ruff format --check src tests
 ```
@@ -42,6 +42,15 @@ A signal is a documented rule, not just a query. Include all of these in one cha
 5. **Dossier text.** Add template wording and make sure the grounding verifier still passes.
 6. **Evaluation.** Rebuild the marts and rerun `veedor evaluate backtest`, `coverage` and `report`. Do not edit `docs/EVALUATION.md` by hand; if the result is not better than chance, say so. Never change a rule to improve a metric: the run is appended to `eval/history.json` and tuning after looking at a metric is a source of optimism.
 7. **LLM.** The model never writes prose. Anything it influences must be a choice among ids or enumerated options that the renderer turns into text.
+
+## Changing the agents, vector search or telemetry
+
+- **Tools are read-only and allow-listed.** A new tool needs an entry in the specialist's allow-list, a pydantic result model that declares only the fields used, a closed vocabulary for every enumerated value, and a recorded outcome on failure. Arguments are built by code from validated identifiers, never from model output or tool text.
+- **Tool results are data.** No string from a tool result goes into a prompt, a tool argument, a path, a URL or SQL. Never declare, store, log or send to a model the name of a natural person returned by a source.
+- **New facts** need template wording with an applicability predicate and must pass the "every enumerated phrase renders and verifies" test.
+- **Telemetry** accepts only allow-listed attribute keys with a value rule each (`src/veedor/infrastructure/telemetry/allowlist.py`). Never put RUCs, names, prompts, tool results or free text in a span attribute or metric label.
+- **Vector search** embeds only text that passed `safe_free_text`; the table stores no text. Report retrieval quality with its caveats, even if poor.
+- Tests use scripted fake models and fake tool servers; they must not call a real model or the live MCP server.
 
 ## Reporting security issues
 

@@ -1,15 +1,19 @@
 # Deployment
 
 Veedor is three processes plus read-only data: a FastAPI API, a Next.js web app, PostgreSQL
-(human reviews only) and about 200 MB of Parquet files that the API queries with DuckDB.
-Nothing else is required. The LLM is optional.
+with pgvector (human reviews and the vector index) and about 200 MB of Parquet files that the API
+queries with DuckDB. An optional fourth container provides local observability (OpenTelemetry
+collector, trace and metrics stores, Grafana; see `docs/OBSERVABILITY.md`). Investigations are
+produced on the host with the CLI and only read by the API. The LLM is optional.
 
 ## Prerequisites
 
 - Docker with Compose v2 (developed on Colima, 4 CPU / 6 GB). Image builds need network access.
 - For rebuilding data: [uv](https://docs.astral.sh/uv/), Python 3.12, and the SERCOP bulk file
   (about 1.1 GB, see `docs/DATA_SOURCES.md`).
-- Free host ports 3000 (web), 8000 (API) and 5433 (PostgreSQL).
+- Free host ports 3000 (web), 8000 (API) and 5433 (PostgreSQL), plus, for the observability
+  container, 3001 (Grafana), 4318 (OTLP/HTTP), 9090 (Prometheus) and 3200 (Tempo). All bind to
+  127.0.0.1.
 
 ## Local stack
 
