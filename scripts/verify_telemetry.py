@@ -54,13 +54,26 @@ def attribute_value(raw: dict) -> str:
     return str(next(iter(raw.values()), ""))
 
 
+def search_trace_ids(traceql: str, limit: int = 200) -> int:
+    """How many recent traces match a TraceQL expression (a targeted query, never a window sample)."""
+    now = int(time.time())
+    query = urllib.parse.urlencode(
+        {"q": traceql, "limit": limit, "start": now - SINCE_SECONDS, "end": now + 60}
+    )
+    return len(get_json(f"{TEMPO}/api/search?{query}").get("traces", []))
+
+
 def fetch_spans(service_filter: str = "veedor.*") -> list[dict]:
-    """Every span of recent traces of our services, with flattened attributes."""
+    """Every span of recent traces of our services, with flattened attributes.
+
+    Tempo returns at most `limit` traces, the most recent ones: after heavy traffic a rare status
+    (a 422) can fall outside the sample, so checks for rare statuses use `search_trace_ids` instead.
+    """
     now = int(time.time())
     query = urllib.parse.urlencode(
         {
             "q": f'{{ resource.service.name =~ "{service_filter}" }}',
-            "limit": 200,
+            "limit": 1000,
             "start": now - SINCE_SECONDS,
             "end": now + 60,
         }
@@ -149,10 +162,17 @@ def verify_traces() -> None:
     )
     check("traces: /health is not traced", not any(n.endswith("/health") for n in names))
     codes = sorted({s["attributes"].get("http.response.status_code", "?") for s in api})
+    # Targeted queries by status attribute: independent of how many traces the window sample holds.
+    per_code = {
+        code: search_trace_ids(
+            f'{{ resource.service.name = "{API_SERVICE}" && span.http.response.status_code = {code} }}'
+        )
+        for code in (200, 404, 422)
+    }
     check(
         "traces: success, 404 and 422 requests were recorded",
-        {"200", "404", "422"} <= set(codes),
-        f"status codes {codes}",
+        all(per_code.values()),
+        f"traces by status {per_code}; statuses in the sampled window {codes}",
     )
     leaks = leaked_identifiers(spans)
     check(

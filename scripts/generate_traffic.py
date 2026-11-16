@@ -5,7 +5,8 @@
 
 1. Calls a spread of API routes (list, detail, dossier, similar, investigation, supplier, buyer,
    404s and a 422) against API_URL (default http://localhost:8000/api/v1).
-2. Runs `veedor investigate batch --top 3 --no-llm` with telemetry enabled when that CLI exists.
+2. Runs `veedor investigate batch --top 3 --no-llm --summary-out <tmp>` with telemetry
+   enabled when that CLI exists (the summary goes to a temporary file, never to eval/).
    Otherwise it emits ONE CLEARLY LABELLED SYNTHETIC investigation (service name
    `veedor-synthetic-traffic`, no real tool calls) through the public telemetry helpers, so the
    pipeline can still be verified end to end. The output says which of the two happened.
@@ -20,13 +21,16 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 API = os.environ.get("API_URL", "http://localhost:8000/api/v1").rstrip("/")
 OTEL_ENDPOINT = os.environ.get("OTEL_ENDPOINT", "http://localhost:4318")
 SYNTHETIC_SERVICE = "veedor-synthetic-traffic"
 CLI_BATCH = ["uv", "run", "veedor", "investigate", "batch", "--top", "3", "--no-llm"]
+# The batch summary goes to a temporary file: eval/investigations_run.json is a committed result.
 
 
 def call(path: str) -> int:
@@ -86,8 +90,10 @@ def cli_available() -> bool:
 
 def run_cli_batch() -> bool:
     env = {**os.environ, "VEEDOR_OTEL_ENDPOINT": OTEL_ENDPOINT, "VEEDOR_OTEL_SERVICE_NAME": "veedor-cli"}
-    done = subprocess.run(CLI_BATCH, env=env, capture_output=True, text=True, check=False)
-    print(f"CLI: `{' '.join(CLI_BATCH[2:])}` exit code {done.returncode}")
+    with tempfile.TemporaryDirectory(prefix="veedor-traffic-") as directory:
+        command = [*CLI_BATCH, "--summary-out", str(Path(directory) / "investigations_run.json")]
+        done = subprocess.run(command, env=env, capture_output=True, text=True, check=False)
+    print(f"CLI: `{' '.join(command[2:-1])} <temporary file>` exit code {done.returncode}")
     if done.returncode != 0:
         print(done.stderr[-500:])
     return done.returncode == 0
