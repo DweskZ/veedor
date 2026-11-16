@@ -1,0 +1,97 @@
+"""`veedor evaluate ...` commands: back-test, coverage and the generated report."""
+
+from __future__ import annotations
+
+from decimal import Decimal
+from pathlib import Path
+from typing import Annotated
+
+import orjson
+import typer
+
+from veedor.core.settings import REPO_ROOT, get_settings
+from veedor.evaluation import backtest, coverage, history, report
+
+app = typer.Typer(no_args_is_help=True)
+
+EVAL_DIR = REPO_ROOT / "eval"
+DOC_PATH = REPO_ROOT / "docs" / "EVALUATION.md"
+
+
+def _json_default(value: object) -> float:
+    if isinstance(value, Decimal):
+        return float(value)
+    raise TypeError(type(value))
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(
+        orjson.dumps(payload, default=_json_default, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY)
+    )
+
+
+def _read_json(path: Path) -> dict:
+    if not path.exists():
+        typer.echo(f"Missing {path}. Run the matching `veedor evaluate` command first.", err=True)
+        raise typer.Exit(1)
+    return orjson.loads(path.read_bytes())
+
+
+@app.command("backtest")
+def run_backtest(
+    n_boot: Annotated[int, typer.Option(min=100, help="Bootstrap replicates.")] = backtest.DEFAULT_N_BOOT,
+    seed: Annotated[int, typer.Option(help="Random seed.")] = backtest.DEFAULT_SEED,
+    out_dir: Annotated[Path, typer.Option(help="Directory for the JSON/CSV outputs.")] = EVAL_DIR,
+    note: Annotated[str, typer.Option(help="What changed in the rules/data since the last run.")] = "",
+    record_history: Annotated[
+        bool, typer.Option(help="Append this run to eval/history.json (skip for non-rule reruns).")
+    ] = True,
+) -> None:
+    """Positive-unlabelled back-test against the SRI ghost-company list; writes eval/backtest.json."""
+    settings = get_settings()
+    try:
+        result = backtest.run_backtest(settings.lake_dir, settings.marts_dir, n_boot, seed)
+    except (FileNotFoundError, ValueError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+    if record_history:
+        entry = history.entry_from(result, note or "No change description given.")
+        result["history"] = history.append(out_dir / "history.json", entry)
+    else:
+        result["history"] = history.load(out_dir / "history.json")
+    _write_json(out_dir / "backtest.json", result)
+    report.write_csvs(result, out_dir)
+    typer.echo(report.summary_text(result))
+    typer.echo(f"Wrote {out_dir / 'backtest.json'}")
+
+
+@app.command("coverage")
+def run_coverage(
+    out_dir: Annotated[Path, typer.Option(help="Directory for the JSON/CSV outputs.")] = EVAL_DIR,
+) -> None:
+    """Descriptive coverage of the signals (no labels); writes eval/coverage.json."""
+    settings = get_settings()
+    try:
+        result = coverage.run_coverage(settings.lake_dir, settings.marts_dir)
+    except FileNotFoundError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+    _write_json(out_dir / "coverage.json", result)
+    report.write_coverage_csvs(result, out_dir)
+    typer.echo(coverage.summary_text(result))
+    typer.echo(f"Wrote {out_dir / 'coverage.json'}")
+
+
+@app.command("report")
+def run_report(
+    eval_dir: Annotated[
+        Path, typer.Option(help="Directory with backtest.json and coverage.json.")
+    ] = EVAL_DIR,
+    out: Annotated[Path, typer.Option(help="Markdown file to write.")] = DOC_PATH,
+) -> None:
+    """Regenerate docs/EVALUATION.md from the JSON files; no number is typed by hand."""
+    backtest_result = _read_json(eval_dir / "backtest.json")
+    coverage_result = _read_json(eval_dir / "coverage.json")
+    out.write_text(report.render(backtest_result, coverage_result), encoding="utf-8")
+    typer.echo(f"Wrote {out}")

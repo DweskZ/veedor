@@ -1,0 +1,103 @@
+{
+  "runs": [
+    {
+      "label": "top 20 by risk score, verifier with field binding, prompt v1",
+      "runs": 20,
+      "model": [
+        "gpt-5.4-mini"
+      ],
+      "started_at_first": "2026-11-16T06:36:50.457297Z",
+      "started_at_last": "2026-11-16T06:38:44.887013Z",
+      "llm_passed_first_attempt": 2,
+      "llm_passed_after_retry": 5,
+      "fell_back_to_template": 13,
+      "final_dossiers_passing_grounding": 20,
+      "llm_calls": 38,
+      "prompt_tokens": 67340,
+      "completion_tokens": 22643,
+      "latency_ms_median": 6183.87,
+      "latency_ms_max": 7417.37,
+      "rejected_tokens_top": [
+        [
+          "1,0",
+          12
+        ],
+        [
+          "1,00",
+          3
+        ],
+        [
+          "0,9706",
+          3
+        ],
+        [
+          "Consta",
+          2
+        ],
+        [
+          "512,43 %",
+          2
+        ],
+        [
+          "0,9964",
+          2
+        ],
+        [
+          "10.22",
+          2
+        ],
+        [
+          "Y de Kaya",
+          2
+        ],
+        [
+          "0",
+          2
+        ],
+        [
+          "000",
+          2
+        ],
+        [
+          "10",
+          2
+        ],
+        [
+          "222",
+          2
+        ],
+        [
+          "0,9624",
+          2
+        ],
+        [
+          "336,28 %",
+          2
+        ],
+        [
+          "376,87 %",
+          2
+        ]
+      ]
+    },
+    {
+      "label": "top 20 by risk score, constrained generation (model selects fact ids; renderer writes all text)",
+      "runs": 20,
+      "model": [
+        "gpt-5.4-mini"
+      ],
+      "started_at_first": "2026-11-16T07:08:44.045694Z",
+      "started_at_last": "2026-11-16T07:09:30.201566Z",
+      "llm_passed_first_attempt": 5,
+      "llm_passed_after_retry": 9,
+      "fell_back_to_template": 6,
+      "final_dossiers_passing_grounding": 20,
+      "llm_calls": 35,
+      "prompt_tokens": 73924,
+      "completion_tokens": 6107,
+      "latency_ms_median": 2673.29,
+      "latency_ms_max": 3432.17,
+      "rejected_tokens_top": []
+    }
+  ]
+}

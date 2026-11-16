@@ -1,0 +1,3015 @@
+{
+  "meta": {
+    "generated_at": "2026-11-16 07:48 UTC",
+    "seed": 20260101,
+    "n_boot": 2000,
+    "n_permutations": 5000,
+    "n_processes": 2251027,
+    "weights": {
+      "SINGLE_BIDDER": 20.0,
+      "SHORT_TENDER_WINDOW": 10.0,
+      "LOW_SAVING": 10.0,
+      "NEW_SUPPLIER": 15.0,
+      "SUPPLIER_NOT_ACTIVE": 15.0,
+      "GHOST_COMPANY_LIST": 30.0,
+      "BUYER_CONCENTRATION": 15.0,
+      "REPEATED_DIRECT_AWARDS": 15.0,
+      "RECURRING_COBIDDERS": 15.0,
+      "CONTRACT_VS_COMPANY_SIZE": 15.0
+    },
+    "variants": {
+      "A": {
+        "description": "held-out score A: without both ghost-list codes and SUPPLIER_NOT_ACTIVE",
+        "excluded": [
+          "GHOST_COMPANY_LIST",
+          "GHOST_COMPANY_LISTED_LATER",
+          "SUPPLIER_NOT_ACTIVE"
+        ]
+      },
+      "B": {
+        "description": "held-out score B: A and also without CONTRACT_VS_COMPANY_SIZE",
+        "excluded": [
+          "CONTRACT_VS_COMPANY_SIZE",
+          "GHOST_COMPANY_LIST",
+          "GHOST_COMPANY_LISTED_LATER",
+          "SUPPLIER_NOT_ACTIVE"
+        ]
+      },
+      "C": {
+        "description": "score C: keeps the time-aware SUPPLIER_NOT_ACTIVE, excludes only the ghost-list codes",
+        "excluded": [
+          "GHOST_COMPANY_LIST",
+          "GHOST_COMPANY_LISTED_LATER"
+        ]
+      }
+    },
+    "headline": "A:mean",
+    "consistency": {
+      "processes_with_flag_mismatch": 0,
+      "processes_with_context_flag_mismatch": 0
+    }
+  },
+  "labels": {
+    "n_listed_rucs": 1113,
+    "by_kind": {
+      "company": {
+        "n_suppliers_with_award": 9,
+        "n_processes": 44,
+        "processes_before_notification": 44,
+        "processes_on_or_after_notification": 0,
+        "processes_without_notification_date": 0
+      },
+      "natural_person": {
+        "n_suppliers_with_award": 7,
+        "n_processes": 121,
+        "processes_before_notification": 115,
+        "processes_on_or_after_notification": 6,
+        "processes_without_notification_date": 0
+      }
+    },
+    "n_suppliers_with_award": 16
+  },
+  "size_signal_check": {
+    "n_fired_on_positive_company_processes": 7,
+    "n_fired_awarded_on_or_after_notification": 0,
+    "n_fired_with_revenue_year_at_or_after_notification_year": 0,
+    "share_positives_with_positive_revenue_row": 0.4444444444444444,
+    "n_positive_companies": 9,
+    "share_unlabelled_with_positive_revenue_row": 0.7335282552805363,
+    "n_unlabelled_companies": 19837
+  },
+  "status_signal_check": {
+    "n_firings": 16,
+    "n_firings_on_positive_processes": 0,
+    "n_firings_on_positive_company_processes": 0,
+    "n_firings_on_positive_processes_after_notification": 0,
+    "n_firings_company_won": 6
+  },
+  "primary": {
+    "description": "Companies; all awards; held-out scores",
+    "kinds": [
+      "company"
+    ],
+    "temporal_filter": false,
+    "n_positives": 9,
+    "n_unlabelled": 19837,
+    "prevalence": 0.00045349188753401187,
+    "random_baseline": {
+      "auc": 0.5,
+      "average_precision": 0.00045349188753401187,
+      "lift": 1.0
+    },
+    "scores": {
+      "A:mean": {
+        "auc": {
+          "estimate": 0.44725624954490206,
+          "low": 0.30311258982933126,
+          "high": 0.5979537396447716
+        },
+        "average_precision": {
+          "estimate": 0.0004293568631521228,
+          "low": 0.0003962247316216261,
+          "high": 0.0007609305537719734
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "A:max": {
+        "auc": {
+          "estimate": 0.4692689866859348,
+          "low": 0.3216884273495656,
+          "high": 0.6538039186032834
+        },
+        "average_precision": {
+          "estimate": 0.00046909348833622765,
+          "low": 0.0003861197123031072,
+          "high": 0.0013009010191119984
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": 1.1893853380529398,
+          "low": 0.0,
+          "high": 3.4802955229172454
+        }
+      },
+      "A:share": {
+        "auc": {
+          "estimate": 0.4596349134333709,
+          "low": 0.3036222295037892,
+          "high": 0.6322356371091058
+        },
+        "average_precision": {
+          "estimate": 0.0004362907035832419,
+          "low": 0.0003979057472781932,
+          "high": 0.0008090304478581059
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        }
+      },
+      "B:mean": {
+        "auc": {
+          "estimate": 0.43023138579422293,
+          "low": 0.30866436457125573,
+          "high": 0.5541437717396783
+        },
+        "average_precision": {
+          "estimate": 0.00042106429670703456,
+          "low": 0.00040145637293036634,
+          "high": 0.0006544142123154871
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "B:max": {
+        "auc": {
+          "estimate": 0.4558512991995878,
+          "low": 0.30866436457125573,
+          "high": 0.6044460968000314
+        },
+        "average_precision": {
+          "estimate": 0.00041417764234474966,
+          "low": 0.000398575338845769,
+          "high": 0.0006300924022286747
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.1891761621069274,
+          "low": 0.0,
+          "high": 0.4526118257455745
+        },
+        "lift_top_10": {
+          "estimate": 0.47722058341527374,
+          "low": 0.0,
+          "high": 1.1714160402087321
+        }
+      },
+      "B:share": {
+        "auc": {
+          "estimate": 0.4371376720270202,
+          "low": 0.30866436457125573,
+          "high": 0.567503346720214
+        },
+        "average_precision": {
+          "estimate": 0.00040653330926715566,
+          "low": 0.0004011446659667802,
+          "high": 0.0006158287129918411
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "C:mean": {
+        "auc": {
+          "estimate": 0.44725344894221236,
+          "low": 0.30311258982933126,
+          "high": 0.5979482784695267
+        },
+        "average_precision": {
+          "estimate": 0.0004293568631521228,
+          "low": 0.0003962247316216261,
+          "high": 0.0007609305537719734
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "C:max": {
+        "auc": {
+          "estimate": 0.4692605848778657,
+          "low": 0.3216775049990758,
+          "high": 0.6537899155898349
+        },
+        "average_precision": {
+          "estimate": 0.0004690884244810134,
+          "low": 0.0003861197123031072,
+          "high": 0.0013009010191119984
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": 1.189162715109419,
+          "low": 0.0,
+          "high": 3.4798496762323228
+        }
+      },
+      "C:share": {
+        "auc": {
+          "estimate": 0.4596349134333709,
+          "low": 0.3036222295037892,
+          "high": 0.6322356371091058
+        },
+        "average_precision": {
+          "estimate": 0.0004362907035832419,
+          "low": 0.0003979057472781932,
+          "high": 0.0008090304478581059
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        }
+      },
+      "full:mean": {
+        "auc": {
+          "estimate": 0.44725344894221236,
+          "low": 0.30311258982933126,
+          "high": 0.5979482784695267
+        },
+        "average_precision": {
+          "estimate": 0.0004293568631521228,
+          "low": 0.0003962247316216261,
+          "high": 0.0007609305537719734
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "full:max": {
+        "auc": {
+          "estimate": 0.4692605848778657,
+          "low": 0.3216775049990758,
+          "high": 0.6537899155898349
+        },
+        "average_precision": {
+          "estimate": 0.0004690884244810134,
+          "low": 0.0003861197123031072,
+          "high": 0.0013009010191119984
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": 1.189162715109419,
+          "low": 0.0,
+          "high": 3.4798496762323228
+        }
+      },
+      "full:share": {
+        "auc": {
+          "estimate": 0.4596349134333709,
+          "low": 0.3036222295037892,
+          "high": 0.6322356371091058
+        },
+        "average_precision": {
+          "estimate": 0.0004362907035832419,
+          "low": 0.0003979057472781932,
+          "high": 0.0008090304478581059
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        }
+      },
+      "baseline:amount": {
+        "auc": {
+          "estimate": 0.5250345874432177,
+          "low": 0.325623414158727,
+          "high": 0.7295334055888827
+        },
+        "average_precision": {
+          "estimate": 0.0006426904457741035,
+          "low": 0.00040297820719918236,
+          "high": 0.001663022925039413
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 2.2222222222222223,
+          "low": 0.0,
+          "high": 5.555555555555555
+        }
+      },
+      "baseline:n_processes": {
+        "auc": {
+          "estimate": 0.4710613724073421,
+          "low": 0.32518357950630983,
+          "high": 0.608638458996376
+        },
+        "average_precision": {
+          "estimate": 0.0004290859397554032,
+          "low": 0.00036485707247036956,
+          "high": 0.0007672022382982427
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      }
+    },
+    "paired_differences": {
+      "A:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.07777833789831567,
+          "low": -0.2681047061327598,
+          "high": 0.07360074888115904
+        },
+        "average_precision": {
+          "estimate": -0.00021333358262198073,
+          "low": -0.0011548715158122705,
+          "high": 0.000051814618121409006
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "A:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.05576560075728293,
+          "low": -0.24429545238135247,
+          "high": 0.10340294231318574
+        },
+        "average_precision": {
+          "estimate": -0.00017359695743787587,
+          "low": -0.0009202186999772519,
+          "high": 0.00018950093248411572
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": -1.0328368841692825,
+          "low": -3.3333333333333335,
+          "high": 0.21900441531620046
+        }
+      },
+      "A:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.06539967400984686,
+          "low": -0.2636330538331849,
+          "high": 0.0932684013599726
+        },
+        "average_precision": {
+          "estimate": -0.00020639974219086163,
+          "low": -0.0011466570593138916,
+          "high": 0.00004281743545325658
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": -1.44165191740413,
+          "low": -4.777525705606667,
+          "high": 1.5746156562064544
+        }
+      },
+      "B:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.0948032016489948,
+          "low": -0.31008532036094166,
+          "high": 0.10340700318708562
+        },
+        "average_precision": {
+          "estimate": -0.00022162614906706896,
+          "low": -0.0012089337805719687,
+          "high": 0.00009005262945553317
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "B:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.06918328824362996,
+          "low": -0.2879371040647947,
+          "high": 0.12726435728968877
+        },
+        "average_precision": {
+          "estimate": -0.00022851280342935386,
+          "low": -0.0011813089022310553,
+          "high": 0.00003685336717226028
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.1891761621069274,
+          "low": 0.0,
+          "high": 0.4526118257455745
+        },
+        "lift_top_10": {
+          "estimate": -1.7450016388069485,
+          "low": -4.821310259517234,
+          "high": 0.47865106445218125
+        }
+      },
+      "B:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.08789691541619754,
+          "low": -0.3052619823786078,
+          "high": 0.11359160491337733
+        },
+        "average_precision": {
+          "estimate": -0.00023615713650694786,
+          "low": -0.0012100763264851155,
+          "high": 0.00007211380467196448
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "C:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.07778113850100538,
+          "low": -0.2681047061327598,
+          "high": 0.07360074888115904
+        },
+        "average_precision": {
+          "estimate": -0.00021333358262198073,
+          "low": -0.0011548715158122705,
+          "high": 0.000051814618121409006
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "C:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.05577400256535203,
+          "low": -0.24429545238135247,
+          "high": 0.10340294231318574
+        },
+        "average_precision": {
+          "estimate": -0.00017360202129309014,
+          "low": -0.0009202188869253495,
+          "high": 0.0001894716722424459
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": -1.0330595071128033,
+          "low": -3.3333333333333335,
+          "high": 0.21835062332263744
+        }
+      },
+      "C:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.06539967400984686,
+          "low": -0.2636330538331849,
+          "high": 0.0932684013599726
+        },
+        "average_precision": {
+          "estimate": -0.00020639974219086163,
+          "low": -0.0011466570593138916,
+          "high": 0.00004281743545325658
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": -1.44165191740413,
+          "low": -4.777525705606667,
+          "high": 1.5746156562064544
+        }
+      }
+    },
+    "permutation_p_auc": {
+      "A:mean": 0.7058588282343531,
+      "A:max": 0.641871625674865,
+      "A:share": 0.6580683863227355,
+      "B:mean": 0.7808438312337532,
+      "B:max": 0.7296540691861627,
+      "B:share": 0.7606478704259149,
+      "C:mean": 0.7058588282343531,
+      "C:max": 0.641871625674865,
+      "C:share": 0.6580683863227355,
+      "full:mean": 0.7058588282343531,
+      "full:max": 0.641871625674865,
+      "full:share": 0.6580683863227355,
+      "baseline:amount": 0.40591881623675263,
+      "baseline:n_processes": 0.6194761047790442
+    },
+    "n_boot": 2000,
+    "positives_summary": {
+      "n_with_zero_held_out_mean": 5,
+      "n_with_positive_held_out_mean": 4,
+      "n_processes_min": 1,
+      "n_processes_median": 4.0,
+      "n_processes_max": 18
+    }
+  },
+  "temporal": {
+    "description": "Companies; positives restricted to awards before their SRI notification date",
+    "kinds": [
+      "company"
+    ],
+    "temporal_filter": true,
+    "n_positives": 9,
+    "n_unlabelled": 19837,
+    "prevalence": 0.00045349188753401187,
+    "random_baseline": {
+      "auc": 0.5,
+      "average_precision": 0.00045349188753401187,
+      "lift": 1.0
+    },
+    "scores": {
+      "A:mean": {
+        "auc": {
+          "estimate": 0.44725624954490206,
+          "low": 0.30311258982933126,
+          "high": 0.5979537396447716
+        },
+        "average_precision": {
+          "estimate": 0.0004293568631521228,
+          "low": 0.0003962247316216261,
+          "high": 0.0007609305537719734
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "A:max": {
+        "auc": {
+          "estimate": 0.4692689866859348,
+          "low": 0.3216884273495656,
+          "high": 0.6538039186032834
+        },
+        "average_precision": {
+          "estimate": 0.00046909348833622765,
+          "low": 0.0003861197123031072,
+          "high": 0.0013009010191119984
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": 1.1893853380529398,
+          "low": 0.0,
+          "high": 3.4802955229172454
+        }
+      },
+      "A:share": {
+        "auc": {
+          "estimate": 0.4596349134333709,
+          "low": 0.3036222295037892,
+          "high": 0.6322356371091058
+        },
+        "average_precision": {
+          "estimate": 0.0004362907035832419,
+          "low": 0.0003979057472781932,
+          "high": 0.0008090304478581059
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        }
+      },
+      "B:mean": {
+        "auc": {
+          "estimate": 0.43023138579422293,
+          "low": 0.30866436457125573,
+          "high": 0.5541437717396783
+        },
+        "average_precision": {
+          "estimate": 0.00042106429670703456,
+          "low": 0.00040145637293036634,
+          "high": 0.0006544142123154871
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "B:max": {
+        "auc": {
+          "estimate": 0.4558512991995878,
+          "low": 0.30866436457125573,
+          "high": 0.6044460968000314
+        },
+        "average_precision": {
+          "estimate": 0.00041417764234474966,
+          "low": 0.000398575338845769,
+          "high": 0.0006300924022286747
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.1891761621069274,
+          "low": 0.0,
+          "high": 0.4526118257455745
+        },
+        "lift_top_10": {
+          "estimate": 0.47722058341527374,
+          "low": 0.0,
+          "high": 1.1714160402087321
+        }
+      },
+      "B:share": {
+        "auc": {
+          "estimate": 0.4371376720270202,
+          "low": 0.30866436457125573,
+          "high": 0.567503346720214
+        },
+        "average_precision": {
+          "estimate": 0.00040653330926715566,
+          "low": 0.0004011446659667802,
+          "high": 0.0006158287129918411
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "C:mean": {
+        "auc": {
+          "estimate": 0.44725344894221236,
+          "low": 0.30311258982933126,
+          "high": 0.5979482784695267
+        },
+        "average_precision": {
+          "estimate": 0.0004293568631521228,
+          "low": 0.0003962247316216261,
+          "high": 0.0007609305537719734
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "C:max": {
+        "auc": {
+          "estimate": 0.4692605848778657,
+          "low": 0.3216775049990758,
+          "high": 0.6537899155898349
+        },
+        "average_precision": {
+          "estimate": 0.0004690884244810134,
+          "low": 0.0003861197123031072,
+          "high": 0.0013009010191119984
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": 1.189162715109419,
+          "low": 0.0,
+          "high": 3.4798496762323228
+        }
+      },
+      "C:share": {
+        "auc": {
+          "estimate": 0.4596349134333709,
+          "low": 0.3036222295037892,
+          "high": 0.6322356371091058
+        },
+        "average_precision": {
+          "estimate": 0.0004362907035832419,
+          "low": 0.0003979057472781932,
+          "high": 0.0008090304478581059
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        }
+      },
+      "baseline:amount": {
+        "auc": {
+          "estimate": 0.5250345874432177,
+          "low": 0.325623414158727,
+          "high": 0.7295334055888827
+        },
+        "average_precision": {
+          "estimate": 0.0006426904457741035,
+          "low": 0.00040297820719918236,
+          "high": 0.001663022925039413
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 2.2222222222222223,
+          "low": 0.0,
+          "high": 5.555555555555555
+        }
+      },
+      "baseline:n_processes": {
+        "auc": {
+          "estimate": 0.4710613724073421,
+          "low": 0.32518357950630983,
+          "high": 0.608638458996376
+        },
+        "average_precision": {
+          "estimate": 0.0004290859397554032,
+          "low": 0.00036485707247036956,
+          "high": 0.0007672022382982427
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      }
+    },
+    "paired_differences": {
+      "A:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.07777833789831567,
+          "low": -0.2681047061327598,
+          "high": 0.07360074888115904
+        },
+        "average_precision": {
+          "estimate": -0.00021333358262198073,
+          "low": -0.0011548715158122705,
+          "high": 0.000051814618121409006
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "A:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.05576560075728293,
+          "low": -0.24429545238135247,
+          "high": 0.10340294231318574
+        },
+        "average_precision": {
+          "estimate": -0.00017359695743787587,
+          "low": -0.0009202186999772519,
+          "high": 0.00018950093248411572
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": -1.0328368841692825,
+          "low": -3.3333333333333335,
+          "high": 0.21900441531620046
+        }
+      },
+      "A:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.06539967400984686,
+          "low": -0.2636330538331849,
+          "high": 0.0932684013599726
+        },
+        "average_precision": {
+          "estimate": -0.00020639974219086163,
+          "low": -0.0011466570593138916,
+          "high": 0.00004281743545325658
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": -1.44165191740413,
+          "low": -4.777525705606667,
+          "high": 1.5746156562064544
+        }
+      },
+      "B:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.0948032016489948,
+          "low": -0.31008532036094166,
+          "high": 0.10340700318708562
+        },
+        "average_precision": {
+          "estimate": -0.00022162614906706896,
+          "low": -0.0012089337805719687,
+          "high": 0.00009005262945553317
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "B:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.06918328824362996,
+          "low": -0.2879371040647947,
+          "high": 0.12726435728968877
+        },
+        "average_precision": {
+          "estimate": -0.00022851280342935386,
+          "low": -0.0011813089022310553,
+          "high": 0.00003685336717226028
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.1891761621069274,
+          "low": 0.0,
+          "high": 0.4526118257455745
+        },
+        "lift_top_10": {
+          "estimate": -1.7450016388069485,
+          "low": -4.821310259517234,
+          "high": 0.47865106445218125
+        }
+      },
+      "B:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.08789691541619754,
+          "low": -0.3052619823786078,
+          "high": 0.11359160491337733
+        },
+        "average_precision": {
+          "estimate": -0.00023615713650694786,
+          "low": -0.0012100763264851155,
+          "high": 0.00007211380467196448
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "C:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.07778113850100538,
+          "low": -0.2681047061327598,
+          "high": 0.07360074888115904
+        },
+        "average_precision": {
+          "estimate": -0.00021333358262198073,
+          "low": -0.0011548715158122705,
+          "high": 0.000051814618121409006
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.2222222222222223,
+          "low": -5.555555555555555,
+          "high": 0.0
+        }
+      },
+      "C:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.05577400256535203,
+          "low": -0.24429545238135247,
+          "high": 0.10340294231318574
+        },
+        "average_precision": {
+          "estimate": -0.00017360202129309014,
+          "low": -0.0009202188869253495,
+          "high": 0.0001894716722424459
+        },
+        "lift_top_1": {
+          "estimate": 1.1722870730652832,
+          "low": 0.0,
+          "high": 3.8651329397893996
+        },
+        "lift_top_5": {
+          "estimate": 1.9504971897968009,
+          "low": 0.0,
+          "high": 6.01896838897682
+        },
+        "lift_top_10": {
+          "estimate": -1.0330595071128033,
+          "low": -3.3333333333333335,
+          "high": 0.21835062332263744
+        }
+      },
+      "C:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.06539967400984686,
+          "low": -0.2636330538331849,
+          "high": 0.0932684013599726
+        },
+        "average_precision": {
+          "estimate": -0.00020639974219086163,
+          "low": -0.0011466570593138916,
+          "high": 0.00004281743545325658
+        },
+        "lift_top_1": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.374491505144772
+        },
+        "lift_top_5": {
+          "estimate": 0.7805703048180923,
+          "low": 0.0,
+          "high": 2.3744915051447717
+        },
+        "lift_top_10": {
+          "estimate": -1.44165191740413,
+          "low": -4.777525705606667,
+          "high": 1.5746156562064544
+        }
+      }
+    },
+    "permutation_p_auc": {
+      "A:mean": 0.7058588282343531,
+      "A:max": 0.641871625674865,
+      "A:share": 0.6580683863227355,
+      "B:mean": 0.7808438312337532,
+      "B:max": 0.7296540691861627,
+      "B:share": 0.7606478704259149,
+      "C:mean": 0.7058588282343531,
+      "C:max": 0.641871625674865,
+      "C:share": 0.6580683863227355,
+      "baseline:amount": 0.40591881623675263,
+      "baseline:n_processes": 0.6194761047790442
+    },
+    "n_boot": 2000,
+    "positives_summary": {
+      "n_with_zero_held_out_mean": 5,
+      "n_with_positive_held_out_mean": 4,
+      "n_processes_min": 1,
+      "n_processes_median": 4.0,
+      "n_processes_max": 18
+    }
+  },
+  "all_suppliers": {
+    "description": "Companies and natural persons together (not like-for-like); all awards",
+    "kinds": [
+      "company",
+      "natural_person"
+    ],
+    "temporal_filter": false,
+    "n_positives": 16,
+    "n_unlabelled": 68309,
+    "prevalence": 0.00023417489937797292,
+    "random_baseline": {
+      "auc": 0.5,
+      "average_precision": 0.00023417489937797292,
+      "lift": 1.0
+    },
+    "scores": {
+      "A:mean": {
+        "auc": {
+          "estimate": 0.5477018950650719,
+          "low": 0.4407515503996545,
+          "high": 0.6455510986839216
+        },
+        "average_precision": {
+          "estimate": 0.0002449076032871209,
+          "low": 0.00021349210794136732,
+          "high": 0.0003704332199928874
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "A:max": {
+        "auc": {
+          "estimate": 0.5881367206371049,
+          "low": 0.46026205368253087,
+          "high": 0.7114454514595441
+        },
+        "average_precision": {
+          "estimate": 0.0003185424228980426,
+          "low": 0.00022039231939788311,
+          "high": 0.0007826429804068495
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": 1.5978000611329983,
+          "low": 0.19482853094233882,
+          "high": 4.20588728983154
+        },
+        "lift_top_10": {
+          "estimate": 1.5240583820133136,
+          "low": 0.531906847574317,
+          "high": 2.9670490577890787
+        }
+      },
+      "A:share": {
+        "auc": {
+          "estimate": 0.5508031518540749,
+          "low": 0.4411140804103413,
+          "high": 0.6517584386757236
+        },
+        "average_precision": {
+          "estimate": 0.0002447253173464435,
+          "low": 0.00021275679338100722,
+          "high": 0.00037710188023179004
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": 0.6956039257208015,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "C:mean": {
+        "auc": {
+          "estimate": 0.5477014375850913,
+          "low": 0.4407515503996545,
+          "high": 0.645551064372923
+        },
+        "average_precision": {
+          "estimate": 0.0002449076032871209,
+          "low": 0.00021349210794136732,
+          "high": 0.0003704332199928874
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "C:max": {
+        "auc": {
+          "estimate": 0.5881316883573174,
+          "low": 0.46025670116675693,
+          "high": 0.7114450397275615
+        },
+        "average_precision": {
+          "estimate": 0.0003185361721704579,
+          "low": 0.0002203904414642819,
+          "high": 0.0007826274228482689
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": 1.5973755264230405,
+          "low": 0.1943022093869057,
+          "high": 4.205310308227318
+        },
+        "lift_top_10": {
+          "estimate": 1.5238461146583342,
+          "low": 0.5318870513828539,
+          "high": 2.9670490577890787
+        }
+      },
+      "C:share": {
+        "auc": {
+          "estimate": 0.5508022368941136,
+          "low": 0.4411140804103413,
+          "high": 0.6517557624178366
+        },
+        "average_precision": {
+          "estimate": 0.0002447242370377703,
+          "low": 0.00021275545464763472,
+          "high": 0.00037710188023179004
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": 0.6956039257208015,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "baseline:amount": {
+        "auc": {
+          "estimate": 0.7218658961483846,
+          "low": 0.6042433326867616,
+          "high": 0.8219814784655023
+        },
+        "average_precision": {
+          "estimate": 0.0005679462099673892,
+          "low": 0.00036922543492120635,
+          "high": 0.0011079863953291544
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 2.5,
+          "low": 0.0,
+          "high": 6.25
+        },
+        "lift_top_10": {
+          "estimate": 3.125,
+          "low": 1.25,
+          "high": 5.625000000000001
+        }
+      },
+      "baseline:n_processes": {
+        "auc": {
+          "estimate": 0.6586979753765975,
+          "low": 0.5446653831303342,
+          "high": 0.7612328376385248
+        },
+        "average_precision": {
+          "estimate": 0.00039156487028105247,
+          "low": 0.00027280661771762825,
+          "high": 0.000847124553183793
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 1.25,
+          "low": 0.0,
+          "high": 3.75
+        },
+        "lift_top_10": {
+          "estimate": 1.875,
+          "low": 0.0,
+          "high": 3.75
+        }
+      }
+    },
+    "paired_differences": {
+      "A:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.17416400108331265,
+          "low": -0.31700590332167067,
+          "high": -0.049233698158368575
+        },
+        "average_precision": {
+          "estimate": -0.00032303860668026835,
+          "low": -0.0008314864139754774,
+          "high": -0.00010230894119629833
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": -2.5,
+          "low": -6.25,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      },
+      "A:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.13372917551127972,
+          "low": -0.2921260146905972,
+          "high": 0.009591914132837442
+        },
+        "average_precision": {
+          "estimate": -0.00024940378706934664,
+          "low": -0.0007159581672515397,
+          "high": 0.000056157506690218236
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": -0.9021999388670017,
+          "low": -3.6038269195504067,
+          "high": 0.5768692622251154
+        },
+        "lift_top_10": {
+          "estimate": -1.6009416179866864,
+          "low": -4.100458673479167,
+          "high": 0.7980742920460503
+        }
+      },
+      "A:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.17106274429430968,
+          "low": -0.3146397825506155,
+          "high": -0.04283049954983968
+        },
+        "average_precision": {
+          "estimate": -0.00032322089262094573,
+          "low": -0.0008278318544675163,
+          "high": -0.00010776409177185805
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": -1.8043960742791985,
+          "low": -6.25,
+          "high": 1.3964682305066374
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      },
+      "C:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.17416445856329332,
+          "low": -0.31700634936465183,
+          "high": -0.04923460168133041
+        },
+        "average_precision": {
+          "estimate": -0.00032303860668026835,
+          "low": -0.0008314864139754774,
+          "high": -0.00010230894119629833
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": -2.5,
+          "low": -6.25,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      },
+      "C:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.13373420779106715,
+          "low": -0.2921260833125943,
+          "high": 0.009585074807126342
+        },
+        "average_precision": {
+          "estimate": -0.0002494100377969313,
+          "low": -0.0007159598784551844,
+          "high": 0.00005615742814851523
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": -0.9026244735769595,
+          "low": -3.603831099034157,
+          "high": 0.5748766877296683
+        },
+        "lift_top_10": {
+          "estimate": -1.6011538853416658,
+          "low": -4.100677496812347,
+          "high": 0.7968175631652425
+        }
+      },
+      "C:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.17106365925427103,
+          "low": -0.3146397825506155,
+          "high": -0.04283420513768316
+        },
+        "average_precision": {
+          "estimate": -0.0003232219729296189,
+          "low": -0.0008278318544675163,
+          "high": -0.00010776905309713862
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": -1.8043960742791985,
+          "low": -6.25,
+          "high": 1.3964682305066374
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      }
+    },
+    "permutation_p_auc": {
+      "A:mean": 0.20355928814237154,
+      "A:max": 0.07618476304739052,
+      "A:share": 0.1903619276144771,
+      "C:mean": 0.20355928814237154,
+      "C:max": 0.07618476304739052,
+      "C:share": 0.1903619276144771,
+      "baseline:amount": 0.0003999200159968006,
+      "baseline:n_processes": 0.012997400519896021
+    },
+    "n_boot": 2000,
+    "positives_summary": {
+      "n_with_zero_held_out_mean": 8,
+      "n_with_positive_held_out_mean": 8,
+      "n_processes_min": 1,
+      "n_processes_median": 5.0,
+      "n_processes_max": 67
+    }
+  },
+  "all_suppliers_temporal": {
+    "description": "Companies and natural persons together; positives restricted to awards before notification",
+    "kinds": [
+      "company",
+      "natural_person"
+    ],
+    "temporal_filter": true,
+    "n_positives": 16,
+    "n_unlabelled": 68309,
+    "prevalence": 0.00023417489937797292,
+    "random_baseline": {
+      "auc": 0.5,
+      "average_precision": 0.00023417489937797292,
+      "lift": 1.0
+    },
+    "scores": {
+      "A:mean": {
+        "auc": {
+          "estimate": 0.5247235905956755,
+          "low": 0.4221932459485574,
+          "high": 0.6232827230855378
+        },
+        "average_precision": {
+          "estimate": 0.0002346979541009507,
+          "low": 0.00021206909384035444,
+          "high": 0.0003523153859070662
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "A:max": {
+        "auc": {
+          "estimate": 0.5560746936714049,
+          "low": 0.43722480291762433,
+          "high": 0.676181830908079
+        },
+        "average_precision": {
+          "estimate": 0.00029112198993706725,
+          "low": 0.00021397169011174618,
+          "high": 0.0007392154219718595
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": 1.528258949799606,
+          "low": 0.13350695495890152,
+          "high": 4.110486505889802
+        },
+        "lift_top_10": {
+          "estimate": 1.3442955641600436,
+          "low": 0.3569580136825344,
+          "high": 2.7746804784901187
+        }
+      },
+      "A:share": {
+        "auc": {
+          "estimate": 0.5281528605308232,
+          "low": 0.42432566307148406,
+          "high": 0.6292039894084235
+        },
+        "average_precision": {
+          "estimate": 0.0002349275215253305,
+          "low": 0.00021122219397268736,
+          "high": 0.0003591916691737112
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": 0.6956039257208015,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "C:mean": {
+        "auc": {
+          "estimate": 0.5247231331156949,
+          "low": 0.4221932345115579,
+          "high": 0.6232827230855378
+        },
+        "average_precision": {
+          "estimate": 0.0002346979541009507,
+          "low": 0.00021206909384035444,
+          "high": 0.0003523153859070662
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "C:max": {
+        "auc": {
+          "estimate": 0.5560705763515789,
+          "low": 0.43722480291762433,
+          "high": 0.6761780338242394
+        },
+        "average_precision": {
+          "estimate": 0.0002911178223040932,
+          "low": 0.0002139708581830216,
+          "high": 0.0007391829527208667
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": 1.5279192989606685,
+          "low": 0.13334159982695662,
+          "high": 4.110047124407677
+        },
+        "lift_top_10": {
+          "estimate": 1.3441257387405747,
+          "low": 0.356790464878575,
+          "high": 2.774054016747621
+        }
+      },
+      "C:share": {
+        "auc": {
+          "estimate": 0.5281519455708619,
+          "low": 0.42432564019748503,
+          "high": 0.6292039894084235
+        },
+        "average_precision": {
+          "estimate": 0.00023492657616735836,
+          "low": 0.0002112205732161633,
+          "high": 0.00035918711841276426
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": 0.6956039257208015,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_10": {
+          "estimate": 0.625,
+          "low": 0.0,
+          "high": 1.875
+        }
+      },
+      "baseline:amount": {
+        "auc": {
+          "estimate": 0.698910465678022,
+          "low": 0.5812994307119121,
+          "high": 0.8058889339252514
+        },
+        "average_precision": {
+          "estimate": 0.0005264317294486288,
+          "low": 0.00033940530748584487,
+          "high": 0.001060017009901772
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 2.5,
+          "low": 0.0,
+          "high": 6.25
+        },
+        "lift_top_10": {
+          "estimate": 3.125,
+          "low": 1.25,
+          "high": 5.625000000000001
+        }
+      },
+      "baseline:n_processes": {
+        "auc": {
+          "estimate": 0.6486292984818984,
+          "low": 0.5390761557774232,
+          "high": 0.7482944917580405
+        },
+        "average_precision": {
+          "estimate": 0.000381936382478911,
+          "low": 0.0002698174992708714,
+          "high": 0.0008260255286905539
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 1.25,
+          "low": 0.0,
+          "high": 3.75
+        },
+        "lift_top_10": {
+          "estimate": 1.875,
+          "low": 0.0,
+          "high": 3.75
+        }
+      }
+    },
+    "paired_differences": {
+      "A:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.17418687508234643,
+          "low": -0.31700590332167067,
+          "high": -0.04930774129324104
+        },
+        "average_precision": {
+          "estimate": -0.00029173377534767817,
+          "low": -0.0007890502401092223,
+          "high": -0.00008621414594530736
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": -2.5,
+          "low": -6.25,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      },
+      "A:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.142835772006617,
+          "low": -0.2987541218946259,
+          "high": 0.000995785236938004
+        },
+        "average_precision": {
+          "estimate": -0.00023530973951156159,
+          "low": -0.0006918995110655639,
+          "high": 0.00004667757822971674
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": -0.971741050200394,
+          "low": -3.679161443377244,
+          "high": 0.4980212217617719
+        },
+        "lift_top_10": {
+          "estimate": -1.7807044358399564,
+          "low": -4.1988583357019245,
+          "high": 0.6077031979713889
+        }
+      },
+      "A:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.17075760514719873,
+          "low": -0.3146397825506155,
+          "high": -0.04259315893586502
+        },
+        "average_precision": {
+          "estimate": -0.0002915042079232983,
+          "low": -0.0007864503730870959,
+          "high": -0.0000894861850719205
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": -1.8043960742791985,
+          "low": -6.25,
+          "high": 1.3964682305066374
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      },
+      "C:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.1741873325623271,
+          "low": -0.31700634936465183,
+          "high": -0.049308644816202875
+        },
+        "average_precision": {
+          "estimate": -0.00029173377534767817,
+          "low": -0.0007890502401092223,
+          "high": -0.00008621414594530736
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": -2.5,
+          "low": -6.25,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      },
+      "C:max - baseline:amount": {
+        "auc": {
+          "estimate": -0.1428398893264431,
+          "low": -0.29875596325154813,
+          "high": 0.000995785236938004
+        },
+        "average_precision": {
+          "estimate": -0.0002353139071445356,
+          "low": -0.0006919051662945546,
+          "high": 0.00004667305919930183
+        },
+        "lift_top_1": {
+          "estimate": 3.008615154109589,
+          "low": 0.0,
+          "high": 9.42095987252348
+        },
+        "lift_top_5": {
+          "estimate": -0.9720807010393315,
+          "low": -3.6791656904552545,
+          "high": 0.4980063387844961
+        },
+        "lift_top_10": {
+          "estimate": -1.7808742612594253,
+          "low": -4.198950019028547,
+          "high": 0.6073985789717046
+        }
+      },
+      "C:share - baseline:amount": {
+        "auc": {
+          "estimate": -0.17075852010716008,
+          "low": -0.3146397825506155,
+          "high": -0.04259860294763507
+        },
+        "average_precision": {
+          "estimate": -0.00029150515328127044,
+          "low": -0.0007864503730870959,
+          "high": -0.00008948776034433115
+        },
+        "lift_top_1": {
+          "estimate": 0.6956039257208014,
+          "low": 0.0,
+          "high": 2.097420171005185
+        },
+        "lift_top_5": {
+          "estimate": -1.8043960742791985,
+          "low": -6.25,
+          "high": 1.3964682305066374
+        },
+        "lift_top_10": {
+          "estimate": -2.5,
+          "low": -5.0,
+          "high": -0.625
+        }
+      }
+    },
+    "permutation_p_auc": {
+      "A:mean": 0.3251349730053989,
+      "A:max": 0.17536492701459708,
+      "A:share": 0.3051389722055589,
+      "C:mean": 0.3251349730053989,
+      "C:max": 0.17536492701459708,
+      "C:share": 0.3051389722055589,
+      "baseline:amount": 0.002999400119976005,
+      "baseline:n_processes": 0.020795840831833633
+    },
+    "n_boot": 2000,
+    "positives_summary": {
+      "n_with_zero_held_out_mean": 9,
+      "n_with_positive_held_out_mean": 7,
+      "n_processes_min": 1,
+      "n_processes_median": 5.0,
+      "n_processes_max": 67
+    }
+  },
+  "anomaly": {
+    "description": "anomaly_score alone; companies with at least one process that has an anomaly score",
+    "n_positives": 9,
+    "n_unlabelled": 13609,
+    "prevalence": 0.0006608899985313556,
+    "scores": {
+      "anomaly:mean": {
+        "auc": {
+          "estimate": 0.43846800728276225,
+          "low": 0.26124562176990723,
+          "high": 0.6174559727631221
+        },
+        "average_precision": {
+          "estimate": 0.0008303912780440847,
+          "low": 0.0005144775385986611,
+          "high": 0.0029154414366416538
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 2.222222222222222,
+          "low": 0.0,
+          "high": 6.666666666666665
+        },
+        "lift_top_10": {
+          "estimate": 1.111111111111111,
+          "low": 0.0,
+          "high": 3.3333333333333326
+        }
+      },
+      "anomaly:max": {
+        "auc": {
+          "estimate": 0.4840342583747683,
+          "low": 0.2642034274703832,
+          "high": 0.6788659057323176
+        },
+        "average_precision": {
+          "estimate": 0.0009471081706900659,
+          "low": 0.0005307904740694809,
+          "high": 0.0032974852237843163
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 2.222222222222222,
+          "low": 0.0,
+          "high": 6.666666666666665
+        },
+        "lift_top_10": {
+          "estimate": 1.111111111111111,
+          "low": 0.0,
+          "high": 3.3333333333333326
+        }
+      },
+      "baseline:amount": {
+        "auc": {
+          "estimate": 0.5139123619173586,
+          "low": 0.31997228141507666,
+          "high": 0.7045530531266073
+        },
+        "average_precision": {
+          "estimate": 0.0009061977473666482,
+          "low": 0.0005740095388755877,
+          "high": 0.002255525534206244
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 2.222222222222222,
+          "low": 0.0,
+          "high": 5.5555555555555545
+        }
+      },
+      "baseline:n_processes": {
+        "auc": {
+          "estimate": 0.556229129415991,
+          "low": 0.39208530302659195,
+          "high": 0.7031985573272588
+        },
+        "average_precision": {
+          "estimate": 0.0007701438745651778,
+          "low": 0.0005770630296049325,
+          "high": 0.0015761785511160809
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_10": {
+          "estimate": 1.111111111111111,
+          "low": 0.0,
+          "high": 3.3333333333333326
+        }
+      }
+    },
+    "paired_differences": {
+      "anomaly:mean - baseline:amount": {
+        "auc": {
+          "estimate": -0.07544435463459631,
+          "low": -0.2170000857275822,
+          "high": 0.053990006613270594
+        },
+        "average_precision": {
+          "estimate": -0.00007580646932256354,
+          "low": -0.0009841607369812364,
+          "high": 0.001340130207297081
+        },
+        "lift_top_1": {
+          "estimate": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "lift_top_5": {
+          "estimate": 2.222222222222222,
+          "low": 0.0,
+          "high": 6.666666666666665
+        },
+        "lift_top_10": {
+          "estimate": -1.111111111111111,
+          "low": -3.333333333333333,
+          "high": 0.0
+        }
+      }
+    },
+    "n_boot": 2000
+  },
+  "per_signal": {
+    "all_processes": {
+      "scope": "all processes",
+      "temporal_filter": false,
+      "n_processes_positives": 44,
+      "n_processes_unlabelled": 1661947,
+      "n_positive_suppliers": 9,
+      "signals": {
+        "SINGLE_BIDDER": {
+          "role": "in_heldout",
+          "fired_positives": 2,
+          "fired_unlabelled": 32935,
+          "rate_positives": {
+            "estimate": 0.045454545454545456,
+            "low": 0.0,
+            "high": 0.09090909090909091
+          },
+          "rate_unlabelled": {
+            "estimate": 0.01981711811507828,
+            "low": 0.010261209121243271,
+            "high": 0.04074572424369743
+          },
+          "ratio": {
+            "estimate": 2.2937010916819633,
+            "low": 0.0,
+            "high": 5.9395529889111245
+          }
+        },
+        "SHORT_TENDER_WINDOW": {
+          "role": "in_heldout",
+          "fired_positives": 1,
+          "fired_unlabelled": 841,
+          "rate_positives": {
+            "estimate": 0.022727272727272728,
+            "low": 0.0,
+            "high": 0.10526315789473684
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0005060329842046708,
+            "low": 0.00026303459083908826,
+            "high": 0.0010380566138786982
+          },
+          "ratio": {
+            "estimate": 44.912631066911686,
+            "low": 0.0,
+            "high": 223.45787108783875
+          }
+        },
+        "LOW_SAVING": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1951,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.001173924318886222,
+            "low": 0.0006118644177619975,
+            "high": 0.0024569479983247394
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "NEW_SUPPLIER": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1234,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0007425026189162471,
+            "low": 0.0003900064839820851,
+            "high": 0.0015202148285333745
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "SUPPLIER_NOT_ACTIVE": {
+          "role": "kept_in_variant_C",
+          "fired_positives": 0,
+          "fired_unlabelled": 6,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 3.610223430711088e-6,
+            "low": 0.0,
+            "high": 0.000012550974953726242
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "GHOST_COMPANY_LIST": {
+          "role": "label",
+          "fired_positives": 0,
+          "fired_unlabelled": 0,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "ratio": {
+            "estimate": null,
+            "low": null,
+            "high": null
+          }
+        },
+        "BUYER_CONCENTRATION": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1425,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0008574280647938833,
+            "low": 0.0004285242452167294,
+            "high": 0.001877690217378945
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "REPEATED_DIRECT_AWARDS": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1527,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0009188018631159718,
+            "low": 0.00039178998239358935,
+            "high": 0.002250726054878126
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "RECURRING_COBIDDERS": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 5933,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.003569909269068147,
+            "low": 0.0018245903157504027,
+            "high": 0.007566149766145855
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "CONTRACT_VS_COMPANY_SIZE": {
+          "role": "checked_in_variant_B",
+          "fired_positives": 7,
+          "fired_unlabelled": 5950,
+          "rate_positives": {
+            "estimate": 0.1590909090909091,
+            "low": 0.0,
+            "high": 0.4
+          },
+          "rate_unlabelled": {
+            "estimate": 0.003580138235455162,
+            "low": 0.0018907151599547884,
+            "high": 0.007259377092733902
+          },
+          "ratio": {
+            "estimate": 44.43708556149733,
+            "low": 0.0,
+            "high": 139.11113359925918
+          }
+        },
+        "CONTRACT_VS_COMPANY_SIZE_SAME_YEAR": {
+          "role": "context",
+          "fired_positives": 0,
+          "fired_unlabelled": 614,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.00036944619774276796,
+            "low": 0.00018971002778181547,
+            "high": 0.0007591875918720604
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "GHOST_COMPANY_LISTED_LATER": {
+          "role": "label",
+          "fired_positives": 44,
+          "fired_unlabelled": 0,
+          "rate_positives": {
+            "estimate": 1.0,
+            "low": 1.0,
+            "high": 1.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "ratio": {
+            "estimate": null,
+            "low": null,
+            "high": null
+          }
+        }
+      }
+    },
+    "non_catalogue": {
+      "scope": "non-catalogue processes",
+      "temporal_filter": false,
+      "n_processes_positives": 43,
+      "n_processes_unlabelled": 168576,
+      "n_positive_suppliers": 9,
+      "signals": {
+        "SINGLE_BIDDER": {
+          "role": "in_heldout",
+          "fired_positives": 2,
+          "fired_unlabelled": 32935,
+          "rate_positives": {
+            "estimate": 0.046511627906976744,
+            "low": 0.0,
+            "high": 0.08889880952380948
+          },
+          "rate_unlabelled": {
+            "estimate": 0.19537182042520881,
+            "low": 0.18262743143530547,
+            "high": 0.20719985087047119
+          },
+          "ratio": {
+            "estimate": 0.23806722896755766,
+            "low": 0.0,
+            "high": 0.45573687772375543
+          }
+        },
+        "SHORT_TENDER_WINDOW": {
+          "role": "in_heldout",
+          "fired_positives": 1,
+          "fired_unlabelled": 841,
+          "rate_positives": {
+            "estimate": 0.023255813953488372,
+            "low": 0.0,
+            "high": 0.10344827586206896
+          },
+          "rate_unlabelled": {
+            "estimate": 0.004988847760060744,
+            "low": 0.004397484457375612,
+            "high": 0.005585805604146746
+          },
+          "ratio": {
+            "estimate": 4.661560158172718,
+            "low": 0.0,
+            "high": 20.450459949693446
+          }
+        },
+        "LOW_SAVING": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1951,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.01157341495823842,
+            "low": 0.010261428836759467,
+            "high": 0.013102845529425035
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "NEW_SUPPLIER": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1234,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.007320140470766894,
+            "low": 0.0065415521033697285,
+            "high": 0.008146659636190165
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "SUPPLIER_NOT_ACTIVE": {
+          "role": "kept_in_variant_C",
+          "fired_positives": 0,
+          "fired_unlabelled": 6,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.000035592255125284736,
+            "low": 0.0,
+            "high": 0.00009380491802382705
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "GHOST_COMPANY_LIST": {
+          "role": "label",
+          "fired_positives": 0,
+          "fired_unlabelled": 0,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "ratio": {
+            "estimate": null,
+            "low": null,
+            "high": null
+          }
+        },
+        "BUYER_CONCENTRATION": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1425,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.008453160592255125,
+            "low": 0.0068734723200872105,
+            "high": 0.010203429377407938
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "REPEATED_DIRECT_AWARDS": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 1527,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.009058228929384966,
+            "low": 0.005148735889881929,
+            "high": 0.014399546723405293
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "RECURRING_COBIDDERS": {
+          "role": "in_heldout",
+          "fired_positives": 0,
+          "fired_unlabelled": 5933,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.03519480827638573,
+            "low": 0.029474595777948257,
+            "high": 0.04127817591700548
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "CONTRACT_VS_COMPANY_SIZE": {
+          "role": "checked_in_variant_B",
+          "fired_positives": 7,
+          "fired_unlabelled": 5950,
+          "rate_positives": {
+            "estimate": 0.16279069767441862,
+            "low": 0.0,
+            "high": 0.38788265306122377
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0352956529992407,
+            "low": 0.03241665294609016,
+            "high": 0.038609456583378256
+          },
+          "ratio": {
+            "estimate": 4.612202462380301,
+            "low": 0.0,
+            "high": 11.395875602490595
+          }
+        },
+        "CONTRACT_VS_COMPANY_SIZE_SAME_YEAR": {
+          "role": "context",
+          "fired_positives": 0,
+          "fired_unlabelled": 614,
+          "rate_positives": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.003642274107820805,
+            "low": 0.0031958870622378114,
+            "high": 0.004132089682748887
+          },
+          "ratio": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          }
+        },
+        "GHOST_COMPANY_LISTED_LATER": {
+          "role": "label",
+          "fired_positives": 43,
+          "fired_unlabelled": 0,
+          "rate_positives": {
+            "estimate": 1.0,
+            "low": 1.0,
+            "high": 1.0
+          },
+          "rate_unlabelled": {
+            "estimate": 0.0,
+            "low": 0.0,
+            "high": 0.0
+          },
+          "ratio": {
+            "estimate": null,
+            "low": null,
+            "high": null
+          }
+        }
+      }
+    }
+  },
+  "robustness": {
+    "description": "positives' processes vs unlabelled company-won processes, same method key and year",
+    "temporal_filter": false,
+    "n_positive_processes_used": 44,
+    "n_positive_processes_dropped_no_stratum": 0,
+    "n_positive_suppliers": 9,
+    "n_strata_with_positives": 16,
+    "stratified_concordance": {
+      "estimate": 0.3872511661572078,
+      "low": 0.32589018043140655,
+      "high": 0.49086542250400905
+    },
+    "mean_score_observed": {
+      "estimate": 3.522727272727273,
+      "low": 0.8333333333333334,
+      "high": 6.875538793103446
+    },
+    "mean_score_expected": {
+      "estimate": 7.9938726955101975,
+      "low": 6.931180774579399,
+      "high": 8.589160849153313
+    },
+    "mean_score_ratio": {
+      "estimate": 0.44067843045659605,
+      "low": 0.10781386281016718,
+      "high": 0.9301888338741878
+    },
+    "any_signal_observed": {
+      "estimate": 0.20454545454545456,
+      "low": 0.06060606060606061,
+      "high": 0.4444444444444444
+    },
+    "any_signal_expected": {
+      "estimate": 0.3986129817473843,
+      "low": 0.3561099651929291,
+      "high": 0.41992618118263453
+    },
+    "any_signal_ratio": {
+      "estimate": 0.513142983072946,
+      "low": 0.15465382124692037,
+      "high": 1.2021335166714044
+    },
+    "n_boot": 2000
+  },
+  "buyer_concentration": {
+    "n_positive_processes": 44,
+    "n_distinct_buyers": 23,
+    "n_positive_suppliers": 9,
+    "effective_n_buyers": 10.876404494382024,
+    "positive_suppliers_sharing_a_buyer": 5,
+    "top_buyers": [
+      {
+        "buyer": "Buyer 01",
+        "n_processes": 11,
+        "share": 0.25,
+        "n_positive_suppliers": 2
+      },
+      {
+        "buyer": "Buyer 02",
+        "n_processes": 3,
+        "share": 0.06818181818181818,
+        "n_positive_suppliers": 1
+      },
+      {
+        "buyer": "Buyer 03",
+        "n_processes": 2,
+        "share": 0.045454545454545456,
+        "n_positive_suppliers": 1
+      },
+      {
+        "buyer": "Buyer 04",
+        "n_processes": 2,
+        "share": 0.045454545454545456,
+        "n_positive_suppliers": 2
+      },
+      {
+        "buyer": "Buyer 05",
+        "n_processes": 2,
+        "share": 0.045454545454545456,
+        "n_positive_suppliers": 1
+      }
+    ]
+  },
+  "leave_one_buyer_out": {
+    "n_buyers_dropped_in_turn": 23,
+    "variants": {
+      "A": {
+        "mean": {
+          "min_auc": 0.4087782150906583,
+          "min_buyer": "Buyer 09",
+          "min_n_positives": 9,
+          "max_auc": 0.47051404933662916,
+          "max_buyer": "Buyer 15",
+          "max_n_positives": 8
+        },
+        "max": {
+          "min_auc": 0.42860985039502436,
+          "min_buyer": "Buyer 02",
+          "min_n_positives": 9,
+          "max_auc": 0.49523911617817684,
+          "max_buyer": "Buyer 15",
+          "max_n_positives": 8
+        },
+        "share": {
+          "min_auc": 0.4129382940312398,
+          "min_buyer": "Buyer 09",
+          "min_n_positives": 9,
+          "max_auc": 0.48436790596781515,
+          "max_buyer": "Buyer 15",
+          "max_n_positives": 8
+        }
+      },
+      "C": {
+        "mean": {
+          "min_auc": 0.4087754118029625,
+          "min_buyer": "Buyer 09",
+          "min_n_positives": 9,
+          "max_auc": 0.4705108964334359,
+          "max_buyer": "Buyer 15",
+          "max_n_positives": 8
+        },
+        "max": {
+          "min_auc": 0.4285986440298089,
+          "min_buyer": "Buyer 02",
+          "min_n_positives": 9,
+          "max_auc": 0.4952296574685971,
+          "max_buyer": "Buyer 15",
+          "max_n_positives": 8
+        },
+        "share": {
+          "min_auc": 0.4129382940312398,
+          "min_buyer": "Buyer 09",
+          "min_n_positives": 9,
+          "max_auc": 0.48436790596781515,
+          "max_buyer": "Buyer 15",
+          "max_n_positives": 8
+        }
+      }
+    }
+  },
+  "metric_names": [
+    "auc",
+    "average_precision",
+    "lift_top_1",
+    "lift_top_5",
+    "lift_top_10"
+  ],
+  "history": [
+    {
+      "generated_at": "2026-11-16 06:20 UTC",
+      "note": "Initial marts (Signals v1 as first built). SUPPLIER_NOT_ACTIVE used the current SRI status with no time check (27,291 firings); GHOST_COMPANY_LIST fired on all 165 listed-supplier processes.",
+      "headline_key": "A:mean",
+      "headline_auc": {
+        "estimate": 0.474,
+        "low": 0.315,
+        "high": 0.661
+      },
+      "n_positives": 9,
+      "n_unlabelled": 19837,
+      "n_boot": 2000,
+      "seed": 20260101
+    },
+    {
+      "generated_at": "2026-11-16 06:29 UTC",
+      "note": "SUPPLIER_NOT_ACTIVE made time-aware (fires only if the suspension came before the process date): 27,291 -> 32 firings. All other signal counts unchanged. Harness gained variant C and leave-one-buyer-out.",
+      "headline_key": "A:mean",
+      "headline_auc": {
+        "estimate": 0.474,
+        "low": 0.315,
+        "high": 0.661
+      },
+      "n_positives": 9,
+      "n_unlabelled": 19837,
+      "n_boot": 2000,
+      "seed": 20260101
+    },
+    {
+      "generated_at": "2026-11-16 06:51 UTC",
+      "note": "Rule changes after review: SINGLE_BIDDER excludes Menor Cuantia goods/services cells (structurally single-tenderer): 74,964 -> 59,268; GHOST_COMPANY_LIST fires only for listings notified on or before the process date: 165 -> 6 (159 moved to the context signal GHOST_COMPANY_LISTED_LATER, weight 0); BUYER_CONCENTRATION requires that no single process reaches 30% of the buyer-year: 13,496 -> 3,231; CONTRACT_VS_COMPANY_SIZE uses the latest revenue year strictly before the award year: 4,023 -> 5,957 (same-year comparison kept as context signal, 614). Harness: reads only kind='risk' signals for scoring; both ghost codes excluded from held-out scores.",
+      "headline_key": "A:mean",
+      "headline_auc": {
+        "estimate": 0.44725624954490206,
+        "low": 0.30311258982933126,
+        "high": 0.5979537396447716
+      },
+      "n_positives": 9,
+      "n_unlabelled": 19837,
+      "n_boot": 2000,
+      "seed": 20260101
+    },
+    {
+      "generated_at": "2026-11-16 07:45 UTC",
+      "note": "Registry-derived signals (ghost list, supplier not active, new supplier, contract vs company size) restricted to company and public-entity winners for data-protection reasons; found by manual inspection of a rendered process page.",
+      "headline_key": "A:mean",
+      "headline_auc": {
+        "estimate": 0.44725624954490206,
+        "low": 0.30311258982933126,
+        "high": 0.5979537396447716
+      },
+      "n_positives": 9,
+      "n_unlabelled": 19837,
+      "n_boot": 2000,
+      "seed": 20260101
+    }
+  ]
+}

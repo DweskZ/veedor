@@ -1,0 +1,58 @@
+[
+  {
+    "generated_at": "2026-11-16 06:20 UTC",
+    "note": "Initial marts (Signals v1 as first built). SUPPLIER_NOT_ACTIVE used the current SRI status with no time check (27,291 firings); GHOST_COMPANY_LIST fired on all 165 listed-supplier processes.",
+    "headline_key": "A:mean",
+    "headline_auc": {
+      "estimate": 0.474,
+      "low": 0.315,
+      "high": 0.661
+    },
+    "n_positives": 9,
+    "n_unlabelled": 19837,
+    "n_boot": 2000,
+    "seed": 20260101
+  },
+  {
+    "generated_at": "2026-11-16 06:29 UTC",
+    "note": "SUPPLIER_NOT_ACTIVE made time-aware (fires only if the suspension came before the process date): 27,291 -> 32 firings. All other signal counts unchanged. Harness gained variant C and leave-one-buyer-out.",
+    "headline_key": "A:mean",
+    "headline_auc": {
+      "estimate": 0.474,
+      "low": 0.315,
+      "high": 0.661
+    },
+    "n_positives": 9,
+    "n_unlabelled": 19837,
+    "n_boot": 2000,
+    "seed": 20260101
+  },
+  {
+    "generated_at": "2026-11-16 06:51 UTC",
+    "note": "Rule changes after review: SINGLE_BIDDER excludes Menor Cuantia goods/services cells (structurally single-tenderer): 74,964 -> 59,268; GHOST_COMPANY_LIST fires only for listings notified on or before the process date: 165 -> 6 (159 moved to the context signal GHOST_COMPANY_LISTED_LATER, weight 0); BUYER_CONCENTRATION requires that no single process reaches 30% of the buyer-year: 13,496 -> 3,231; CONTRACT_VS_COMPANY_SIZE uses the latest revenue year strictly before the award year: 4,023 -> 5,957 (same-year comparison kept as context signal, 614). Harness: reads only kind='risk' signals for scoring; both ghost codes excluded from held-out scores.",
+    "headline_key": "A:mean",
+    "headline_auc": {
+      "estimate": 0.44725624954490206,
+      "low": 0.30311258982933126,
+      "high": 0.5979537396447716
+    },
+    "n_positives": 9,
+    "n_unlabelled": 19837,
+    "n_boot": 2000,
+    "seed": 20260101
+  },
+  {
+    "generated_at": "2026-11-16 07:45 UTC",
+    "note": "Registry-derived signals (ghost list, supplier not active, new supplier, contract vs company size) restricted to company and public-entity winners for data-protection reasons; found by manual inspection of a rendered process page.",
+    "headline_key": "A:mean",
+    "headline_auc": {
+      "estimate": 0.44725624954490206,
+      "low": 0.30311258982933126,
+      "high": 0.5979537396447716
+    },
+    "n_positives": 9,
+    "n_unlabelled": 19837,
+    "n_boot": 2000,
+    "seed": 20260101
+  }
+]

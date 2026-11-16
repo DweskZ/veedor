@@ -1,0 +1,341 @@
+{
+  "n_processes": 2251027,
+  "n_with_any_signal": 87217,
+  "signals_fired": {
+    "SINGLE_BIDDER": 59268,
+    "SHORT_TENDER_WINDOW": 3092,
+    "LOW_SAVING": 4289,
+    "NEW_SUPPLIER": 1307,
+    "SUPPLIER_NOT_ACTIVE": 16,
+    "GHOST_COMPANY_LIST": 0,
+    "BUYER_CONCENTRATION": 3231,
+    "REPEATED_DIRECT_AWARDS": 3361,
+    "RECURRING_COBIDDERS": 11417,
+    "CONTRACT_VS_COMPANY_SIZE": 5957
+  },
+  "context_signals": {
+    "fired": {
+      "CONTRACT_VS_COMPANY_SIZE_SAME_YEAR": 614,
+      "GHOST_COMPANY_LISTED_LATER": 44
+    },
+    "n_with_any_context": 658,
+    "n_with_context_and_risk": 258
+  },
+  "by_method_group": [
+    {
+      "key": "catalogue",
+      "n_processes": 1865093,
+      "with_any_signal": 0,
+      "share_any": 0.0,
+      "share_any_held_out": 0.0
+    },
+    {
+      "key": "competitive",
+      "n_processes": 267037,
+      "with_any_signal": 81936,
+      "share_any": 0.3068338844429798,
+      "share_any_held_out": 0.30683013964357
+    },
+    {
+      "key": "direct",
+      "n_processes": 95445,
+      "with_any_signal": 5204,
+      "share_any": 0.05452354759285452,
+      "share_any_held_out": 0.0543978207344544
+    },
+    {
+      "key": "no_tender_block",
+      "n_processes": 19862,
+      "with_any_signal": 0,
+      "share_any": 0.0,
+      "share_any_held_out": 0.0
+    },
+    {
+      "key": "other",
+      "n_processes": 3590,
+      "with_any_signal": 77,
+      "share_any": 0.021448467966573816,
+      "share_any_held_out": 0.020891364902506964
+    }
+  ],
+  "by_year": [
+    {
+      "key": 2015,
+      "n_processes": 280643,
+      "with_any_signal": 13702,
+      "share_any": 0.04882359438860046,
+      "share_any_held_out": 0.04881646789693668
+    },
+    {
+      "key": 2016,
+      "n_processes": 279636,
+      "with_any_signal": 11812,
+      "share_any": 0.04224062710094551,
+      "share_any_held_out": 0.0422227467135848
+    },
+    {
+      "key": 2017,
+      "n_processes": 302809,
+      "with_any_signal": 9292,
+      "share_any": 0.030686009993097958,
+      "share_any_held_out": 0.03066619552259015
+    },
+    {
+      "key": 2018,
+      "n_processes": 310005,
+      "with_any_signal": 10921,
+      "share_any": 0.03522846405703134,
+      "share_any_held_out": 0.03522846405703134
+    },
+    {
+      "key": 2019,
+      "n_processes": 172403,
+      "with_any_signal": 5916,
+      "share_any": 0.034314948115752045,
+      "share_any_held_out": 0.034314948115752045
+    },
+    {
+      "key": 2020,
+      "n_processes": 160676,
+      "with_any_signal": 6386,
+      "share_any": 0.03974457915307825,
+      "share_any_held_out": 0.039738355448231226
+    },
+    {
+      "key": 2021,
+      "n_processes": 135621,
+      "with_any_signal": 6951,
+      "share_any": 0.05125312451611476,
+      "share_any_held_out": 0.05124575102675839
+    },
+    {
+      "key": 2022,
+      "n_processes": 76820,
+      "with_any_signal": 3343,
+      "share_any": 0.04351731319968758,
+      "share_any_held_out": 0.04351731319968758
+    },
+    {
+      "key": 2023,
+      "n_processes": 134051,
+      "with_any_signal": 4567,
+      "share_any": 0.03406912294574453,
+      "share_any_held_out": 0.03406912294574453
+    },
+    {
+      "key": 2024,
+      "n_processes": 179973,
+      "with_any_signal": 7099,
+      "share_any": 0.03944480560973035,
+      "share_any_held_out": 0.03944480560973035
+    },
+    {
+      "key": 2025,
+      "n_processes": 98851,
+      "with_any_signal": 2672,
+      "share_any": 0.027030581380056852,
+      "share_any_held_out": 0.027030581380056852
+    },
+    {
+      "key": 2026,
+      "n_processes": 119539,
+      "with_any_signal": 4556,
+      "share_any": 0.03811308443269561,
+      "share_any_held_out": 0.03811308443269561
+    }
+  ],
+  "cooccurrence": {
+    "n_processes": 2251027,
+    "codes": [
+      "SINGLE_BIDDER",
+      "SHORT_TENDER_WINDOW",
+      "LOW_SAVING",
+      "NEW_SUPPLIER",
+      "SUPPLIER_NOT_ACTIVE",
+      "GHOST_COMPANY_LIST",
+      "BUYER_CONCENTRATION",
+      "REPEATED_DIRECT_AWARDS",
+      "RECURRING_COBIDDERS",
+      "CONTRACT_VS_COMPANY_SIZE"
+    ],
+    "counts": {
+      "SINGLE_BIDDER|SINGLE_BIDDER": 59268,
+      "SINGLE_BIDDER|SHORT_TENDER_WINDOW": 1035,
+      "SINGLE_BIDDER|LOW_SAVING": 513,
+      "SINGLE_BIDDER|NEW_SUPPLIER": 148,
+      "SINGLE_BIDDER|SUPPLIER_NOT_ACTIVE": 0,
+      "SINGLE_BIDDER|GHOST_COMPANY_LIST": 0,
+      "SINGLE_BIDDER|BUYER_CONCENTRATION": 670,
+      "SINGLE_BIDDER|REPEATED_DIRECT_AWARDS": 0,
+      "SINGLE_BIDDER|RECURRING_COBIDDERS": 0,
+      "SINGLE_BIDDER|CONTRACT_VS_COMPANY_SIZE": 1145,
+      "SHORT_TENDER_WINDOW|SHORT_TENDER_WINDOW": 3092,
+      "SHORT_TENDER_WINDOW|LOW_SAVING": 16,
+      "SHORT_TENDER_WINDOW|NEW_SUPPLIER": 2,
+      "SHORT_TENDER_WINDOW|SUPPLIER_NOT_ACTIVE": 0,
+      "SHORT_TENDER_WINDOW|GHOST_COMPANY_LIST": 0,
+      "SHORT_TENDER_WINDOW|BUYER_CONCENTRATION": 77,
+      "SHORT_TENDER_WINDOW|REPEATED_DIRECT_AWARDS": 0,
+      "SHORT_TENDER_WINDOW|RECURRING_COBIDDERS": 112,
+      "SHORT_TENDER_WINDOW|CONTRACT_VS_COMPANY_SIZE": 117,
+      "LOW_SAVING|LOW_SAVING": 4289,
+      "LOW_SAVING|NEW_SUPPLIER": 15,
+      "LOW_SAVING|SUPPLIER_NOT_ACTIVE": 0,
+      "LOW_SAVING|GHOST_COMPANY_LIST": 0,
+      "LOW_SAVING|BUYER_CONCENTRATION": 52,
+      "LOW_SAVING|REPEATED_DIRECT_AWARDS": 0,
+      "LOW_SAVING|RECURRING_COBIDDERS": 239,
+      "LOW_SAVING|CONTRACT_VS_COMPANY_SIZE": 87,
+      "NEW_SUPPLIER|NEW_SUPPLIER": 1307,
+      "NEW_SUPPLIER|SUPPLIER_NOT_ACTIVE": 1,
+      "NEW_SUPPLIER|GHOST_COMPANY_LIST": 0,
+      "NEW_SUPPLIER|BUYER_CONCENTRATION": 12,
+      "NEW_SUPPLIER|REPEATED_DIRECT_AWARDS": 12,
+      "NEW_SUPPLIER|RECURRING_COBIDDERS": 6,
+      "NEW_SUPPLIER|CONTRACT_VS_COMPANY_SIZE": 47,
+      "SUPPLIER_NOT_ACTIVE|SUPPLIER_NOT_ACTIVE": 16,
+      "SUPPLIER_NOT_ACTIVE|GHOST_COMPANY_LIST": 0,
+      "SUPPLIER_NOT_ACTIVE|BUYER_CONCENTRATION": 0,
+      "SUPPLIER_NOT_ACTIVE|REPEATED_DIRECT_AWARDS": 0,
+      "SUPPLIER_NOT_ACTIVE|RECURRING_COBIDDERS": 0,
+      "SUPPLIER_NOT_ACTIVE|CONTRACT_VS_COMPANY_SIZE": 0,
+      "GHOST_COMPANY_LIST|GHOST_COMPANY_LIST": 0,
+      "GHOST_COMPANY_LIST|BUYER_CONCENTRATION": 0,
+      "GHOST_COMPANY_LIST|REPEATED_DIRECT_AWARDS": 0,
+      "GHOST_COMPANY_LIST|RECURRING_COBIDDERS": 0,
+      "GHOST_COMPANY_LIST|CONTRACT_VS_COMPANY_SIZE": 0,
+      "BUYER_CONCENTRATION|BUYER_CONCENTRATION": 3231,
+      "BUYER_CONCENTRATION|REPEATED_DIRECT_AWARDS": 274,
+      "BUYER_CONCENTRATION|RECURRING_COBIDDERS": 177,
+      "BUYER_CONCENTRATION|CONTRACT_VS_COMPANY_SIZE": 56,
+      "REPEATED_DIRECT_AWARDS|REPEATED_DIRECT_AWARDS": 3361,
+      "REPEATED_DIRECT_AWARDS|RECURRING_COBIDDERS": 0,
+      "REPEATED_DIRECT_AWARDS|CONTRACT_VS_COMPANY_SIZE": 6,
+      "RECURRING_COBIDDERS|RECURRING_COBIDDERS": 11417,
+      "RECURRING_COBIDDERS|CONTRACT_VS_COMPANY_SIZE": 65,
+      "CONTRACT_VS_COMPANY_SIZE|CONTRACT_VS_COMPANY_SIZE": 5957
+    }
+  },
+  "risk_score_distribution": {
+    "n_processes": 2251027,
+    "share_zero": 0.9612545740233236,
+    "max": 60.0,
+    "quantiles": {
+      "0.5": 0.0,
+      "0.9": 0.0,
+      "0.99": 20.0,
+      "0.999": 30.0
+    },
+    "histogram": [
+      {
+        "score": 0.0,
+        "n_processes": 2163810
+      },
+      {
+        "score": 10.0,
+        "n_processes": 5240
+      },
+      {
+        "score": 15.0,
+        "n_processes": 21524
+      },
+      {
+        "score": 20.0,
+        "n_processes": 55896
+      },
+      {
+        "score": 25.0,
+        "n_processes": 569
+      },
+      {
+        "score": 30.0,
+        "n_processes": 2015
+      },
+      {
+        "score": 35.0,
+        "n_processes": 1816
+      },
+      {
+        "score": 40.0,
+        "n_processes": 27
+      },
+      {
+        "score": 45.0,
+        "n_processes": 103
+      },
+      {
+        "score": 50.0,
+        "n_processes": 24
+      },
+      {
+        "score": 55.0,
+        "n_processes": 1
+      },
+      {
+        "score": 60.0,
+        "n_processes": 2
+      }
+    ]
+  },
+  "held_out_score_distribution": {
+    "n_processes": 2251027,
+    "share_zero": 0.9612612376484156,
+    "max": 60.0,
+    "quantiles": {
+      "0.5": 0.0,
+      "0.9": 0.0,
+      "0.99": 20.0,
+      "0.999": 30.0
+    },
+    "histogram": [
+      {
+        "score": 0.0,
+        "n_processes": 2163825
+      },
+      {
+        "score": 10.0,
+        "n_processes": 5240
+      },
+      {
+        "score": 15.0,
+        "n_processes": 21510
+      },
+      {
+        "score": 20.0,
+        "n_processes": 55896
+      },
+      {
+        "score": 25.0,
+        "n_processes": 569
+      },
+      {
+        "score": 30.0,
+        "n_processes": 2014
+      },
+      {
+        "score": 35.0,
+        "n_processes": 1816
+      },
+      {
+        "score": 40.0,
+        "n_processes": 27
+      },
+      {
+        "score": 45.0,
+        "n_processes": 103
+      },
+      {
+        "score": 50.0,
+        "n_processes": 24
+      },
+      {
+        "score": 55.0,
+        "n_processes": 1
+      },
+      {
+        "score": 60.0,
+        "n_processes": 2
+      }
+    ]
+  }
+}
