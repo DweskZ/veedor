@@ -206,6 +206,15 @@ def run_batch(
     return summary, records
 
 
+def recorded_investigations(path: Path, key: str) -> int:
+    """How many investigations the summary file records under `key` (0 when absent or unreadable)."""
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))[key]["investigations"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return 0
+    return value if isinstance(value, int) else 0
+
+
 def write_summary(path: Path, sections: dict[str, Any]) -> None:
     """Merge `sections` into the JSON summary file (a later run adds a key, it does not replace others)."""
     existing: dict[str, Any] = {}
