@@ -17,6 +17,8 @@ _SUB_APPS = {
     "registries": "Download and load SRI / Supercias registries.",
     "signals": "Compute indicators, scores and marts.",
     "dossier": "Build evidence dossiers.",
+    "investigate": "Run multi-agent investigations with read-only tools.",
+    "vectors": "Build and query the vector index of processes.",
     "evaluate": "Run the evaluation harness.",
     "serve": "Run the API server.",
 }
