@@ -57,6 +57,36 @@ The second review swept 1,640 processes and found 0 personal-data leaks, confirm
 | Natural-person winners exposed a behavioural profile in `winner`. | Natural persons and unidentified parties return only `ruc`, `name` (masked) and `kind`. |
 | Dossier endpoint had no rate limit and wrote an investigator trace per uncached build. | 30 requests per minute per IP (in memory, per process); the API builds with `write_traces=False`. |
 
+## Stage 3 read endpoints (aggregates, random process, buyer search, context, glossary)
+
+All are `GET`, unauthenticated, masked like every other response, and answer only 200, 404, 422 or 503.
+
+| Route | Controls | Tests |
+|---|---|---|
+| `GET /processes?region=` | Closed enumeration of the 24 province keys plus `SIN_REGION`; anything else is 422. The key is mapped to the exact raw `buyer_region` strings found in the lake (read once per data build) and bound as parameters; no text of the request reaches SQL. | `test_api_new_endpoints_security.py`, `test_api_stats_aggregates.py` |
+| `GET /processes/random` | `with_signals` is a boolean, `min_score` a number 0-100 (422 otherwise). Candidates are only processes whose identifier matches the path pattern, whose winner has a 13-digit RUC with third digit 9 or 6 and whose buyer is not a natural person; so natural-person and RUC-less winners are never returned. Uniform choice from bounded in-memory pools of random samples (`secrets`), at most 32 pools of 1,000 rows, keyed by the data build. A warm call does no database work; a combination with no match is not rescanned for 30 s. `Cache-Control: no-store`. | `test_api_random_search_context.py` |
+| `GET /buyers/search` | `q` is trimmed, 3-60 characters, no control, format, surrogate or private-use characters (422). Matching is done in Python over an in-memory table (one row per buyer RUC): `%`, `_` and `\` are ordinary punctuation, no SQL `LIKE` is built from user text. Natural-person buyers (RUC third digit 0-5) and RUCs the API would reject are not in the table. `limit` 1-10. | same |
+| `GET /processes/{ocid}/context` | Same strict `ocid` pattern. Returns counts, quartiles and percentiles of the process's own method and year only; it carries no name, no RUC and no free text. Groups are computed once per method-year and cached with a size bound. | same |
+| `GET /stats/by-region`, `/stats/by-year` | No parameters. One aggregate query each, cached per data build. Natural-person buyers appear only as counts inside a province total. | `test_api_stats_aggregates.py` |
+| `GET /glossary` | Serves one repository file (`VEEDOR_GLOSSARY_PATH`, mounted read-only in compose). The file is treated as untrusted: at most 512 KiB and 400 entries, strict types and lengths (term 100, alias 100 x 20, definition 1500, source 300), no control characters, unique terms, unknown keys dropped. Any violation, or a missing file, is a 503 `glossary_unavailable` with a generic message (the path is never echoed). | `test_api_glossary.py` |
+
+Every statement these routes send to DuckDB is a single `SELECT` (`test_every_new_query_is_exactly_one_select`); the lockdown of the shared database is unchanged. Rate limiting is not applied: the routes are cheap after warm-up (see "Measured cost" below) and the aggregates are memoised.
+
+### Measured cost
+
+Real lake (2.25 M processes), two uvicorn workers with two DuckDB threads each, local container. Cold = first call of a worker after a data build; warm = later calls.
+
+| Route | Cold | Warm |
+|---|---|---|
+| `/stats/by-region` | 0.20-0.25 s | 2 ms |
+| `/stats/by-year` | 0.15 s | 2 ms |
+| `/processes/random` (any / with signals) | 0.03-0.17 s (one sample scan per filter combination) | 1-5 ms |
+| `/buyers/search` | 0.07 s (builds the buyer table once) | 5 ms |
+| `/processes/{ocid}/context` | 0.03 s per new method-year group | 12 ms |
+| `/processes?region=MANABI` / `SIN_REGION` | not cached (a join per request) | 72 ms / 180 ms |
+
+200 requests at concurrency 8 over a mix of the new routes: 183 requests per second, p50 7 ms, p95 126 ms, no errors. 1,000 requests at concurrency 8 over only random and search: 590 requests per second, p95 19 ms, no errors.
+
 ## Residual limits
 
 - Free-text name masking is heuristic. A person who is not a party of the process and has no honorific can still appear in a description shown by the process detail endpoint.
@@ -71,7 +101,8 @@ The second review swept 1,640 processes and found 0 personal-data leaks, confirm
 - **The data bundle contains unmasked personal data.** `data/` (lake, marts, registries, dossier cache) holds real names, RUCs and cédulas. Masking exists only at the API boundary: never publish or share the data directory or the Parquet files as-is.
 - **Shared rate limiting.** The limiter is in memory and per process: each worker or replica counts separately and a restart resets it. Behind a proxy the client IP is the proxy's unless forwarded headers are trusted. A real deployment needs a shared limiter (for example at the gateway or in Redis).
 - TLS termination, secrets management and database credentials rotation (the compose password is a local-development default).
-- Rate limiting of read endpoints; `q` searches over the full lake can be expensive.
+- Rate limiting of read endpoints; `q` searches over the full lake can be expensive. The stage-3 routes are cached or in-memory (see above) and are not rate limited.
+- `GET /processes/random` samples a bounded pool, so within one pool lifetime at most 1,000 distinct processes are served per filter combination; every matching process has the same probability per call and pools are redrawn independently when exhausted.
 
 ## Reporting an issue
 

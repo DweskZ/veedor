@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from veedor.core.settings import get_settings
 from veedor.infrastructure.db.repositories import SqlReviewRepository
 from veedor.infrastructure.db.session import get_session
+from veedor.infrastructure.glossary import GlossaryStore
 from veedor.infrastructure.lake.reader import LakeReader
 from veedor.use_cases.queries.ports import LakePort
 from veedor.use_cases.queries.processes import name_context, process_exists
@@ -33,11 +34,17 @@ def get_reader() -> LakeReader:
     return LakeReader(settings.lake_dir, settings.marts_dir, threads=settings.lake_threads)
 
 
+@lru_cache
+def get_glossary_store() -> GlossaryStore:
+    return GlossaryStore(get_settings().glossary_path)
+
+
 def get_lake(reader: Annotated[LakeReader, Depends(get_reader)]) -> LakePort:
     return reader
 
 
 Lake = Annotated[LakePort, Depends(get_lake)]
+GlossaryDep = Annotated[GlossaryStore, Depends(get_glossary_store)]
 
 
 def get_review_service(session: Annotated[Session, Depends(get_session)], lake: Lake) -> ReviewService:

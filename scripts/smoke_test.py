@@ -129,10 +129,81 @@ def main() -> int:
         f"rows={len(rows)}",
     )
 
+    check_stage3_endpoints(ocid)
+
     for path in ("/", "/procesos", "/metodologia", f"/procesos/{ocid}"):
         code, body = request(f"{WEB}{path}")
         check(f"web {path[:48]}", code == 200 and b"Veedor" in body, f"http {code}, {len(body)} bytes")
     return finish()
+
+
+def check_stage3_endpoints(ocid: str) -> None:
+    """The stage-3 read endpoints: aggregates, random process, buyer search, context, glossary."""
+    status, regions = get_json("/stats/by-region")
+    items = regions.get("items", [])
+    national = regions.get("national", {})
+    provinces = [row for row in items if row.get("region") != "SIN_REGION"]
+    check(
+        "api /stats/by-region",
+        status == 200
+        and len(provinces) == 24
+        and regions.get("basis") == "competitive"
+        and national.get("competitive_processes") == sum(row["competitive_processes"] for row in items)
+        and all(row.get("region_label") for row in items),
+        f"{len(provinces)} provinces, national {national.get('pct_with_signal')} %",
+    )
+    status, years = get_json("/stats/by-year")
+    rows = years.get("items", [])
+    check(
+        "api /stats/by-year",
+        status == 200
+        and len(rows) >= 2
+        and rows[-1].get("partial_year") is True
+        and bool(years.get("notes")),
+        f"{rows[0].get('year')}-{rows[-1].get('year')}" if rows else "no rows",
+    )
+    if provinces:
+        key = urllib.parse.quote(provinces[0]["region"])
+        status, listed = get_json(f"/processes?region={key}&page_size=1")
+        check(
+            "api /processes?region= matches the province row",
+            status == 200 and listed.get("total") == provinces[0]["processes_total"],
+            f"{provinces[0]['region']} total={listed.get('total')}",
+        )
+    status, _ = get_json("/processes?region=ATLANTIDA")
+    check("api unknown region is rejected", status == 422, f"http {status}")
+
+    status, picked = get_json("/processes/random?with_signals=true")
+    check(
+        "api /processes/random with signals",
+        status == 200
+        and API_OCID.fullmatch(picked.get("ocid", "")) is not None
+        and picked.get("n_signals", 0) > 0,
+        picked.get("ocid", ""),
+    )
+    status, buyers = get_json("/buyers/search?q=municip")
+    hits = buyers.get("items", [])
+    check(
+        "api /buyers/search",
+        status == 200 and 0 < len(hits) <= 10 and all(len(hit.get("ruc", "")) == 13 for hit in hits),
+        f"{len(hits)} hits",
+    )
+    status, _ = get_json("/buyers/search?q=ab")
+    check("api buyer search needs 3 characters", status == 422, f"http {status}")
+
+    status, context = get_json(f"/processes/{ocid}/context")
+    check(
+        "api /processes/{ocid}/context",
+        status == 200 and context.get("ocid") == ocid and context.get("comparable_processes", 0) >= 1,
+        f"{context.get('method')} {context.get('year')}, {context.get('comparable_processes')} comparable",
+    )
+    status, glossary = get_json("/glossary")
+    terms = glossary.get("items", [])
+    check(
+        "api /glossary",
+        status == 200 and len(terms) > 0 and all(t.get("term") and t.get("definition_es") for t in terms),
+        f"{len(terms)} terms",
+    )
 
 
 def first_stored_investigation() -> str | None:

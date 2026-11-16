@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "fixtures" / "api"))
 
-from api_fixture_data import REVIEW_TOKEN, build_fixture_data  # noqa: E402
+from api_fixture_data import REVIEW_TOKEN, build_fixture_data, build_stats_fixture_data  # noqa: E402
 
 from veedor.api.deps import ReviewPolicy, get_reader, get_review_policy  # noqa: E402
 from veedor.api.main import create_app  # noqa: E402
@@ -19,6 +19,22 @@ from veedor.infrastructure.lake.reader import LakeReader  # noqa: E402
 @pytest.fixture
 def lake_dirs(tmp_path: Path) -> tuple[Path, Path]:
     return build_fixture_data(tmp_path)
+
+
+@pytest.fixture
+def stats_dirs(tmp_path: Path) -> tuple[Path, Path]:
+    """Larger synthetic lake for the aggregate endpoints (see `stats_rows` in the fixture module)."""
+    return build_stats_fixture_data(tmp_path)
+
+
+@pytest.fixture
+def stats_client(stats_dirs: tuple[Path, Path]) -> Iterator[TestClient]:
+    """API over the statistics lake; one shared reader that re-checks the files on every call."""
+    reader = LakeReader(*stats_dirs, refresh_interval=0)
+    app = create_app()
+    app.dependency_overrides[get_reader] = lambda: reader
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 def _enabled_policy() -> ReviewPolicy:
@@ -57,8 +73,10 @@ def empty_client(tmp_path: Path) -> Iterator[TestClient]:
 @pytest.fixture(autouse=True)
 def _reset_rate_limiter() -> None:
     from veedor.api.security import review_rate_limiter
+    from veedor.use_cases.queries._cache import clear_all_caches
 
     review_rate_limiter.reset()
+    clear_all_caches()
 
 
 @pytest.fixture(scope="session")

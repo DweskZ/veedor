@@ -34,6 +34,18 @@ REVIEW_TOKEN = "test-review-token"
 REVIEW_HEADERS = {"Authorization": f"Bearer {REVIEW_TOKEN}"}
 
 
+SCORE_SCHEMA = pa.schema(
+    [
+        ("ocid", pa.string()), ("risk_score", pa.float64()), ("n_signals", pa.int64()),
+        ("signal_codes", pa.list_(pa.string())), ("anomaly_score", pa.float64()),
+        ("award_total", pa.float64()), ("year", pa.int64()), ("buyer_ruc", pa.string()),
+        ("buyer_name", pa.string()), ("method", pa.string()), ("winner_ruc", pa.string()),
+        ("winner_name", pa.string()), ("winner_kind", pa.string()),
+        ("n_context_signals", pa.int32()), ("context_signal_codes", pa.list_(pa.string())),
+    ]
+)  # fmt: skip
+
+
 def _write(path: Path, rows: list[dict], schema: pa.Schema | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(pa.Table.from_pylist(rows, schema=schema), path)
@@ -170,16 +182,7 @@ def build_fixture_data(root: Path) -> tuple[Path, Path]:
     _write(
         marts / "process_scores.parquet",
         SCORES,
-        pa.schema(
-            [
-                ("ocid", pa.string()), ("risk_score", pa.float64()), ("n_signals", pa.int64()),
-                ("signal_codes", pa.list_(pa.string())), ("anomaly_score", pa.float64()),
-                ("award_total", pa.float64()), ("year", pa.int64()), ("buyer_ruc", pa.string()),
-                ("buyer_name", pa.string()), ("method", pa.string()), ("winner_ruc", pa.string()),
-                ("winner_name", pa.string()), ("winner_kind", pa.string()),
-                ("n_context_signals", pa.int32()), ("context_signal_codes", pa.list_(pa.string())),
-            ]
-        ),
+        SCORE_SCHEMA,
     )  # fmt: skip
     _write(
         marts / "process_signals.parquet",
@@ -212,4 +215,100 @@ def build_fixture_data(root: Path) -> tuple[Path, Path]:
              "mean_risk_score": 40.0},
         ],
     )  # fmt: skip
+    return lake, marts
+
+
+# --- Statistics fixture: many processes over several provinces, years and methods ---------------
+
+SIE = "Subasta Inversa Electrónica"
+STATS_YEARS = (2021, 2022, 2023, 2024, 2025)
+STATS_BUYERS = {
+    "manabi": ("1760001230001", "GAD Municipal de Ejemplo", "MANABI"),
+    "rios": ("1760002340001", "Empresa Pública Ficticia EP", " Los Ríos "),  # raw spelling kept on purpose
+    "rios2": ("1760002340001", "Empresa Pública Ficticia EP", "LOS RIOS"),
+    "pichincha": ("1760003450001", "Hospital Ejemplo Norte", "PICHINCHA"),
+    "canar": ("1760004560001", "Universidad Ejemplo del Cañar", "CAÑAR"),
+    "noregion": ("1760005670001", "Ministerio de Prueba", None),
+    "sur": ("1760006780001", "MUNICIPIO DE EJEMPLO SUR", "PICHINCHA"),
+    "sur_alt": ("1760006780001", "Municipio Ejemplo Sur", "PICHINCHA"),
+    "nandu": ("1760007890001", "Gobierno Municipal Ñandú", "AZUAY"),
+    "person": (NATURAL_BUYER_RUC, NATURAL_BUYER_NAME, "PICHINCHA"),
+    "badruc": ("17600078", "Municipio Con Ruc Corto", "AZUAY"),
+}
+PROCESS_SCHEMA = pa.schema(
+    [
+        ("ocid", pa.string()), ("process_code", pa.string()), ("release_date", pa.string()),
+        ("year", pa.int16()), ("buyer_ruc", pa.string()), ("buyer_name", pa.string()),
+        ("buyer_region", pa.string()), ("method", pa.string()), ("method_group", pa.string()),
+        ("status", pa.string()), ("description", pa.string()), ("budget", pa.float64()),
+        ("tender_start", pa.string()), ("tender_end", pa.string()), ("n_tenderers", pa.int32()),
+        ("award_total", pa.float64()), ("main_cpc_description", pa.string()),
+    ]
+)  # fmt: skip
+
+
+def stats_rows() -> list[dict]:
+    """One dict per process: the lake columns plus `signals`, `winner` (ruc, name, kind) and `score`."""
+    rows: list[dict] = []
+    tenderers = [1, 1, 2, 2, 3, 3, 4, 5, 6, 8]
+    window_days = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
+
+    def add(year, buyer, method, group, n, budget, award, days=None, winner="company", extra=()):
+        ruc, name, region = STATS_BUYERS[buyer]
+        index = len(rows) + 1
+        start = f"{year}-03-01T10:00:00-05:00"
+        end = None if days is None else f"{year}-03-{1 + int(days):02d}T10:00:00-05:00"
+        signals = ["SINGLE_BIDDER"] * (group == "competitive" and n == 1) + list(extra)
+        wruc, wname, wkind = {
+            "company": (COMPANY_RUC, COMPANY_NAME, "company"),
+            "public": (BUYER_RUC, BUYER_NAME, "public_entity"),
+            "person": (NATURAL_RUC, NATURAL_NAME, "natural_person"),
+            "noruc": (None, NORUC_NAME, None),
+        }[winner]
+        rows.append({
+            "ocid": f"ocds-5wno2w-st-{index:04d}", "process_code": f"ST-{index:04d}",
+            "release_date": f"{year}-06-15T10:00:00-05:00", "year": year, "buyer_ruc": ruc,
+            "buyer_name": name, "buyer_region": region, "method": method, "method_group": group,
+            "status": "complete", "description": "Compra de insumos", "budget": budget,
+            "tender_start": start if days is not None else None, "tender_end": end, "n_tenderers": n,
+            "award_total": award, "main_cpc_description": "Servicios generales",
+            "signals": signals, "winner": (wruc, wname, wkind), "score": 30.0 * len(signals),
+        })  # fmt: skip
+
+    for year in STATS_YEARS:
+        for i, n in enumerate(tenderers):  # reverse auctions, no tender end date in the data
+            buyer = ("manabi", "rios", "rios2", "pichincha", "canar")[i % 5]
+            winner = "person" if (year, i) == (2023, 3) else ("noruc" if (year, i) == (2023, 4) else "company")
+            award = None if (year, i) == (2024, 9) else 1000.0 + 10 * i
+            add(year, buyer, SIE, "competitive", n, 1000.0 + 10 * i + 100, award, winner=winner)
+        for i in range(5):  # tender with a window
+            buyer = ("manabi", "rios", "noregion", "pichincha", "sur")[i]
+            add(year, buyer, "Licitación", "competitive", [2, 3, 1, 4, 2][i], 5000.0, 4500.0 + 100 * i,
+                days=window_days[i], extra=["LOW_SAVING"] if i == 2 else ())  # fmt: skip
+        add(year, "manabi", "Contratación directa", "direct", None, 300.0, 300.0, winner="public")
+        add(year, "sur_alt", "Contratación directa", "direct", None, 200.0, 200.0)
+        for _ in range(3):
+            add(year, "noregion", "Catálogo electrónico - Mejor oferta", "catalogue", None, 50.0, 50.0)
+    add(2024, "person", "Cotización", "competitive", 2, 800.0, 700.0)
+    add(2024, "nandu", "Cotización", "competitive", 3, 900.0, 800.0)
+    add(2024, "badruc", "Cotización", "competitive", 3, 900.0, 800.0)
+    return rows
+
+
+def build_stats_fixture_data(root: Path) -> tuple[Path, Path]:
+    """Lake (`processes`) and marts (`process_scores`) with `stats_rows()`; returns ``(lake, marts)``."""
+    lake, marts = root / "lake", root / "marts"
+    rows = stats_rows()
+    _write(lake / "processes.parquet", [{k: r[k] for k in PROCESS_SCHEMA.names} for r in rows], PROCESS_SCHEMA)
+    scores = [
+        {
+            "ocid": r["ocid"], "risk_score": r["score"], "n_signals": len(r["signals"]),
+            "signal_codes": r["signals"], "anomaly_score": None, "award_total": r["award_total"],
+            "year": r["year"], "buyer_ruc": r["buyer_ruc"], "buyer_name": r["buyer_name"],
+            "method": r["method"], "winner_ruc": r["winner"][0], "winner_name": r["winner"][1],
+            "winner_kind": r["winner"][2], "n_context_signals": 0, "context_signal_codes": [],
+        }
+        for r in rows
+    ]  # fmt: skip
+    _write(marts / "process_scores.parquet", scores, SCORE_SCHEMA)
     return lake, marts

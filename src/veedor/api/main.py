@@ -32,6 +32,7 @@ TAGS = [
     {"name": "proveedores", "description": "Perfiles de proveedores y registros públicos."},
     {"name": "entidades", "description": "Entidades contratantes."},
     {"name": "señales", "description": "Catálogo de indicadores."},
+    {"name": "glosario", "description": "Términos de la contratación pública, en español claro."},
     {"name": "revisiones", "description": "Revisión humana de procesos (PostgreSQL)."},
     {"name": "health", "description": "Estado del servicio."},
 ]

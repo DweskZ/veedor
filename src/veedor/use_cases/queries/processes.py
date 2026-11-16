@@ -12,8 +12,10 @@ from veedor.domain.masking import (
     kind_from_ruc,
     safe_free_text,
 )
+from veedor.domain.regions import SIN_REGION
 from veedor.use_cases.queries.catalogue import signal_kind, signal_label
 from veedor.use_cases.queries.ports import LakePort, NotFoundError, Row
+from veedor.use_cases.queries.region_stats import region_raw_values
 
 # Closed whitelist: request value -> constant SQL fragment. Nothing request-derived reaches the SQL text.
 _NATURAL_BUYER = (
@@ -49,6 +51,7 @@ class ProcessFilters:
     signal: str | None = None
     min_score: float | None = None
     q: str | None = None
+    region: str | None = None  # canonical key of the buyer's province, or SIN_REGION
 
 
 def parse_sort(sort: str) -> tuple[str, bool]:
@@ -89,6 +92,11 @@ def _where(lake: LakePort, f: ProcessFilters) -> tuple[str, list[Any], tuple[str
     if f.min_score is not None:
         clauses.append("risk_score >= ?")
         params.append(f.min_score)
+    if f.region:
+        clause, region_params = _region_clause(lake, f.region)
+        clauses.append(clause)
+        params += region_params
+        tables.append("processes")
     if f.q:
         pattern = _like_pattern(f.q.strip())
         # Never the description or any party name: a caller must not find a process by a person's name.
@@ -99,15 +107,32 @@ def _where(lake: LakePort, f: ProcessFilters) -> tuple[str, list[Any], tuple[str
         ]
         params += [pattern, pattern]
         if lake.has_table("processes"):
+            if "processes" not in tables:
+                tables.append("processes")
             text_clauses.append(
                 "ocid IN (SELECT ocid FROM processes WHERE process_code ILIKE ? ESCAPE '\\' "
                 "OR main_cpc_description ILIKE ? ESCAPE '\\')"
             )
             params += [pattern, pattern]
-            tables.append("processes")
         clauses.append("(" + " OR ".join(text_clauses) + ")")
     where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
     return where, params, tuple(tables)
+
+
+def _region_clause(lake: LakePort, key: str) -> tuple[str, list[Any]]:
+    """Rows whose buyer's province is `key`: equality on the raw column values that mean that key
+    (read from the lake once per data build), so no function runs over the whole column."""
+    raw_values = region_raw_values(lake, key)
+    conditions: list[str] = []
+    params: list[Any] = []
+    if raw_values:
+        conditions.append("buyer_region IN (" + ", ".join("?" for _ in raw_values) + ")")
+        params += raw_values
+    if key == SIN_REGION:
+        conditions.append("buyer_region IS NULL")
+    if not conditions:
+        return "1 = 0", []
+    return "ocid IN (SELECT ocid FROM processes WHERE " + " OR ".join(conditions) + ")", params
 
 
 def list_processes(

@@ -57,6 +57,7 @@ services:
       VEEDOR_REVIEWS_ENABLED: ${VEEDOR_REVIEWS_ENABLED:-false}
       VEEDOR_REVIEWS_TOKEN: ${VEEDOR_REVIEWS_TOKEN:-}
       VEEDOR_DOCS_ENABLED: ${VEEDOR_DOCS_ENABLED:-true}
+      VEEDOR_GLOSSARY_PATH: /app/web/src/data/glossary.json
       # Performance: uvicorn processes and DuckDB threads per process (docs/DEPLOYMENT.md).
       VEEDOR_API_WORKERS: ${VEEDOR_API_WORKERS:-2}
       VEEDOR_LAKE_THREADS: ${VEEDOR_LAKE_THREADS:-2}
@@ -70,6 +71,8 @@ services:
       - ./data/marts:/app/data/marts:ro
       # Stored investigations are produced by the CLI on the host and only read by the API.
       - ./data/investigations:/app/data/investigations:ro
+      # `GET /glossary` serves the web team's content file (the folder is mounted, never one file).
+      - ./web/src/data:/app/web/src/data:ro
       - veedor_dossiers:/app/data/dossiers
       - veedor_traces:/app/data/traces
     healthcheck:

@@ -10,6 +10,7 @@ The route mix is the same for every run, so two runs are comparable.
 
 Notes: the dossier route is rate limited by the API (30 per minute per client IP), so it answers
 429 once that budget is spent; those are counted under their own status, not hidden.
+`--stage3` sends only the stage-3 read routes (they are not rate limited, so every request counts).
 Environment: API_URL (default http://localhost:8000/api/v1).
 """
 
@@ -39,10 +40,30 @@ def _fetch_json(path: str) -> dict:
         connection.close()
 
 
-def build_route_mix() -> list[tuple[str, str]]:
+def stage3_routes(ocids: list[str]) -> list[tuple[str, str]]:
+    """The stage-3 read routes: aggregates, random process, buyer search, context, region filter."""
+    return [
+        ("by_region", "/stats/by-region"),
+        ("by_year", "/stats/by-year"),
+        ("random", "/processes/random"),
+        ("random_signals", "/processes/random?with_signals=true"),
+        ("random_min_score", "/processes/random?min_score=40"),
+        ("buyer_search", "/buyers/search?q=municip"),
+        ("buyer_search", "/buyers/search?q=hospital&limit=5"),
+        ("buyer_search", "/buyers/search?q=gad%20parroquial"),
+        ("context", f"/processes/{ocids[0]}/context"),
+        ("context", f"/processes/{ocids[2]}/context"),
+        ("list_region", "/processes?region=MANABI&page_size=25"),
+        ("glossary", "/glossary"),
+    ]
+
+
+def build_route_mix(only_stage3: bool = False) -> list[tuple[str, str]]:
     """``(label, path)`` pairs; ocids come from the API itself so the mix works on any dataset."""
     items = _fetch_json("/processes?page_size=10&sort=-risk_score")["items"]
     ocids = [item["ocid"] for item in items]
+    if only_stage3:
+        return stage3_routes(ocids)
     mix: list[tuple[str, str]] = [
         ("stats", "/stats"),
         ("list_default", "/processes?page_size=25"),
@@ -100,8 +121,8 @@ def worker(jobs: list[tuple[str, str]], results: list[tuple[str, float, int]], l
         results.extend(local)
 
 
-def run(total: int, concurrency: int) -> dict:
-    mix = build_route_mix()
+def run(total: int, concurrency: int, only_stage3: bool = False) -> dict:
+    mix = build_route_mix(only_stage3)
     plan = list(islice(cycle(mix), total))
     shards = [plan[index::concurrency] for index in range(concurrency)]
     results: list[tuple[str, float, int]] = []
@@ -146,9 +167,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--requests", type=int, default=200, help="Total requests (default 200).")
     parser.add_argument("--concurrency", type=int, default=8, help="Parallel clients (default 8).")
+    parser.add_argument(
+        "--stage3",
+        action="store_true",
+        help="Send only the stage-3 routes (aggregates, random, search, context).",
+    )
     parser.add_argument("--json-only", action="store_true", help="Print only the JSON report.")
     args = parser.parse_args()
-    report = run(max(1, args.requests), max(1, args.concurrency))
+    report = run(max(1, args.requests), max(1, args.concurrency), args.stage3)
     if not args.json_only:
         print_table(report)
     print(json.dumps(report, indent=None if args.json_only else 2))

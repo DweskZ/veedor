@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from veedor.infrastructure.glossary import GlossaryUnavailableError
 from veedor.use_cases.queries.ports import DossierUnavailableError, LakeUnavailableError, NotFoundError
 from veedor.use_cases.queries.processes import InvalidSortError
 from veedor.use_cases.reviews import (
@@ -48,6 +49,11 @@ def register_error_handlers(app: FastAPI) -> None:
         return _response(
             503, "dossier_unavailable", "El generador de expedientes no está disponible todavía."
         )
+
+    @app.exception_handler(GlossaryUnavailableError)
+    async def _glossary(_: Request, exc: GlossaryUnavailableError) -> JSONResponse:
+        logger.warning("Glossary unavailable: %s", exc)
+        return _response(503, "glossary_unavailable", "El glosario no está disponible por ahora.")
 
     @app.exception_handler(ReviewsDisabledError)
     async def _disabled(_: Request, exc: ReviewsDisabledError) -> JSONResponse:

@@ -24,6 +24,9 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # Glossary served by `GET /glossary`: one JSON file written by the web team (content owner).
+    glossary_path: Path = REPO_ROOT / "web" / "src" / "data" / "glossary.json"
+
     # Human reviews are off by default; writing needs the flag AND a bearer token.
     reviews_enabled: bool = False
     reviews_token: str | None = None
