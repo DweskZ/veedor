@@ -1,0 +1,109 @@
+{
+  "generated_on": "2026-11-16",
+  "model": "minishlab/potion-multilingual-128M",
+  "dimension": 256,
+  "seed": 42,
+  "bootstrap_resamples": 2000,
+  "index": {
+    "rows": 365864,
+    "models": {
+      "minishlab/potion-multilingual-128M": 365864
+    },
+    "definition": "CREATE INDEX ix_process_vectors_embedding_hnsw ON public.process_vectors USING hnsw (embedding vector_cosine_ops) WITH (m='16', ef_construction='64')"
+  },
+  "full_index": {
+    "indexed_rows": 365864,
+    "indexed_rows_with_cpc": 361616,
+    "queries": 1000,
+    "k": 10,
+    "agreement_at_10_cpc5": {
+      "embedding": {
+        "mean": 0.8134,
+        "ci95_low": 0.7919,
+        "ci95_high": 0.8342
+      },
+      "random_neighbour_baseline": {
+        "mean": 0.0172,
+        "ci95_low": 0.0143,
+        "ci95_high": 0.0205
+      },
+      "exact_cpc_baseline": {
+        "mean": 1.0,
+        "ci95_low": 1.0,
+        "ci95_high": 1.0
+      }
+    },
+    "exact_cpc_baseline_note": "Neighbours drawn at random among processes with the identical 9-digit CPC; they share the 5-digit prefix by construction, so this baseline is a ceiling of 1.0, not a competitor.",
+    "exact_cpc_baseline_queries_with_a_candidate": 992,
+    "exact_cpc_baseline_queries_with_fewer_than_10_candidates": 70,
+    "embedding_neighbours_sharing_exact_cpc9": {
+      "mean": 0.7386,
+      "ci95_low": 0.7149,
+      "ci95_high": 0.7624
+    }
+  },
+  "pool_experiment": {
+    "pool_size": 20000,
+    "queries": 1000,
+    "k": 10,
+    "all_neighbours": {
+      "with_cpc_text": {
+        "mean": 0.6332,
+        "ci95_low": 0.6097,
+        "ci95_high": 0.6576
+      },
+      "without_cpc_text": {
+        "mean": 0.2976,
+        "ci95_low": 0.2772,
+        "ci95_high": 0.3176
+      },
+      "paired_difference_with_minus_without": {
+        "mean": 0.3356,
+        "ci95_low": 0.316,
+        "ci95_high": 0.3559
+      }
+    },
+    "identical_description_neighbours_removed": {
+      "with_cpc_text": {
+        "mean": 0.6328,
+        "ci95_low": 0.6095,
+        "ci95_high": 0.6572
+      },
+      "without_cpc_text": {
+        "mean": 0.2965,
+        "ci95_low": 0.2763,
+        "ci95_high": 0.3165
+      },
+      "paired_difference_with_minus_without": {
+        "mean": 0.3363,
+        "ci95_low": 0.3169,
+        "ci95_high": 0.3565
+      }
+    },
+    "random_neighbour_baseline": {
+      "mean": 0.0242,
+      "ci95_low": 0.0203,
+      "ci95_high": 0.0282
+    },
+    "exact_cpc_baseline": {
+      "mean": 1.0,
+      "ci95_low": 1.0,
+      "ci95_high": 1.0
+    },
+    "queries_with_duplicate_description_in_pool": 19
+  },
+  "latency": {
+    "queries": 200,
+    "k": 10,
+    "p50_ms": 14.1,
+    "p95_ms": 20.3,
+    "max_ms": 33.9,
+    "includes": "index lookup, ANN search and buyer-name lookup in the lake (buyer cache warms up)"
+  },
+  "caveats": [
+    "CPC agreement is a proxy, not relevance: similar purchases can carry different CPC codes.",
+    "The embedded text includes the CPC description, so the full-index number is optimistic.",
+    "The pool experiment embeds the description without the CPC text to measure that leakage.",
+    "Identical descriptions (re-tendered objects) inflate agreement; the pool experiment also reports the result with identical-description neighbours removed."
+  ]
+}
