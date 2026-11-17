@@ -1,3 +1,4 @@
+import { revalidateSeconds } from "./cache-policy";
 import { normalizeInvestigation } from "./investigation";
 import { normalizeContext, normalizeProcessThreshold, normalizeRegions, normalizeThresholds, normalizeYears } from "./normalize";
 import * as mocks from "./mocks";
@@ -45,7 +46,9 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, { cache: "no-store", ...init });
+    const ttl = revalidateSeconds(path);
+    const cache: RequestInit = ttl === null ? { cache: "no-store" } : ({ next: { revalidate: ttl } } as RequestInit);
+    res = await fetch(`${API_URL}${path}`, { ...cache, ...init });
   } catch {
     throw new ApiError("No se pudo conectar con el servicio de datos.", null);
   }
