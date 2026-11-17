@@ -21,7 +21,8 @@ require_env_file
 START=$SECONDS
 
 verify_release "$RELEASE"
-mkdir -p "$VEEDOR_HOME"/{release,backups}
+ensure_service_account
+secure_layout
 install_deploy_files "$RELEASE"
 load_images "$RELEASE"
 
@@ -32,6 +33,7 @@ else
   [[ -d "$VEEDOR_HOME/data/lake" ]] || die "no data.tar.gz in the release and no data on this host"
 fi
 mkdir -p "$VEEDOR_HOME/data/models"
+secure_tree "$VEEDOR_HOME/data"   # also covers a data folder that was already there
 
 log "starting PostgreSQL"
 dc up -d --wait db

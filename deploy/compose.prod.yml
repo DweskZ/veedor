@@ -1,7 +1,9 @@
 # Veedor production stack. Self-contained: it does NOT extend docker-compose.yml.
 #
 #   docker compose -p veedor --env-file /etc/veedor/server.env -f compose.prod.yml up -d --wait
-#   (add `--profile observability` to also run the optional Grafana stack)
+#   (add `-f compose.observability.yml` to also run the optional Grafana stack; it is a separate file
+#   because compose interpolates every service of a file, so a required GRAFANA_ADMIN_PASSWORD would
+#   otherwise break the stack for everyone who does not use Grafana)
 #
 # Variables come from the env file the owner creates on the server from deploy/server.env.template.
 # Nothing secret is stored here. Only Caddy publishes ports; db, api and web are on an internal
@@ -16,7 +18,7 @@
 #     healthcheck on /api/v1/health
 #   - web: build args NEXT_PUBLIC_API_URL / NEXT_PUBLIC_SITE_URL, runtime API_INTERNAL_URL,
 #     healthcheck on /
-#   - observability: grafana/otel-lgtm:0.41.0 and its two provisioning mounts
+#   - observability (now in compose.observability.yml): grafana/otel-lgtm:0.41.0 and its two provisioning mounts
 #   - migrate: `alembic upgrade head` with the api image
 #   - settings with no dev-file equivalent (src/veedor/core/settings.py): VEEDOR_ASK_*, VEEDOR_LLM_*
 
@@ -95,11 +97,22 @@ services:
       VEEDOR_REVIEWS_ENABLED: "false"
       VEEDOR_DOCS_ENABLED: "false"
       VEEDOR_GLOSSARY_PATH: /app/web/src/data/glossary.json
-      VEEDOR_API_WORKERS: ${VEEDOR_API_WORKERS:-2}
+      # ONE worker by default (the dev compose uses 2). Measured in the local proof of 2026-11-16 with the
+      # 768 MiB limit: two workers start together at about 525-560 MiB and were OOM-killed on the first
+      # requests after a start (container OOMKilled=true, "Child process died"); one worker peaked at
+      # 390-485 MiB with no kill. Use 2 only with API_MEM_LIMIT=1280m or more (t4g.medium).
+      VEEDOR_API_WORKERS: ${VEEDOR_API_WORKERS:-1}
       VEEDOR_LAKE_THREADS: ${VEEDOR_LAKE_THREADS:-2}
-      # Behind Caddy every request arrives from the proxy's address. The api is reachable only from the
-      # internal network (Caddy), so trusting its X-Forwarded-For gives the per-IP limiters the real client.
-      FORWARDED_ALLOW_IPS: "*"
+      # Client address for the per-IP limiters. The API takes request.client.host, and uvicorn (0.54,
+      # --proxy-headers is on by default) rewrites it from X-Forwarded-For ONLY when the TCP peer is in
+      # FORWARDED_ALLOW_IPS. "*" trusted every peer and let a forged header win (confirmed by review), so
+      # the list is exactly Caddy's fixed address on the pinned network below. Caddy itself discards any
+      # client-supplied X-Forwarded-For (deploy/Caddyfile), so the value uvicorn reads is the real peer.
+      # web (Next.js server side) also reaches the api but is not trusted: its requests count as web's address.
+      FORWARDED_ALLOW_IPS: "10.77.88.10"
+      # Third-party quotes: off unless the owner decides otherwise. Do not enable in production until the
+      # privacy gate and the disclosure are in place (docs/DEPLOYMENT_AWS.md, pre-publication checklist).
+      VEEDOR_QUOTES_ENABLED: ${VEEDOR_QUOTES_ENABLED:-false}
       # Question answering (POST /processes/{ocid}/ask): off unless the owner turns it on. Passed by
       # interpolation only; the values live in the server env file. Needs the optional model cache
       # (see docs/DEPLOYMENT_AWS.md, "Turning on question answering").
@@ -176,7 +189,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    networks: [internal]
+    networks:
+      internal:
+        ipv4_address: 10.77.88.10 # fixed: the api trusts X-Forwarded-For from this address only
     mem_limit: 128m
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/healthz"]
@@ -186,46 +201,17 @@ services:
       start_period: 5s
     logging: *logging
 
-  # Optional: `--profile observability`. One all-in-one development image (about 770 MB measured),
-  # reachable only on the server's loopback; use an SSM port forward to open Grafana.
-  observability:
-    profiles: [observability]
-    image: grafana/otel-lgtm:0.41.0
-    restart: unless-stopped
-    security_opt: ["no-new-privileges:true"]
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json
-      PROMETHEUS_EXTRA_ARGS: --storage.tsdb.retention.time=3d
-      ENABLE_LOGS_TEMPO: "true"
-    ports:
-      - "127.0.0.1:3001:3000"
-    volumes:
-      - obsdata:/data
-      - ./ops/observability/grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor.yaml:ro
-      - ./ops/observability/grafana/dashboards/veedor.json:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json:ro
-    networks: [internal]
-    mem_limit: ${OBS_MEM_LIMIT:-1280m}
-    cpus: 1.5
-    healthcheck:
-      test: ["CMD", "/otel-lgtm/docker/healthcheck.sh"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
-    logging: *logging
-
 networks:
   # One private network. Only Caddy publishes ports. Egress stays open (ACME for Caddy; an LLM
   # provider for the api when the ask route is on).
-  internal: {}
+  # The subnet is pinned so Caddy can have a fixed address (see FORWARDED_ALLOW_IPS on the api).
+  internal:
+    ipam:
+      config:
+        - subnet: 10.77.88.0/24
 
 volumes:
   pgdata:
   dossiers:
-  obsdata:
   caddy_data:
   caddy_config:

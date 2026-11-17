@@ -19,6 +19,14 @@
 	# HTTP/1.1 and HTTP/2 only: no UDP/443 to open.
 	servers {
 		protocols h1 h2
+		# Client address and forwarding headers. Caddy 2.11 (image caddy:2.11-alpine, v2.11.9 when this
+		# was written): with no trusted proxies (the default, written out here), reverse_proxy IGNORES any
+		# client-supplied X-Forwarded-For/-Proto/-Host and sets them itself from the TCP peer. Nothing sits
+		# in front of Caddy (no CDN, no load balancer): do NOT add trusted ranges, or a client behind them
+		# could choose its own address and defeat the API's per-client limits. If a CDN is ever put in front,
+		# list only that CDN's published ranges here AND change FORWARDED_ALLOW_IPS reasoning in
+		# compose.prod.yml. Docs: https://caddyserver.com/docs/caddyfile/options#trusted-proxies
+		trusted_proxies static
 	}
 	log {
 		output stdout

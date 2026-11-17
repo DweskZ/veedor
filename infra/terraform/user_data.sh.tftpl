@@ -32,7 +32,9 @@ sysctl -w vm.swappiness=10
 echo 'vm.swappiness=10' > /etc/sysctl.d/90-veedor.conf
 %{ endif ~}
 
-install -d -m 755 /srv/veedor /srv/veedor/release /srv/veedor/backups
+# root only: the data, releases and backups hold unmasked personal fields (docs/DEPLOYMENT_AWS.md).
+install -d -m 750 /srv/veedor
+install -d -m 700 /srv/veedor/release /srv/veedor/backups
 install -d -m 700 /etc/veedor
 
 systemctl enable --now amazon-ssm-agent || true

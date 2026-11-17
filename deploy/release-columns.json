@@ -1,0 +1,198 @@
+{
+ "_comment": "Release allow-list: the ONLY Parquet tables and columns that may ship in a release (checked by deploy/scripts/check_release_schema.py from build-release.sh). Source: read from the Parquet footers of the local data on 2026-11-16 and reviewed by hand against docs/SECURITY.md. A new column fails the build until a human adds it here after deciding whether it holds personal data. 'unmasked_personal' lists the columns already known to hold names/RUCs/free text (masked only when the API responds), for the documentation; 'quotes_tables' ship only with build-release.sh --with-quotes.",
+ "tables": {
+  "lake/awards": [
+   "ocid",
+   "award_id",
+   "award_date",
+   "supplier_id",
+   "supplier_ruc",
+   "supplier_name",
+   "amount"
+  ],
+  "lake/companies_supercias": [
+   "expediente",
+   "ruc",
+   "legal_name",
+   "company_type",
+   "province"
+  ],
+  "lake/company_financials": [
+   "ruc",
+   "year",
+   "expediente",
+   "revenue",
+   "total_income",
+   "assets",
+   "equity",
+   "employees"
+  ],
+  "lake/ghost_companies": [
+   "ruc",
+   "legal_name",
+   "resolution",
+   "notification_date",
+   "taxpayer_type",
+   "qualification_detail",
+   "ruc_status",
+   "challenge_state",
+   "publication_date",
+   "source_file"
+  ],
+  "lake/processes": [
+   "ocid",
+   "process_code",
+   "release_date",
+   "year",
+   "buyer_id",
+   "buyer_ruc",
+   "buyer_name",
+   "buyer_region",
+   "buyer_locality",
+   "method",
+   "method_group",
+   "category",
+   "status",
+   "description",
+   "budget",
+   "budget_source",
+   "tender_start",
+   "tender_end",
+   "enquiry_start",
+   "enquiry_end",
+   "award_period_start",
+   "award_period_end",
+   "n_tenderers",
+   "n_tenderers_listed",
+   "n_bids",
+   "n_enquiries",
+   "n_awards",
+   "award_total",
+   "first_award_date",
+   "date_signed",
+   "main_cpc",
+   "main_cpc_description",
+   "has_tender_block"
+  ],
+  "lake/suppliers_sri": [
+   "ruc",
+   "legal_name",
+   "status",
+   "taxpayer_type",
+   "activity_start_date",
+   "suspension_date",
+   "restart_date",
+   "ciiu_code",
+   "activity",
+   "province",
+   "source_file"
+  ],
+  "lake/tenderers": [
+   "ocid",
+   "supplier_id",
+   "supplier_ruc",
+   "supplier_name"
+  ],
+  "marts/process_scores": [
+   "ocid",
+   "risk_score",
+   "n_signals",
+   "signal_codes",
+   "anomaly_score",
+   "award_total",
+   "year",
+   "buyer_ruc",
+   "buyer_name",
+   "method",
+   "winner_ruc",
+   "winner_name",
+   "winner_kind",
+   "n_context_signals",
+   "context_signal_codes"
+  ],
+  "marts/process_signals": [
+   "ocid",
+   "signal_code",
+   "value",
+   "threshold",
+   "evidence_json",
+   "kind"
+  ],
+  "marts/supplier_profiles": [
+   "ruc",
+   "name",
+   "kind",
+   "n_processes",
+   "n_wins",
+   "total_awarded",
+   "first_award_date",
+   "last_award_date",
+   "n_buyers",
+   "top_buyer_ruc",
+   "top_buyer_share",
+   "single_bidder_wins",
+   "mean_risk_score"
+  ]
+ },
+ "quotes_tables": {
+  "marts/process_quote_stats": [
+   "ocid",
+   "available_total",
+   "excluded_personal",
+   "excluded_unsafe",
+   "below_floor",
+   "n_eligible",
+   "n_quotes"
+  ],
+  "marts/process_quotes": [
+   "ocid",
+   "rank",
+   "kind",
+   "text",
+   "date",
+   "author_kind",
+   "source_field",
+   "related_signal",
+   "similarity",
+   "truncated",
+   "pair_text",
+   "pair_kind",
+   "pair_source_field",
+   "pair_truncated"
+  ]
+ },
+ "unmasked_personal": {
+  "lake/awards": [
+   "supplier_ruc",
+   "supplier_name"
+  ],
+  "lake/tenderers": [
+   "supplier_ruc",
+   "supplier_name"
+  ],
+  "lake/processes": [
+   "description"
+  ],
+  "lake/suppliers_sri": [
+   "legal_name"
+  ],
+  "lake/ghost_companies": [
+   "legal_name"
+  ],
+  "lake/companies_supercias": [
+   "legal_name"
+  ],
+  "marts/process_scores": [
+   "winner_ruc",
+   "winner_name"
+  ],
+  "marts/supplier_profiles": [
+   "ruc",
+   "name"
+  ],
+  "marts/process_quotes": [
+   "text",
+   "pair_text"
+  ]
+ }
+}

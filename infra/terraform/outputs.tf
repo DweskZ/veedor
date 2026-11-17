@@ -34,3 +34,8 @@ output "github_deploy_role_arn" {
   description = "Set as the repository variable AWS_DEPLOY_ROLE_ARN (empty when OIDC is not enabled)."
   value       = local.oidc_enabled ? aws_iam_role.github_deploy[0].arn : ""
 }
+
+output "ssm_deploy_document" {
+  description = "Set as the GitHub environment variable SSM_DOCUMENT_NAME (empty when OIDC is not enabled)."
+  value       = local.oidc_enabled ? aws_ssm_document.deploy[0].name : ""
+}

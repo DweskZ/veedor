@@ -80,10 +80,15 @@ variable "github_repository" {
   default     = ""
 }
 
-variable "github_branch" {
-  description = "Only workflow runs from this branch can assume the deploy role."
+variable "github_environment" {
+  description = "Name of the GitHub environment the deploy job runs in. Only jobs of github_repository that declare this environment can assume the deploy role. In GitHub (Settings > Environments) add required reviewers and restrict deployment branches to main."
   type        = string
-  default     = "main"
+  default     = "production"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9._-]{1,40}$", var.github_environment))
+    error_message = "Use a plain environment name (letters, digits, . _ -)."
+  }
 }
 
 variable "create_github_oidc_provider" {

@@ -14,5 +14,5 @@ route53_zone_id = ""
 
 # Optional: let a GitHub workflow deploy (OIDC, no keys). Format: owner/repository.
 github_repository = ""
-github_branch     = "main"
+github_environment = "production" # GitHub environment; add required reviewers + branch rule there
 # create_github_oidc_provider = false # set false if this account already has the GitHub OIDC provider

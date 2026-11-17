@@ -1,0 +1,44 @@
+# Optional Grafana/OTel stack. Used together with the main file:
+#   docker compose -p veedor --env-file /etc/veedor/server.env -f compose.prod.yml -f compose.observability.yml up -d --wait
+# (the scripts do this when VEEDOR_OBSERVABILITY=1). Needs a t4g.medium. It REFUSES to start without
+# GRAFANA_ADMIN_PASSWORD (no empty or default password) and is published on the server's loopback only:
+# reach it with a Session Manager port forward, never through Caddy (docs/DEPLOYMENT_AWS.md).
+services:
+  # Optional: `-f compose.observability.yml`. One all-in-one development image (about 770 MB measured),
+  # reachable only on the server's loopback (127.0.0.1:3001); open Grafana with a Session Manager port
+  # forward (docs/DEPLOYMENT_AWS.md). It refuses to start without GRAFANA_ADMIN_PASSWORD.
+  observability:
+    image: grafana/otel-lgtm:0.41.0
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in the server env file to use the observability stack}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json
+      PROMETHEUS_EXTRA_ARGS: --storage.tsdb.retention.time=3d
+      ENABLE_LOGS_TEMPO: "true"
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - obsdata:/data
+      - ./ops/observability/grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor.yaml:ro
+      - ./ops/observability/grafana/dashboards/veedor.json:/otel-lgtm/grafana/conf/provisioning/dashboards/veedor/veedor.json:ro
+    networks: [internal]
+    mem_limit: ${OBS_MEM_LIMIT:-1280m}
+    cpus: 1.5
+    healthcheck:
+      test: ["CMD", "/otel-lgtm/docker/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  obsdata:

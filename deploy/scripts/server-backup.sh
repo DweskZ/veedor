@@ -12,6 +12,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 require_root
 require_env_file
+umask 077   # dumps are root-only
 
 DEST="$VEEDOR_HOME/backups"; mkdir -p "$DEST"
 FILE="$DEST/reviews-$(date -u +%Y%m%dT%H%M%SZ).dump"

@@ -3,15 +3,22 @@ name: deploy
 # Manual deployment of CODE AND IMAGES only. The data bundle and the database dump are not in the
 # repository (the lake is built from local raw files), so this workflow never touches them: it builds
 # the two arm64 images, uploads them with deploy/ to the release bucket and runs server-update.sh on
-# the instance through Systems Manager Run Command. Data changes go through
+# the instance through ONE custom Systems Manager document that takes only the release id and runs only
+# server-update.sh (infra/terraform/oidc.tf). The AWS role cannot run arbitrary shell. Data changes go through
 # deploy/scripts/build-release.sh and `server-update.sh --with-data` (docs/DEPLOYMENT_AWS.md).
 #
-# One-time setup (repository settings > Secrets and variables > Variables); no secrets are needed:
+# One-time setup. The job runs in the GitHub ENVIRONMENT "production" (the name must equal the Terraform
+# variable github_environment: the AWS trust policy accepts only repo:<owner>/<repo>:environment:production).
+# In Settings > Environments > production: add yourself under "Required reviewers" (manual approval before
+# every deploy), set "Deployment branches" to main only, and define these variables there (no secrets):
 #   AWS_DEPLOY_ROLE_ARN  output github_deploy_role_arn of the Terraform
 #   AWS_REGION           region of the stack
 #   AWS_INSTANCE_ID      output instance_id
 #   RELEASE_BUCKET       output release_bucket
+#   SSM_DOCUMENT_NAME    output ssm_deploy_document
 #   SITE_URL             public origin baked into the web image, e.g. https://veedor.example.org
+# Residual trust: whoever may approve and run this workflow chooses the code and images that get deployed
+# (that is what a deploy is). Keep the approver list to yourself and protect main.
 
 on:
   workflow_dispatch:
@@ -30,8 +37,13 @@ jobs:
     # ubuntu-latest with docker/setup-qemu-action (much slower builds).
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
+    environment: production
+    if: github.ref == 'refs/heads/main'
     env:
       RELEASE_NAME: gh-${{ github.run_id }}-${{ github.run_attempt }}
+      AWS_INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+      RELEASE_BUCKET: ${{ vars.RELEASE_BUCKET }}
+      SSM_DOCUMENT_NAME: ${{ vars.SSM_DOCUMENT_NAME }}
     steps:
       - uses: actions/checkout@v4
 
@@ -58,7 +70,7 @@ jobs:
           mkdir -p "$out/deploy"
           docker save veedor-api:release | gzip -6 > "$out/images-api.tar.gz"
           docker save veedor-web:release | gzip -6 > "$out/images-web.tar.gz"
-          cp deploy/compose.prod.yml deploy/compose.local.yml deploy/Caddyfile deploy/server.env.template "$out/deploy/"
+          cp deploy/compose.prod.yml deploy/compose.observability.yml deploy/compose.local.yml deploy/Caddyfile deploy/server.env.template "$out/deploy/"
           cp -R deploy/scripts "$out/deploy/scripts"
           mkdir -p "$out/deploy/ops/observability/grafana"
           cp -R ops/observability/grafana/provisioning ops/observability/grafana/dashboards "$out/deploy/ops/observability/grafana/"
@@ -66,27 +78,28 @@ jobs:
           mv "release/SHA256SUMS.tmp" "$out/SHA256SUMS"
 
       - name: Upload release
-        run: aws s3 sync "release/${RELEASE_NAME}" "s3://${{ vars.RELEASE_BUCKET }}/releases/${RELEASE_NAME}/" --only-show-errors
+        run: aws s3 sync "release/${RELEASE_NAME}" "s3://${RELEASE_BUCKET}/releases/${RELEASE_NAME}/" --only-show-errors
 
-      - name: Run the update on the server (Systems Manager Run Command)
+      - name: Run the update on the server (custom Systems Manager document)
         run: |
           set -euo pipefail
+          [[ "$RELEASE_NAME" =~ ^gh-[0-9]{1,20}-[0-9]{1,3}$ ]]
           cmd_id="$(aws ssm send-command \
-            --document-name AWS-RunShellScript \
-            --instance-ids "${{ vars.AWS_INSTANCE_ID }}" \
+            --document-name "$SSM_DOCUMENT_NAME" \
+            --instance-ids "$AWS_INSTANCE_ID" \
             --comment "veedor deploy ${RELEASE_NAME}" \
             --timeout-seconds 1800 \
-            --parameters "commands=[\"set -e; mkdir -p /srv/veedor/release/${RELEASE_NAME}/deploy; aws s3 sync s3://${{ vars.RELEASE_BUCKET }}/releases/${RELEASE_NAME}/ /srv/veedor/release/${RELEASE_NAME}/ --only-show-errors; bash /srv/veedor/release/${RELEASE_NAME}/deploy/scripts/server-update.sh /srv/veedor/release/${RELEASE_NAME}\"]" \
+            --parameters "releaseId=${RELEASE_NAME}" \
             --query Command.CommandId --output text)"
           echo "command id: $cmd_id"
+          status=Pending
           for _ in $(seq 1 120); do
-            status="$(aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "${{ vars.AWS_INSTANCE_ID }}" --query Status --output text 2>/dev/null || echo Pending)"
+            status="$(aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "$AWS_INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)"
             case "$status" in
-              Success) break ;;
-              Failed|Cancelled|TimedOut) break ;;
+              Success|Failed|Cancelled|TimedOut) break ;;
             esac
             sleep 15
           done
-          aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "${{ vars.AWS_INSTANCE_ID }}" \
+          aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "$AWS_INSTANCE_ID" \
             --query '{Status:Status,Out:StandardOutputContent,Err:StandardErrorContent}' --output json | tail -c 4000
           [ "$status" = "Success" ]
