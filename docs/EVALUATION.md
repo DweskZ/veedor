@@ -493,7 +493,7 @@ neutral questions with accusation-looking words). What it shows:
 * *Weak fact types on held-out 2*: `context_tenderers` 38 %, `comparison` 52 %, `pair_others` 50 %, `history` 60 %, `entity` 64 %, `procedure` 65 %, `winner` 66 %, `object` 70 %, `context_single` 71 %. Compound questions: 97 % recall of both groups.
   Competition wordings ("tenderers" type): 90 %.
 
-**Model mode was not rerun** (cost): its numbers below were measured on the in-vocabulary phrasings only, over n = 172 questions, with the earlier retrieval ranking the candidates, and say nothing about the new retrieval or about unseen phrasings.
+**Model mode was rerun on the current retrieval (intents-v2) on 2026-11-17**, on the in-vocabulary phrasings only, over n = 172 questions (60 answerable). It says nothing about unseen phrasings. On these questions the model selected fewer of the expected facts and more unneeded ones than retrieval alone (recall 87.5 % against 95.0 %, precision 74.7 % against 94.4 %), and abstained on every unanswerable question (40 of 40 against 39 of 40). With intervals this wide the two modes are not separated on abstention; the model's lower precision is.
 
 
 <!-- BEGIN GENERATED: qa -->
@@ -612,7 +612,7 @@ Attacks, held-out 2 (one run) set (0 distinct): outcomes {}; answered with facts
 
 ### Model mode
 
-Model `gpt-5.4-mini` over 172 questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once), **measured on the in-vocabulary phrasings only, with the earlier key-phrase retrieval ranking the candidates and gating the model** (not rerun since: cost); the same questions answered by retrieval only (also the earlier one) are shown for comparison.
+Model `gpt-5.4-mini` over 172 questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once), **measured on the in-vocabulary phrasings only, with the current retrieval ranking the candidates and gating the model** (not run on the development or held-out sets: cost); the same questions answered by retrieval only are shown for comparison.
 
 | Measure | Model | Retrieval only |
 |---|---|---|

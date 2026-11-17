@@ -199,8 +199,8 @@ question-answering evaluation, the identifier validation, the deployment path an
 concluded that **the project was not fit to publish**. As in the earlier reviews, personal names and
 identifiers from the reviewer's reproductions are not repeated here: evidence is given as counts and
 categories. Findings 4, 5, 6, 8a, the deployment parts of 7 and 9, and finding 10 were assigned to the web
-and deployment work; this section records the backend part (findings 1, 2, 3, 7 content check, 8b, 9 and the
-`Retry-After` item).
+and deployment work. The backend part (findings 1, 2, 3, 7 content check, 8b, 9 and the `Retry-After` item) is
+recorded first; the web and deployment part is under "Findings addressed in web and deployment" below.
 
 ### Finding 1 (critical): natural persons named in the stored quotes
 
@@ -271,7 +271,7 @@ fix needs a new tuning set of phrasings (it was not done here, so as not to tune
 
 **Evidence.** The release gate refused files by path and by hash of the unmasked texts; it did not look at the content of a data table.
 **What changed.** For the quotes table the gate now checks content (finding 1, item 2); the default bundle contains no quotes table at all.
-**Remains open.** The deployment-side release gate (name, hash and path checks of the whole bundle) is in the deploy work; the orchestrator completes this line.
+**Deployment part.** The deployment-side gate matched only file names and hashes and could not see inside a Parquet file. `build-release.sh` now also runs `deploy/scripts/check_release_schema.py`, which reads the footer of every Parquet file in the staged release and refuses the build when a table or a column is not on the committed allow-list `deploy/release-columns.json`; with `--with-quotes` it runs the quotes content gate again over the exact staged files. A new column fails the build until a person reviews it. Tested locally: it refused a Parquet file with an extra column. **Remains open:** the allow-list checks names, not contents (a personal value inside an allowed column such as `description` is not detected; masking and, for quotes, the content gate cover that), and the build with `--with-quotes` was not run end to end in that proof (`docs/DEPLOYMENT_AWS.md`).
 
 ### Finding 8b: 891 processes returned 422
 
@@ -290,9 +290,34 @@ the client IP is the proxy's unless forwarded headers are trusted.
 
 ### Findings addressed in web and deployment
 
-| Finding | Status |
-|---|---|
-| 4, 5, 6, 8a, the deployment parts of 7 and 9, and 10 | addressed in web/deploy. Placeholder: the orchestrator completes this row with the web and deploy changes. |
+The repository does not record which numbered finding (4, 5, 6, 8a, 10) each of the items below belongs to, so they are listed by what was fixed and are **not** mapped to numbers: the mapping is not recorded. The deployment parts of findings 7 and 9 are the last two rows. Evidence is the commit, the code or the document named; commit `67fa9c1` holds the web changes and `2f3cebb` the deployment changes.
+
+| What the review found | What changed | Evidence |
+|---|---|---|
+| The question box gave no notice before sending: a visitor could type personal data without knowing where the question might go. | A notice is shown before submitting: with a model configured, the question may be sent to an external model provider, the question is not stored, and personal data should not be written; in retrieval-only mode it says no model is used. | `web/src/lib/ask.ts` |
+| Third-party quotes were shown by default. | Shown only when the API reports `quotes_enabled`, which is false by default (`VEEDOR_QUOTES_ENABLED=false`). | commit `67fa9c1`, `web/src/components/AskProcess.tsx` |
+| Three different meanings of "single bidder" appeared side by side with no label. | Each is labelled and the difference is stated (for example, the map counts competitive processes that fired the `SINGLE_BIDDER` signal, which excludes procedures where one bidder is normal, and says it is not the count of the trends page). | `web/src/lib/map.ts`, glossary |
+| The province table could be read as a ranking. | Alphabetical by default; sortable by any column; the text says the order is alphabetical. | `web/src/components/RegionExplorer.tsx` |
+| The name formatter altered codes (case changes inside identifiers and numbers). | Tokens that contain a digit are returned unchanged; covered by tests. | `web/src/lib/names.ts`, `web/src/lib/names.test.ts` |
+| The GitHub deploy role allowed an arbitrary root shell on the server. | The role can call `ssm:SendCommand` only on a custom document, `veedor-deploy-release`, and on one instance; it has no right to `AWS-RunShellScript`. The document takes one parameter that must match `^gh-[0-9]{1,20}-[0-9]{1,3}$`, passes it as an environment variable and runs only `server-update.sh --release-id`. Assuming the role requires a job of this repository on a protected GitHub environment (required reviewers, `main` only). Not tested: the Terraform apply, the SSM document on a real agent, the environment approval. | `docs/DEPLOYMENT_AWS.md`, `infra/terraform/` |
+| Grafana was published with an empty admin password. | The observability stack lives in a separate compose file that refuses to start without `GRAFANA_ADMIN_PASSWORD`; it is bound to loopback. Checked with `compose config` only, not run. | `deploy/compose.observability.yml`, `docs/DEPLOYMENT_AWS.md` |
+| Data files were readable by any user on the host. | Data tree owner `root`, group `veedor` (uid/gid 10001, the API image's user), directories 750 and files 640; `release/` and `backups/` 700; the environment file 600. Verified in a local proof as root inside a VM: no data file with an "other" permission bit; the file was readable by the API user and not by an unrelated uid. | `docs/DEPLOYMENT_AWS.md` |
+| Finding 9, deployment part: a forged `X-Forwarded-For` bypassed the rate limit. | The API trusts forwarded headers only from Caddy's fixed address (`FORWARDED_ALLOW_IPS`), and Caddy trusts no proxy and rewrites the headers. Local test: 45 requests with 45 different forged addresses counted as one client (30 x 200, then 15 x 429); with the old setting (`*`) the same test gave 45 x 200. On the test laptop the peer was the Docker gateway, not a real client address. | `docs/DEPLOYMENT_AWS.md` ("Client address and forwarded headers"), `deploy/Caddyfile` |
+| Finding 7, deployment part: the release gate matched only names and hashes. | A column allow-list over the Parquet schemas plus the quotes content gate; see "Finding 7" above. | `deploy/release-columns.json`, `deploy/scripts/check_release_schema.py` |
+
+The web interface was also given a cross-browser and accessibility suite (Playwright with axe, in Chromium, Firefox, WebKit and a phone viewport, run locally) which found and fixed its own defects (commit `a083f88`). It is not a review finding.
+
+## After review 5
+
+Built afterwards and **not independently reviewed**; the project's own tests and measurements are the only check:
+
+- **Intent-based retrieval for question answering**, rebuilt twice (`intents-v1`, `intents-v2`), with the held-out evaluations in `docs/EVALUATION.md`. The held-out sets were written by the same author as the system.
+- **The savings validation** (`docs/VALIDATION.md`): the analysis plan, the estimators and the bootstrap code.
+- **Procedure thresholds and the bunching estimate** (`docs/THRESHOLDS.md`), including the per-process threshold context in the API and the web.
+- **User-interface refinement**: process tabs, compact tables, the province map, trends and the validation section.
+- **HTTP caching**: ETag and `Cache-Control` by route class, `304` before the route runs (`docs/SECURITY.md`, "HTTP caching headers"). Its security reasoning (no stored bodies, `Vary: Origin`, masking on cached paths) is covered by tests but was not attacked by a reviewer.
+
+The fixes to the findings above were also verified by the project's own tests and measurements, not by a sixth review.
 
 ## Residual limits
 

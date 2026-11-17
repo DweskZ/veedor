@@ -89,7 +89,7 @@ Registry coverage (`docs/DATA_SOURCES.md`): the SRI registry matches 68,584 of 6
 
 ## Does it work? An honest evaluation
 
-Short answer: **the available evidence does not show that the score singles out suppliers on the one external list we could use.** The full report is [docs/EVALUATION.md](EVALUATION.md); this is the summary. It evaluates the indicator score only; the agents are not part of it.
+Short answer: **the available evidence does not show that the score singles out suppliers on the one external list we could use, and that test is inconclusive: with 9 positives it could only detect an AUC of about 0.77 or more.** A second, pre-registered test against savings is in [VALIDATION.md](VALIDATION.md) (a weak association for three indicators, partly by definition). The full report is [docs/EVALUATION.md](EVALUATION.md); this is the summary. It evaluates the indicator score only; the agents are not part of it.
 
 **Setup.** The only official outside label is the SRI list of "empresas fantasmas" (shell companies). Of its 1,113 RUCs, 9 are companies that won public contracts as process winner. We asked whether a score that excludes the indicators derived from the label ranks these 9 above the other 19,837 contract-winning companies.
 
@@ -397,7 +397,7 @@ Results of the last run (2026-11-16, local stack up, quotes and ask disabled): *
 ## Known limitations
 
 - **Detail pages for some processes cannot be opened.** 891 of 2,251,027 processes have identifiers that were typed by hand (spaces, en dashes, commas, `Ñ`, slashes, quotes). The identifier pattern is a strict allow-list that now admits spaces, dashes, commas, colons, parentheses and a few more characters: 806 of the 891 open; the rest (85) contain a slash, a quote, `*`, `|`, `;`, `~`, `!` or invisible characters, which cannot travel safely in a URL path, are listed with `detail_available: false` and cannot be linked.
-- No evidence that the score singles out any external reference list (see the evaluation).
+- The one external reference list (9 companies) gives an inconclusive test, and the savings validation shows only a weak association (see [VALIDATION.md](VALIDATION.md)); no corruption outcome is available to test against.
 - Registry facts are current, not historical; the indicators and investigation facts that use them say so.
 - **Live lookups depend on an unofficial MCP server over public sources.** Schemas can change and upstream services fail; failures are recorded and rendered as "no disponible".
 - **The audit specialist reads part of the Contraloría catalogue**, so it can show that at least N reports exist but not that there are none.

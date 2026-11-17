@@ -209,8 +209,8 @@ def render_markdown(result: dict[str, Any]) -> str:
         mm, same = model["model_mode"], model["retrieval_same_questions"]
         parts += [
             f"Model `{model['model']}` over {model['questions']} questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once), "
-            "**measured on the in-vocabulary phrasings only, with the earlier key-phrase retrieval ranking the candidates and gating the model** "
-            "(not rerun since: cost); the same questions answered by retrieval only (also the earlier one) are shown for comparison.",
+            "**measured on the in-vocabulary phrasings only, with the current retrieval ranking the candidates and gating the model** "
+            "(not run on the development or held-out sets: cost); the same questions answered by retrieval only are shown for comparison.",
             "",
             "| Measure | Model | Retrieval only |",
             "|---|---|---|",
