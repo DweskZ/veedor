@@ -369,7 +369,7 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
             </div>
           </div>
           <p className="small muted">
-            Porcentaje de procesos competitivos {METRICS[metric].short}, por provincia de la entidad. Más señales no significa más problemas.
+            Porcentaje de procesos competitivos {METRICS[metric].short}, por provincia de la entidad.{compact ? "" : " Más señales no significa más problemas."}
           </p>
           {small ? (
             <p className="small muted">

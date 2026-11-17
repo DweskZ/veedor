@@ -317,7 +317,7 @@ export function quotes(ocid: string): Quotes | null {
   return { ocid, items: [], available_total: 0, omitted: { personal_data: 0, unsafe: 0, below_relevance: 0 }, note_es: null };
 }
 
-export const meta = { reviews_enabled: false, ask_enabled: true, quotes_enabled: true };
+export const meta = { reviews_enabled: false, ask_enabled: true, quotes_enabled: true, ask_mode: "retrieval" as const };
 export const reviews = (): Review[] => [];
 
 /** Sample investigation (fictional): only the first two sample processes have one. */

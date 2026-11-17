@@ -265,6 +265,8 @@ export interface ApiMeta {
   ask_enabled: boolean | null;
   /** Source quotes are shown only when this is exactly true (absent or unknown counts as off). */
   quotes_enabled: boolean | null;
+  /** How questions are answered: "retrieval" (search inside Veedor, no model) or "model" (external language model). Anything else is unknown. */
+  ask_mode: "retrieval" | "model" | null;
 }
 
 export interface ProcessQuery {

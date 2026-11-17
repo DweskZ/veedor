@@ -165,8 +165,30 @@ export function suggestQuestions(i: SuggestionInput): string[] {
   return out.slice(0, 5);
 }
 
-/** Two examples of what can be asked, for an answer the stored evidence does not give. */
-export function examplesFor(suggestions: string[]): string[] {
-  const base = ["¿Cuántos oferentes hubo?", "¿Quién compró?", "¿Cuánto se adjudicó y cuál era el presupuesto?"];
-  return [...new Set([...suggestions, ...base])].slice(0, 2);
+/** Examples of what can be asked, for an answer the stored evidence does not give. */
+export function examplesFor(suggestions: string[], count = 2): string[] {
+  const base = ["¿Cuántos oferentes hubo?", "¿Quién compró?", "¿Cuánto se adjudicó y cuál era el presupuesto?", "¿Quién ganó?"];
+  return [...new Set([...suggestions, ...base])].slice(0, count);
+}
+
+/** How the API says it answers. Anything else (absent, unknown) is treated as the cautious case. */
+export type AskMode = "retrieval" | "model" | null;
+
+/**
+ * The notice shown before a question is sent. The external-provider text is the default: the plain "search inside Veedor"
+ * text appears only when the API says so (`ask_mode: "retrieval"`), so the page never claims more privacy than the API gives.
+ */
+export function askNotice(mode: AskMode): { external: boolean; text: string } {
+  if (mode === "retrieval")
+    return { external: false, text: "La respuesta se encuentra con una búsqueda dentro de Veedor, sin modelo de lenguaje. La pregunta no se guarda. Aun así, no escribas datos personales." };
+  return {
+    external: true,
+    text: "Tu pregunta puede enviarse a un proveedor externo de modelos de lenguaje, que elige qué datos guardados mostrar. No escribas datos personales. La pregunta no se guarda.",
+  };
+}
+
+/** Seconds the button stays off after a 429: what the API says, or a short default when it sent no `Retry-After`. */
+export const DEFAULT_WAIT_SECONDS = 30;
+export function blockSeconds(retryAfter: number | null): number {
+  return Math.max(1, retryAfter ?? DEFAULT_WAIT_SECONDS);
 }

@@ -71,7 +71,12 @@ export async function measureContrast(page: Page, name: string): Promise<{ fails
       const stack = document.elementsFromPoint(r2.left + r2.width / 2, r2.top + r2.height / 2);
       // layers above the text are ignored; start at the first layer below it
       // An HTML control paints its own background; SVG text's own paint is the text colour itself.
-      const start = isSvg ? stack.indexOf(el) : stack.indexOf(el) - 1;
+      // (the hit element of multi-line SVG text can be one of its tspans, so use the last element inside the text.)
+      let inside = -1;
+      stack.forEach((e, i) => {
+        if (el.contains(e)) inside = i;
+      });
+      const start = isSvg ? inside : stack.indexOf(el) - 1;
       let bg: number[] | null = null;
       const layers: number[][] = [];
       for (const e of stack.slice(start + 1)) {

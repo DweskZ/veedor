@@ -95,15 +95,17 @@ const SAFETY: { title: string; body: string }[] = [
 
 function Metric({ label, value, range, note, source }: { label: string; value: string; range?: string; note?: string; source: string }) {
   return (
-    <Card className="metric">
+    <div className="card metric">
       <dt>{label}</dt>
       <dd>{value}</dd>
-      {range ? <p className="metric__range">{range}</p> : null}
-      {note ? <p>{note}</p> : null}
-      <p>
-        Fuente: <Num>{source}</Num>
-      </p>
-    </Card>
+      <dd className="metric__more">
+        {range ? <p className="metric__range">{range}</p> : null}
+        {note ? <p>{note}</p> : null}
+        <p>
+          Fuente: <Num>{source}</Num>
+        </p>
+      </dd>
+    </div>
   );
 }
 

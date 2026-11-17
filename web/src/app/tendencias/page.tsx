@@ -6,7 +6,7 @@ import { Term } from "@/components/Term";
 import { ErrorState, PageHeader } from "@/components/ui";
 
 const DESCRIPTION =
-  "Cómo cambió con los años la parte de subastas con un solo oferente y la forma en que el Estado compra, con las advertencias de los datos al lado de cada gráfico.";
+  "Cómo cambió con los años la parte de subastas con un solo oferente y la forma en que el Estado compra, con las advertencias sobre los datos.";
 export const metadata: Metadata = {
   title: "Tendencias por año",
   description: DESCRIPTION,
@@ -25,7 +25,7 @@ export default function TrendsPage() {
         }
         lead={
           <>
-            Tres gráficos para ver cómo compra el Estado año a año. Muestran cambios, no causas: a su lado están las advertencias sobre los datos. Un{" "}
+            Tres gráficos para ver cómo compra el Estado año a año. Muestran cambios, no causas. Las advertencias que valen para todos están aquí abajo, una sola vez; las de un gráfico, a su lado. Un{" "}
             <Term t="oferente">oferente</Term> es quien presenta una oferta.
           </>
         }

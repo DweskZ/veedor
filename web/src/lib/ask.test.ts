@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkQuestion, examplesFor, normalizeAsk, parseRetryAfter, provenanceKeysFor, questionLength, suggestQuestions, waitPhrase } from "./ask.ts";
+import { askNotice, blockSeconds, DEFAULT_WAIT_SECONDS, checkQuestion, examplesFor, normalizeAsk, parseRetryAfter, provenanceKeysFor, questionLength, suggestQuestions, waitPhrase } from "./ask.ts";
 
 test("question length: 3 to 300 characters, one line", () => {
   assert.equal(checkQuestion("¿Qu"), null);
@@ -64,4 +64,25 @@ test("suggestions come from what the process has (3 to 5)", () => {
   assert.deepEqual(few, ["¿Cuánto se adjudicó y cuál era el presupuesto?", "¿Quién compró?"]);
   assert.equal(examplesFor(few).length, 2);
   assert.equal(new Set(examplesFor(few)).size, 2);
+});
+
+test("notice: the external-provider text unless the API says retrieval", () => {
+  assert.equal(askNotice("retrieval").external, false);
+  assert.match(askNotice("retrieval").text, /sin modelo de lenguaje/);
+  assert.doesNotMatch(askNotice("retrieval").text, /proveedor externo/);
+  for (const m of ["model", null] as const) {
+    assert.equal(askNotice(m).external, true);
+    assert.match(askNotice(m).text, /proveedor externo/);
+  }
+});
+
+test("rate limit: wait what Retry-After says, a default when it is missing, never less than one second", () => {
+  assert.equal(blockSeconds(42), 42);
+  assert.equal(blockSeconds(null), DEFAULT_WAIT_SECONDS);
+  assert.equal(blockSeconds(0), 1);
+});
+
+test("examplesFor can return more examples", () => {
+  assert.equal(examplesFor([], 4).length, 4);
+  assert.equal(examplesFor(["¿Quién ganó?"], 2).length, 2);
 });

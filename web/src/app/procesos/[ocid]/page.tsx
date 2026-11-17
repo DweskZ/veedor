@@ -43,6 +43,12 @@ export default function ProcessPage({ params, searchParams }: PageProps<"/proces
   );
 }
 
+/** Smaller title for long descriptions, so the header stays compact. */
+const titleSize = (t: string | null | undefined): string => {
+  const n = t?.length ?? 0;
+  return n > 140 ? "h1--xl" : n > 80 ? "h1--lg" : "";
+};
+
 function Fact({ label, keys, children }: { label: React.ReactNode; keys?: string[]; children: React.ReactNode }) {
   return (
     <div className="fact">
@@ -135,30 +141,24 @@ async function Dossier({
   return (
     <ProvenanceProvider prov={prov}>
       <PageShell>
-      <header className="phead phead--page">
+      <header className="phead phead--page phead--proc">
         <div className="wrap">
           <div className="phead__circle" aria-hidden="true" />
           <div className="phead__text">
             <Link href="/procesos" className="crumb">
               ← Todos los procesos
             </Link>
-            <p className="eyebrow" style={{ marginTop: 14 }}>
-              Proceso de contratación
-            </p>
-            <h1 className="h1 h1--page">{hasTitle ? <Name value={f.description} /> : <Num>{code}</Num>}</h1>
+            <h1 className={`h1 h1--page ${titleSize(f.description)}`}>{hasTitle ? <Name value={f.description} /> : <Num>{code}</Num>}</h1>
             {!hasTitle && detail.facts?.description_withheld ? <p className="phead__meta">Descripción omitida por contener datos personales.</p> : null}
-            {meta ? <p className="phead__meta">{meta}</p> : null}
-            <p className="pcode">
-              <span className="tag">Código</span>
-              <span className="pcode__v">
-                <Num>{code}</Num>
-                <CopyButton text={code} label="Copiar código" iconOnly />
-              </span>
-            </p>
-            <div className="actions actions--tight">
-              <a href="#senales" className="btn btn--tc btn--sm">
-                {riskSignals.length ? `Ver las ${riskSignals.length === 1 ? "señal" : `${fmtInt(riskSignals.length)} señales`}` : "Ver las señales"}
-              </a>
+            <div className="phead__row">
+              {meta ? <p className="phead__meta">{meta}</p> : null}
+              <p className="pcode">
+                <span className="tag">Código</span>
+                <span className="pcode__v">
+                  <Num>{code}</Num>
+                  <CopyButton text={code} label="Copiar código" iconOnly />
+                </span>
+              </p>
             </div>
           </div>
         </div>
@@ -166,16 +166,11 @@ async function Dossier({
 
       <ProcessTabs items={tabs}>
         <TabPanel id="resumen">
-          <Section title="Resumen" id="resumen" note="Lo esencial de este proceso en un vistazo. Cada pestaña de arriba amplía una parte.">
+          <Section title="Resumen" id="resumen" hideTitle>
             <section className="summary" aria-label="Lo esencial de este proceso">
           <div className="summary__cell summary__cell--what">
               <p className="summary__q">Qué se compró</p>
-              <p className="summary__a summary__a--text">{meta || (f.description ? <Name value={f.description} /> : "Sin descripción publicada")}</p>
-              {meta && f.description ? (
-                <p className="summary__sub">
-                  <Name value={f.description} />
-                </p>
-              ) : null}
+              <p className="summary__a summary__a--text">{meta || "Sin categoría publicada"}</p>
             </div>
             <div className="summary__cell summary__cell--who">
             <p className="summary__q">Quién compró</p>
@@ -407,7 +402,7 @@ async function Dossier({
 
         {askEnabled ? (
           <TabPanel id="preguntar">
-            <AskSection ocid={ocid} suggestions={suggestions} quotesEnabled={apiMeta.quotes_enabled === true} />
+            <AskSection ocid={ocid} suggestions={suggestions} quotesEnabled={apiMeta.quotes_enabled === true} mode={apiMeta.ask_mode} />
           </TabPanel>
         ) : null}
 

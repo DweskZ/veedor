@@ -40,7 +40,7 @@ export default function Home() {
             <h2 className="h2 h2--sm" id="mapa-h">
               Señales <em>por provincia.</em>
             </h2>
-            <p className="lead">Por provincia, qué parte de los procesos competitivos tiene alguna señal. Pasa el cursor o toca una provincia para ver las cifras.</p>
+            <p className="lead">Por provincia, qué parte de los procesos competitivos tiene alguna señal.</p>
           </header>
           <HomeMap />
         </div>
@@ -61,7 +61,9 @@ export default function Home() {
               <RiskLegend large />
             </div>
           </header>
-          <TopProcesses />
+          <div className="top-procs">
+            <TopProcesses />
+          </div>
           <div className="actions">
             <Link href="/procesos" className="btn btn--tc">
               Ver todos los procesos
@@ -259,7 +261,7 @@ function Agents() {
           </div>
         </div>
         <div className="agents__panel reveal" style={{ "--d": "0.1s" } as React.CSSProperties}>
-          <Art name="investigacion" sizes="(min-width: 900px) 40vw, 90vw" />
+          <Art name="investigacion" crop sizes="(min-width: 900px) 55vw, 90vw" alt="Dibujo isométrico de una oficina, sin personas: una mesa redonda con sillas y un escritorio con un portátil, donde se consultan las fuentes." />
           <div className="mini" role="img" aria-label={`Un supervisor envía a cinco especialistas a consultar fuentes oficiales: ${names.join(", ")}.`}>
             <div className="mini__sup" aria-hidden="true">Supervisor</div>
             <div className="mini__line" aria-hidden="true" />

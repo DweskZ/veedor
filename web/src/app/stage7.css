@@ -1,0 +1,593 @@
+/* Second refinement pass. Loaded after refine.css. */
+
+/* ---------- Process page: compact header ---------- */
+.phead--proc {
+  padding-block: clamp(14px, 2vw, 22px) clamp(10px, 1.6vw, 16px);
+}
+.phead--proc .h1--page {
+  margin-top: 10px;
+  max-width: 38ch;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  line-height: 1.08;
+}
+.phead--proc .h1--lg {
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+.phead--proc .h1--xl {
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  max-width: 52ch;
+}
+.phead__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  margin-top: 8px;
+}
+.phead__row .phead__meta,
+.phead__row .pcode {
+  margin: 0;
+}
+.phead--proc .phead__meta {
+  font-size: 0.9375rem;
+}
+.phead--proc + .ptabs .pnav,
+.phead--proc ~ .ptabs .pnav {
+  margin-top: 0;
+}
+.phead--proc .phead__circle {
+  width: 220px;
+  right: -90px;
+  top: -110px;
+}
+.ptabs .pnav {
+  margin-top: 0;
+}
+.ptabs .doc {
+  margin-top: 16px;
+}
+.ptabs .blk:first-child {
+  margin-top: 0;
+}
+
+/* Tab bar: fade on the edge that has more tabs (phones). */
+.pnav__list[data-fade-r="1"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent);
+}
+.pnav__list[data-fade-l="1"] {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent);
+}
+.pnav__list[data-fade-l="1"][data-fade-r="1"] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+}
+@media (max-width: 639px) {
+  .pnav a {
+    min-height: 40px;
+    padding: 0 13px;
+  }
+  .pnav__list {
+    padding: 5px 0;
+  }
+  .phead--proc .phead__circle {
+    display: none;
+  }
+}
+
+/* ---------- Ask box: two columns on wide screens ---------- */
+.ask {
+  max-width: none;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+@media (min-width: 960px) {
+  .ask {
+    grid-template-columns: minmax(300px, 5fr) minmax(0, 7fr);
+    gap: 32px;
+  }
+}
+.ask__side,
+.ask__main {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  align-content: start;
+}
+.ask__form .field__label {
+  display: block;
+  margin-bottom: 8px;
+}
+.ask__row {
+  flex-wrap: nowrap;
+}
+@media (max-width: 520px) {
+  .ask__row {
+    flex-wrap: wrap;
+  }
+}
+.ask__row .btn[disabled],
+.ask__chip[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ask__disc {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ice-deep);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+.ask__disc svg {
+  flex: none;
+  margin-top: 2px;
+}
+.ask__disc--ext {
+  background: var(--white);
+  border: 2px solid var(--ink);
+}
+.ask__chips {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.ask__chips-t {
+  margin: 0;
+}
+.ask__chip {
+  min-height: 40px;
+  border-width: 2px;
+  padding: 6px 14px;
+  font-weight: 700;
+}
+.ask__chip:focus-visible {
+  outline: 3px solid var(--tc);
+  outline-offset: 2px;
+}
+.ask__empty {
+  border: 2px dashed var(--muted);
+  border-radius: 24px;
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  gap: 12px;
+  background: color-mix(in srgb, var(--white) 55%, transparent);
+}
+.ask__ex--list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ask__ans {
+  border-width: 2px;
+  border-radius: 24px;
+}
+.ask__ans--soft {
+  border-style: dashed;
+}
+.ask__can-now {
+  display: grid;
+  gap: 8px;
+}
+.ask__old[open] > summary {
+  margin-bottom: 8px;
+}
+.ask__old > .ask__ans {
+  border: 0;
+  padding: 0;
+}
+
+/* ---------- Inner page blocks: smaller titles, tighter rhythm ---------- */
+.blk {
+  margin-top: clamp(28px, 4vw, 40px);
+}
+.blk__head {
+  margin-bottom: 12px;
+}
+.blk__title {
+  font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+  line-height: 1.1;
+}
+.blk__note {
+  font-size: var(--fs-sm);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.ptabs .tabpanel > .blk:first-child {
+  margin-top: 0;
+}
+.phead--proc .pcode {
+  flex-wrap: nowrap;
+  gap: 10px;
+  font-size: 0.9375rem;
+}
+.phead--proc .pcode__v {
+  min-width: 0;
+}
+.phead--proc .pcode__v {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+@media (max-width: 959px) {
+  /* Phones: the form first, then the answer, then the suggestions. */
+  .ask__side {
+    display: contents;
+  }
+  .ask__form {
+    order: 1;
+  }
+  .ask__main {
+    order: 2;
+  }
+  .ask__chips {
+    order: 3;
+  }
+  .ask__can {
+    order: 4;
+  }
+  .ask__empty {
+    display: none;
+  }
+}
+
+/* ---------- Explorer cards on phones: about five lines each ---------- */
+.pcards {
+  gap: 10px;
+}
+.pcard {
+  padding: 10px 14px 12px;
+  gap: 6px;
+  border-radius: 20px;
+}
+.pcard__top {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.pcard__code {
+  min-height: 36px;
+  font-size: 0.9375rem;
+  text-decoration-thickness: 2px;
+  min-width: 0;
+}
+.pcard__year {
+  flex: 1;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: var(--fs-xs);
+}
+.pcard .risk__num {
+  height: 34px;
+  min-width: 46px;
+  font-size: 1.125rem;
+}
+.pcard dl {
+  gap: 4px;
+}
+.pcard dl > div {
+  display: grid;
+  grid-template-columns: 4.1rem minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+.pcard dt {
+  font-size: 0.625rem;
+}
+.pcard dd {
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  min-width: 0;
+}
+.pcard dd .clamp2,
+.pcard dd.clamp2 {
+  -webkit-line-clamp: 2;
+}
+.pcard .chips--row {
+  gap: 4px;
+}
+.pcard__top {
+  justify-content: space-between;
+}
+.pcard__code {
+  white-space: nowrap;
+  font-size: 0.9375rem;
+}
+.pcard .chip {
+  font-size: 0.75rem;
+  min-height: 26px;
+  padding: 2px 9px;
+}
+.pcard .chips__more {
+  min-height: 26px;
+  font-size: 0.75rem;
+}
+.pcard dl > div {
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+}
+@media (max-width: 639px) {
+  .pcard__code {
+    font-size: 0.8125rem;
+    letter-spacing: -0.02em;
+    min-width: 0;
+  }
+  .pcard .risk {
+    flex: none;
+    gap: 6px;
+  }
+  .pcard .risk__label {
+    font-size: 0.8125rem;
+  }
+}
+
+/* ---------- Trends: shared caveats once, chart-specific ones next to the chart ---------- */
+.trend__shared {
+  background: var(--white);
+  border: 2px solid var(--ice-deep);
+  border-radius: 20px;
+  padding: 14px 18px;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+.trend__shared ul {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+  max-width: 60rem;
+}
+.trend__shared li {
+  padding-left: 14px;
+  position: relative;
+}
+.trend__shared li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tc);
+}
+.trend__body--solo {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.trend__notes {
+  background: var(--ice);
+}
+
+/* Cropped illustration: centre of the drawing only (so it does not suggest a number of stations). */
+.art-crop {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 20px;
+}
+.art-crop img,
+.agents__panel .art-crop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 58%;
+  transform: scale(1.8);
+  transform-origin: 47% 56%;
+}
+
+/* ---------- Home ---------- */
+.step__media:has(.mock) {
+  height: auto;
+  min-height: 210px;
+  padding-top: 58px;
+}
+.step__media .mock {
+  transform: none;
+}
+.is-grid {
+  align-items: stretch;
+}
+.is .ticks {
+  margin-top: 10px;
+}
+.is > p {
+  margin: 0;
+}
+.is .link {
+  margin-top: auto;
+  align-self: flex-start;
+}
+.is {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (min-width: 900px) {
+  /* The histogram card is shorter than the list next to it: spread its rows over the same height. */
+  .stats-charts > section:first-child {
+    display: flex;
+    flex-direction: column;
+  }
+  .stats-charts > section:first-child .bars {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .stats-charts > section:first-child .bars + p {
+    margin-top: 16px !important;
+  }
+}
+
+/* Home on phones: shorter. */
+@media (max-width: 639px) {
+  .figs--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .figs--4 .fig {
+    padding: 12px 14px;
+  }
+  .figs--4 .fig dd {
+    font-size: 1.5rem;
+    overflow-wrap: anywhere;
+  }
+  .figs--4 .fig dd.fig__hint,
+  .figs--4 .fig dt {
+    font-size: 0.8125rem;
+  }
+  .map--compact .map__ranks > div:nth-child(2) {
+    display: none;
+  }
+  .top-procs .pcards > li:nth-child(n + 6) {
+    display: none;
+  }
+  .stats-charts .card {
+    padding: 16px;
+  }
+  .sec--compact {
+    padding-block: 36px;
+  }
+}
+
+/* ---------- Detail pages ---------- */
+.grid2--top {
+  align-items: start;
+}
+.pcard__top {
+  flex-wrap: wrap;
+}
+.pcard .risk {
+  margin-left: auto;
+}
+
+/* ---------- Glossary ---------- */
+.az {
+  position: sticky;
+  top: calc(var(--header) + 2px);
+  z-index: 30;
+  margin: 0 0 16px;
+  padding-block: 8px;
+  background: var(--ice);
+  gap: 6px;
+}
+.az a {
+  min-width: 40px;
+  min-height: 40px;
+  border-width: 2px;
+}
+.az a:focus-visible,
+.pnav a:focus-visible,
+.gloss__item a:focus-visible {
+  outline: 3px solid var(--tc);
+  outline-offset: 2px;
+}
+.gloss {
+  max-width: none;
+  gap: 12px;
+}
+@media (min-width: 980px) {
+  .gloss {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+.gloss__item {
+  padding: 14px 18px;
+  border-radius: 20px;
+}
+.gloss__item dd p {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+@media (max-width: 639px) {
+  .gloss__item {
+    padding: 12px 14px;
+  }
+  .gloss__item dd p {
+    font-size: 0.9375rem;
+  }
+}
+
+/* ---------- Methodology and long text cards ---------- */
+.card:has(> .prose) {
+  max-width: 54rem;
+}
+.grid2 > .card .h3 {
+  font-size: clamp(1.15rem, 1.8vw, 1.4rem);
+  line-height: 1.2;
+}
+.grid2 > .card {
+  padding: clamp(16px, 2.4vw, 24px);
+}
+@media (min-width: 900px) {
+  /* An odd last card spans the row instead of leaving a hole. */
+  .grid2 > .card:last-child:nth-child(odd):not(:only-child) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Details everywhere ---------- */
+.sec--tc :focus-visible {
+  outline-color: var(--ink);
+}
+.btn--sm {
+  font-size: 1.0625rem;
+}
+.tbl th,
+.tbl td,
+.kv dd,
+.bars__val,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.tbl td.r,
+.tbl th.r {
+  text-align: right;
+}
+.tbl tbody tr {
+  transition: background-color 0.12s;
+}
+.tbl tbody tr:hover {
+  background: color-mix(in srgb, var(--ice) 70%, transparent);
+}
+.tbl--proc .code,
+.tbl .code {
+  overflow-wrap: anywhere;
+}
+.cell-link,
+.cell-sub {
+  overflow-wrap: anywhere;
+}
+.pager a:focus-visible,
+.pager span.cur:focus-visible {
+  outline-offset: 2px;
+}
+.btn:focus-visible,
+.chip:focus-visible,
+.pager a:focus-visible {
+  outline: 3px solid var(--tc);
+  outline-offset: 3px;
+}
+.pcard__code:hover {
+  text-decoration-color: var(--ink);
+}
+.metric dd.metric__more {
+  display: grid;
+  gap: 8px;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+  line-height: inherit;
+}

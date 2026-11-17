@@ -113,6 +113,24 @@ export function ProcessTabs({ items: all, children, label = "Secciones de este p
     ul.scrollTo({ left: Math.max(0, left), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [current]);
 
+  // Mark which edges of the bar have more tabs behind them (drives the fade that tells a phone visitor the bar scrolls).
+  useEffect(() => {
+    const ul = bar.current;
+    if (!ul) return;
+    const update = () => {
+      const more = ul.scrollWidth - ul.clientWidth > 2;
+      ul.dataset.fadeL = more && ul.scrollLeft > 2 ? "1" : "0";
+      ul.dataset.fadeR = more && ul.scrollLeft + ul.clientWidth < ul.scrollWidth - 2 ? "1" : "0";
+    };
+    update();
+    ul.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      ul.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [items]);
+
   const select = (id: string, mode: "push" | "replace") => {
     const url = id === first ? `${window.location.pathname}${window.location.search}` : `#${encodeURIComponent(id)}`;
     if (mode === "push") window.history.pushState(null, "", url);

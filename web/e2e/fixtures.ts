@@ -12,6 +12,7 @@ export const STATIC_PAGES = [
   { name: "tendencias", path: "/tendencias" },
   { name: "glosario", path: "/glosario" },
   { name: "metodologia", path: "/metodologia" },
+  { name: "agentes", path: "/agentes" },
 ] as const;
 
 export async function randomOcid(page: Page): Promise<string> {
@@ -20,9 +21,25 @@ export async function randomOcid(page: Page): Promise<string> {
   return ((await res.json()) as { ocid: string }).ocid;
 }
 
+/** A supplier (company) and a buyer that the explorer links to, taken from the API's own listing. */
+export async function linkedParties(page: Page): Promise<{ supplier: string; buyer: string }> {
+  const res = await page.request.get(`${API}/processes?sort=-risk_score&page_size=50`);
+  expect(res.ok(), "process list endpoint").toBeTruthy();
+  const items = ((await res.json()) as { items: { winner_ruc: string | null; winner_kind: string | null; buyer_ruc: string | null }[] }).items;
+  const hit = items.find((i) => i.winner_kind === "company" && i.winner_ruc && i.buyer_ruc);
+  expect(hit, "a listed process with a company winner and a buyer").toBeTruthy();
+  return { supplier: hit!.winner_ruc!, buyer: hit!.buyer_ruc! };
+}
+
 export async function allPages(page: Page) {
   const ocid = await randomOcid(page);
-  return [...STATIC_PAGES, { name: "proceso", path: `/procesos/${encodeURIComponent(ocid)}` }];
+  const { supplier, buyer } = await linkedParties(page);
+  return [
+    ...STATIC_PAGES,
+    { name: "proceso", path: `/procesos/${encodeURIComponent(ocid)}` },
+    { name: "proveedor", path: `/proveedores/${supplier}` },
+    { name: "entidad", path: `/entidades/${buyer}` },
+  ];
 }
 
 /**

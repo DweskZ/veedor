@@ -15,14 +15,17 @@ export function Art({
   sizes = "(min-width: 900px) 40vw, 90vw",
   priority = false,
   className,
+  crop = false,
 }: {
   name: ArtName;
   alt?: string;
   sizes?: string;
   priority?: boolean;
   className?: string;
+  /** Zooms on the centre of the drawing so that no count of desks or stations is implied. */
+  crop?: boolean;
 }) {
-  return (
+  const img = (
     // eslint-disable-next-line @next/next/no-img-element -- static, pre-optimised same-origin WebP with explicit size
     <img
       src={`/art/${name}-960.webp`}
@@ -37,4 +40,5 @@ export function Art({
       className={className}
     />
   );
+  return crop ? <div className="art-crop">{img}</div> : img;
 }

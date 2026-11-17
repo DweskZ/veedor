@@ -65,11 +65,11 @@ async function Content({ params }: { params: PageProps<"/proveedores/[ruc]">["pa
       <div className="wrap">
         <dl className="figs figs--4">
           <Fig label="procesos en los que participó" value={fmtInt(s.n_processes)} />
-          <Fig label="procesos que ganó" value={fmtInt(s.n_wins)} hint={`${fmtInt(s.single_bidder_wins)} con un solo oferente`} />
+          <Fig label="procesos que ganó" value={fmtInt(s.n_wins)} hint={`${fmtInt(s.single_bidder_wins)} con la señal «oferente único»`} />
           <Fig label="monto adjudicado" value={fmtUsd(s.total_awarded, true)} medium />
           <Fig label="puntaje medio" value={fmtNum(s.mean_risk_score)} hint="Promedio de los procesos que ganó" />
         </dl>
-        <div className="grid2" style={{ marginTop: "clamp(40px, 6vw, 64px)" }}>
+        <div className="grid2 grid2--top" style={{ marginTop: "clamp(28px, 4vw, 40px)" }}>
           <Card>
             <h2 className="h3">Historial de adjudicaciones</h2>
             <dl className="kvs">

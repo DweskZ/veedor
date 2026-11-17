@@ -1,9 +1,11 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { RISK_LEVELS, riskLevel } from "@/lib/risk";
 import { fmtNum } from "@/lib/format";
 import { displayName } from "@/lib/names";
 import type { PartyKind } from "@/lib/types";
 import { Art } from "./Art";
+import { RetryButton } from "./RetryButton";
 
 export function PageHeader({
   eyebrow,
@@ -44,16 +46,19 @@ export function Section({
   children,
   aside,
   note,
+  hideTitle = false,
 }: {
   title: string;
   id: string;
   children: ReactNode;
   aside?: ReactNode;
   note?: ReactNode;
+  /** Keeps the heading for assistive technology and for reading without tabs, but does not draw it (the tab already says it). */
+  hideTitle?: boolean;
 }) {
   return (
     <section aria-labelledby={id} className="blk" id={`s-${id}`}>
-      <div className="blk__head">
+      <div className={`blk__head ${hideTitle ? "sr-only" : ""}`}>
         <h2 id={id} className="blk__title">
           {title}
         </h2>
@@ -89,14 +94,29 @@ export function Fig({ label, value, hint, medium = false }: { label: string; val
   );
 }
 
+/** A technical message from the API client (status code or connection failure), not a sentence written for visitors. */
+const isTechnical = (d?: string) => !!d && /\(\d{3}\)|No se pudo conectar|conectar con el servicio/i.test(d);
+
 export function ErrorState({ title = "No pudimos cargar los datos", detail }: { title?: string; detail?: string }) {
+  const technical = isTechnical(detail);
   return (
     <div role="alert" className="err">
       <h2 className="h3">{title}</h2>
-      <p style={{ marginTop: 10 }}>{detail ?? "El servicio de datos no respondió. Inténtalo de nuevo en unos momentos."}</p>
+      <p style={{ marginTop: 10 }}>
+        {detail && !technical
+          ? detail
+          : "El servicio de datos de Veedor no respondió como se esperaba. Suele resolverse en unos minutos: vuelve a intentarlo."}
+      </p>
+      {technical ? <p className="muted small" style={{ marginTop: 6 }}>Detalle técnico: {detail}</p> : null}
       <p className="muted small" style={{ marginTop: 10 }}>
         No mostramos datos de reemplazo: la información solo viene del servicio de datos de Veedor.
       </p>
+      <div className="actions actions--tight">
+        <RetryButton />
+        <Link href="/" className="btn btn--line btn--sm">
+          Ir al inicio
+        </Link>
+      </div>
     </div>
   );
 }

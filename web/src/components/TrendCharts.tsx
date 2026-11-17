@@ -78,7 +78,7 @@ function Frame({ years, label, reading, readout, children, yMax, table, notes, l
       </h2>
       {definition ? <p className="trend__def">{definition}</p> : null}
       <p className="trend__read">{reading}</p>
-      <div className="trend__body">
+      <div className={`trend__body ${notes.length ? "" : "trend__body--solo"}`}>
         <div className="trend__chart" ref={ref}>
           <p className="trend__out" aria-live="polite">
             {readout(active)}
@@ -121,15 +121,16 @@ function Frame({ years, label, reading, readout, children, yMax, table, notes, l
             {children({ w, x, band, active, plotH })}
           </svg>
         </div>
-        <aside className="trend__notes" aria-label="Ten en cuenta">
-          <p className="tag">Ten en cuenta</p>
-          <ul>
-            {years.some((y) => y.partial_year) ? <li>* Año en curso: los datos llegan hasta la última actualización y se dibujan con trazo discontinuo.</li> : null}
-            {notes.map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
-        </aside>
+        {notes.length ? (
+          <aside className="trend__notes" aria-label="Ten en cuenta en este gráfico">
+            <p className="tag">Solo en este gráfico</p>
+            <ul>
+              {notes.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </aside>
+        ) : null}
       </div>
       <details className="trend__table">
         <summary>Ver los datos en una tabla</summary>
@@ -338,7 +339,10 @@ function MixChart({ years, notes, lastFull }: { years: YearRow[]; notes: string[
 }
 
 export function TrendCharts({ years, notes }: { years: YearRow[]; notes: string[] }) {
+  // Caveats that apply to every chart are shown once, above them; the ones about a single series sit next to its chart.
+  const specific = notes.filter((n) => /oferente único/i.test(n));
   const general = notes.filter((n) => !/oferente único/i.test(n));
+  const shared = [...(years.some((y) => y.partial_year) ? ["* Año en curso: los datos llegan hasta la última actualización y se dibujan con trazo discontinuo."] : []), ...general];
   if (years.length === 0) return <p className="muted">No hay datos por año disponibles.</p>;
   const lastFullIdx = (() => {
     for (let i = years.length - 1; i >= 0; i--) if (!years[i].partial_year) return i;
@@ -346,6 +350,16 @@ export function TrendCharts({ years, notes }: { years: YearRow[]; notes: string[
   })();
   return (
     <div className="trends">
+      {shared.length ? (
+        <aside className="trend__shared" aria-label="Ten en cuenta en los tres gráficos">
+          <p className="tag">Ten en cuenta, en los tres gráficos</p>
+          <ul>
+            {shared.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </aside>
+      ) : null}
       <LineChart
         id="solo-oferente"
         title="Subastas inversas con un solo oferente"
@@ -360,11 +374,11 @@ export function TrendCharts({ years, notes }: { years: YearRow[]; notes: string[
         base={(y) => y.single_bidder_base}
         years={years}
         lastFull={lastFullIdx}
-        notes={notes}
+        notes={specific}
         series={(y) => y.pct_single_bidder}
       />
       <div>
-        <MixChart years={years} notes={general} lastFull={lastFullIdx} />
+        <MixChart years={years} notes={[]} lastFull={lastFullIdx} />
         <ul className="mlegend mlegend--row" aria-label="Leyenda del gráfico de barras" style={{ marginTop: 14 }}>
           {MIX.map((m) => (
             <li key={m.key}>
@@ -388,7 +402,7 @@ export function TrendCharts({ years, notes }: { years: YearRow[]; notes: string[
         base={(y) => y.competitive_processes}
         years={years}
         lastFull={lastFullIdx}
-        notes={general}
+        notes={[]}
         series={(y) => y.pct_with_signal}
       />
     </div>

@@ -157,21 +157,20 @@ export function ProcessTable({
             <dl>
               <div>
                 <dt>Entidad</dt>
-                <dd>
+                <dd className="clamp2" title={r.buyer_name ?? undefined}>
                   <Buyer r={r} />
-                  {r.year ? ` · ${r.year}` : ""}
                 </dd>
               </div>
               <div>
-                <dt>Quién ganó</dt>
+                <dt>Ganó</dt>
                 <dd>
                   <Winner r={r} withRuc={false} />
                 </dd>
               </div>
               <div>
-                <dt>Monto adjudicado</dt>
+                <dt>Monto</dt>
                 <dd>
-                  <Num>{fmtUsd(r.award_total)}</Num> · {r.method ?? NA}
+                  <Num>{fmtUsd(r.award_total)}</Num> · {r.method ?? NA}{r.year ? ` · ${r.year}` : ""}
                 </dd>
               </div>
               <div>
