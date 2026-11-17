@@ -28,6 +28,10 @@ export default function Home() {
             <h2 className="h2 h2--sm" id="numeros-h">
               Lo que Veedor <em>ha leído.</em>
             </h2>
+            <p className="lead">
+              Estas cifras cuentan datos atípicos según reglas públicas, no problemas comprobados. Una señal no acusa a
+              nadie.
+            </p>
           </header>
           <Headline />
           <Charts />
