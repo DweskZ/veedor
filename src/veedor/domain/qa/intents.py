@@ -112,10 +112,13 @@ INTENTS: tuple[IntentSpec, ...] = (
             "hubo varios proveedores participando", "hasta qué fecha se aceptaban propuestas", "cuándo empezó y cuándo terminó el periodo de ofertas",
             "cuántos licitantes entraron", "fecha de apertura y cierre para ofertar", "qué tantos proveedores ofertaron", "cuántas propuestas llegaron al portal",
             "cuándo vencía el plazo para entregar la oferta", "participaron muchos oferentes", "cantidad de postulantes",
+            "hubo más empresas compitiendo por el contrato", "quiénes más se postularon", "cuántos rivales tuvo la empresa ganadora", "alguien más concursó o fue una sola",
+            "cuántas compañías quisieron participar",
         ),
         _t(("oferente", 0.55), ("oferentes", 0.55), ("oferta", 0.5), ("ofertas", 0.5), ("ofertar", 0.5), ("ofertaron", 0.5), ("postor*", 0.6), ("participante*", 0.45),
            ("participaron", 0.45), ("participo", 0.4), ("participar", 0.3), ("propuesta*", 0.45), ("licitante*", 0.55), ("concursante*", 0.55), ("postulante*", 0.5),
-           ("competencia", 0.35), ("competidor*", 0.35), ("competir", 0.35), ("se presentaron", 0.45), ("se presento", 0.4), ("se postularon", 0.5),
+           ("competencia", 0.35), ("competidor*", 0.35), ("competir", 0.35), ("compit*", 0.5), ("competi*", 0.4), ("rival*", 0.45), ("postul*", 0.5), ("concursa*", 0.5), ("concurrencia", 0.4),
+           ("mas empresas", 0.3), ("otras empresas", 0.3), ("mas proveedores", 0.3), ("otros proveedores", 0.3), ("presentarse", 0.4), ("participa*", 0.3), ("entraron", 0.25), ("se presentaron", 0.45), ("se presento", 0.4), ("se postularon", 0.5),
            ("se anotaron", 0.5), ("se inscribieron", 0.5), ("cuantas empresas", 0.4), ("cuantos proveedores", 0.4), ("cuanta gente", 0.4), ("plazo", 0.15),
            ("cierre", 0.25), ("recepcion", 0.3), ("limite", 0.2), ("hasta cuando", 0.25), ("hasta que dia", 0.3), ("hasta que fecha", 0.3), ("apertura", 0.3), ("mandaron", 0.25)),
     ),
@@ -253,6 +256,18 @@ INTENTS: tuple[IntentSpec, ...] = (
         _t(("ahorro", 0.35), ("descuento", 0.4), ("rebaja", 0.4), ("ratio", 0.5), ("cerca del presupuesto", 0.5), ("normalmente", 0.2), ("habitual*", 0.2), ("comparables", 0.2), ("sobre el presupuesto", 0.3)),
     ),
     IntentSpec(
+        "context_compare", ("context.count", "context.median_tenderers", "context.single_bidder_share", "context.median_ratio", "context.unavailable"),
+        (
+            "esto es normal o es raro comparado con otros procesos", "cómo se compara este proceso con otros parecidos", "en qué posición queda frente a compras similares",
+            "se sale de lo común respecto a procesos del mismo tipo", "qué tan distinto es de otros procesos iguales", "cómo está frente a otros concursos del mismo método",
+            "es típico para este tipo de proceso", "cómo se ve en comparación con el resto de procesos", "dónde se ubica este proceso entre los comparables",
+        ),
+        _t(("comparado con", 0.6), ("comparada con", 0.6), ("comparados con", 0.5), ("en comparacion", 0.6), ("se compara", 0.55), ("comparar*", 0.35), ("frente a otr*", 0.6),
+           ("frente a procesos", 0.55), ("frente a compras", 0.55), ("respecto a otr*", 0.55), ("respecto a procesos", 0.55), ("contra otros", 0.5), ("con otros procesos", 0.5),
+           ("otros procesos", 0.3), ("procesos parecidos", 0.35), ("procesos similares", 0.35), ("del mismo tipo", 0.3), ("se sale de lo comun", 0.5), ("fuera de lo comun", 0.5),
+           ("posicion", 0.35), ("tipico", 0.3), ("normal", 0.15), ("raro", 0.15), ("esperable", 0.3), ("del resto", 0.3), ("el resto de procesos", 0.4), ("en que posicion", 0.5)),
+    ),
+    IntentSpec(
         SIGNALS_ID, ("signals.none", "signals.unavailable"),
         (
             "qué señales de alerta se detectaron", "tiene indicadores de riesgo", "qué banderas rojas aparecen", "por qué salió marcado este proceso en el análisis",
@@ -369,18 +384,32 @@ INTENTS: tuple[IntentSpec, ...] = (
             "cuál es la capital de un país", "cómo está el clima hoy", "qué hora es", "cuéntame un chiste", "una receta de cocina", "cuánto es una operación de matemáticas",
             "recomiéndame una película", "traduce esta frase", "quién es el presidente de otro país", "cuánto está el dólar", "qué día es hoy", "cuál es la montaña más alta",
             "qué dicen los términos de referencia",
+            "quién ganó las elecciones presidenciales", "cuál es el idioma que se habla en otro país", "cuántos habitantes tiene una ciudad", "cuál es el animal más rápido",
+            "cómo se escribe una palabra", "cuál es el sujeto de una oración gramatical", "a cuánto está el bitcoin", "quién fundó una empresa tecnológica famosa",
+            "cuándo es el próximo partido de la selección", "cómo se prepara un plato típico", "cuál es la distancia entre dos ciudades", "qué significa una palabra en inglés",
+            "cuál es la fórmula de un compuesto químico", "quién inventó el teléfono", "cuánto cuesta un pasaje o un boleto", "dónde nació un personaje famoso",
+            "cuál es el mejor lugar para vacacionar", "cómo funciona un motor", "cuál es el valor de una constante matemática", "quién ganó el premio de la academia",
         ),
         _t(("plazo de entrega", 0.6), ("plazo del contrato", 0.6), ("tiempo de entrega", 0.6), ("dias de entrega", 0.6), ("garantia*", 0.6), ("marca*", 0.5), ("forma de pago", 0.6),
            ("formas de pago", 0.6), ("como se paga", 0.5), ("multa*", 0.5), ("sancion*", 0.5), ("penalidad*", 0.5), ("avance", 0.5), ("ejecucion", 0.3), ("entregar", 0.3), ("entrega", 0.25),
            ("lugar de entrega", 0.5), ("donde se entrega", 0.5), ("numero de contrato", 0.55), ("numero del contrato", 0.55), ("codigo del contrato", 0.55), ("pliego*", 0.5), ("requisitos minimos", 0.5),
            ("experiencia", 0.35), ("satisf*", 0.5), ("impuesto*", 0.5), ("iva", 0.4), ("kilometro*", 0.5), ("metros", 0.3), ("dimension*", 0.4), ("supervis*", 0.4), ("fiscaliz*", 0.4), ("clima", 0.7), ("mundial", 1.0), ("campeonato", 0.5),
            ("chiste*", 0.7), ("receta*", 0.7), ("pelicula*", 0.7), ("musica", 0.6), ("presidente", 0.35), ("capital de", 0.5), ("dolar hoy", 0.6), ("traduc*", 0.7),
-           ("que hora es", 0.7), ("que dia es hoy", 0.7), ("terminos de referencia", 0.55)),
+           ("que hora es", 0.7), ("que dia es hoy", 0.7), ("terminos de referencia", 0.55),
+           ("oracion*", 0.6), ("gramatic*", 0.6), ("verbo", 0.5), ("sustantivo", 0.6), ("adjetivo", 0.6), ("sinonimo*", 0.6), ("sujeto", 0.3), ("objeto directo", 0.7), ("valor de pi", 0.8),
+           ("elecciones", 0.7), ("nobel", 0.7), ("oscar", 0.6), ("futbol", 0.6), ("partido", 0.4), ("seleccion", 0.3), ("de hoy", 0.5), ("hoy", 0.3), ("matricula", 0.5), ("colegio", 0.4),
+           ("rentable", 0.4), ("bitcoin", 0.7), ("boleto*", 0.5), ("pasaje*", 0.4), ("vuelo*", 0.4), ("avion", 0.4), ("celular*", 0.3), ("gasolina", 0.5), ("petroleo", 0.5), ("receta*", 0.7),
+           ("famos*", 0.4), ("cantante*", 0.6), ("actor", 0.4), ("actriz", 0.5), ("cancion*", 0.6), ("habitantes", 0.5), ("idioma*", 0.6), ("animal*", 0.5), ("planeta*", 0.6), ("universo", 0.5),
+           ("quimic*", 0.6), ("fisica", 0.5), ("historia de", 0.4), ("inventor*", 0.6), ("invento", 0.5), ("deporte*", 0.6), ("equipo de", 0.3), ("cual es el mejor", 0.4)),
     ),
 )
 
 INTENT_BY_ID: dict[str, IntentSpec] = {spec.id: spec for spec in INTENTS}
-FACT_INTENT: dict[str, str] = {fact: spec.id for spec in INTENTS for fact in spec.facts}
+FACT_INTENTS: dict[str, tuple[str, ...]] = {}
+for _spec in INTENTS:
+    for _fact in _spec.facts:
+        FACT_INTENTS[_fact] = (*FACT_INTENTS.get(_fact, ()), _spec.id)
+FACT_INTENT: dict[str, str] = {fact: ids[0] for fact, ids in FACT_INTENTS.items()}  # the first (most specific) intent of a fact
 
 
 def intent_of_fact(fact_id: str) -> str | None:

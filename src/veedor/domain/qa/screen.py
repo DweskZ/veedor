@@ -22,6 +22,7 @@ from enum import StrEnum
 from veedor.domain.dossier.text import CONFUSABLES, canonical
 from veedor.domain.dossier.vocabulary import MARKUP, NON_LATIN_LETTERS
 from veedor.domain.investigation.identifiers import document_has_personal_identifier
+from veedor.domain.qa.slang import accusation_slang, comparison_frame, hidden_instruction, soft_verdict
 from veedor.domain.quotes.screen import has_accusation_wording
 
 MIN_CHARS = 3
@@ -91,7 +92,7 @@ def _several_questions(text: str) -> bool:
 _JUDGEMENT = re.compile(
     r"\b(?:quien\w* (?:es|son|fue|fueron|sera|seran) (?:el |la |los |las )?(?:responsable|culpable)\w*"
     r"|(?:es|son|fue|fueron|esta|estan|hay|hubo|existe|existio) (?:algo |alguna |algun )?"
-    r"(?:legal|ilegal|licito|ilicito|legitim\w*|honest\w*|limpi\w*|transparent\w*|raro\w*(?! que\b)|extran\w*|"
+    r"(?:legal|ilegal|licito|ilicito|legitim\w*|honest\w*|limpi\w*|transparent\w*|"
     r"inocente\w*|confiable\w*|seguro\w*|bueno\w*|malo\w*|correct\w*|incorrect\w*|valid\w*|dudos\w*)"
     r"|(?:actuo|actuaron|obro|obraron|hizo|hicieron) (?:mal|bien|correctamente|incorrectamente)"
     r"|(?:debe|deben|deberia|deberian|hay que|habria que) (?:ser )?(?:sancion\w*|investigar\w*|denunci\w*|"
@@ -104,7 +105,7 @@ _JUDGEMENT = re.compile(
     r"|(?:cometio|cometieron|incumplio|incumplieron|violo|violaron|infringio|infringieron)\b"
     r"|quien (?:gano|se llevo|se quedo con) (?:de manera|de forma) \w+"
     r"|(?:me )?(?:recomiendas|recomienda|aconsejas|aconseja) (?:denunci\w*|investigar\w*|sancion\w*)"
-    r"|(?:contrato|proceso|licitacion|compra|adjudicacion|concurso)s? (?:esta |fue |era |es )?(?:dirigid|arreglad|cuadrad|armad|trucad)\w*"
+    r"|(?:contrato|proceso|licitacion|compra|adjudicacion|concurso)s? (?:esta |fue |era |es )?(?:arreglad|cuadrad|armad|trucad)\w*"
     r"|(?:favoritism|nepotism|dedazo)\w*|a dedo|entre (?:amigos|panas|familiares|compadres)"
     r"|(?:se )?aprovech\w* (?:del|de la|de los)|se (?:la )?(?:repartier|reparten|repartio)\w*)\b"
 )
@@ -156,7 +157,7 @@ def classify_question(text: str) -> Intent:
     """Order matters: instructions and hidden payloads first (they may carry any other wording), then
     judgements, then requests about persons."""
     folded = _fold(text)
-    if _INSTRUCTION.search(folded) or _carries_payload(text):
+    if _INSTRUCTION.search(folded) or hidden_instruction(folded) or _carries_payload(text):
         return Intent.INSTRUCTION
     if _is_judgement(text, folded):
         return Intent.JUDGEMENT
@@ -175,10 +176,12 @@ def _carries_payload(text: str) -> bool:
 
 
 def _is_judgement(text: str, folded: str) -> bool:
-    return bool(
-        _JUDGEMENT.search(folded)
-        or has_accusation_wording(text)
-    )
+    """A verdict is asked for: the formal accusation words, slang and euphemisms (`slang.py`), opinion requests, and
+    "is it rare / normal?" asked about the process itself. The same adjectives in a question that compares the
+    process with similar ones are a position question (answered with the comparison facts), not a verdict."""
+    if _JUDGEMENT.search(folded) or has_accusation_wording(text) or accusation_slang(folded):
+        return True
+    return soft_verdict(folded) and not comparison_frame(folded)
 
 
 # --- what may be logged or stored --------------------------------------------------------------------

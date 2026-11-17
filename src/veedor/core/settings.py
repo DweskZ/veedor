@@ -30,8 +30,12 @@ class Settings(BaseSettings):
     # by retrieval only. Limits are per API worker process (docs/SECURITY.md, "Question answering").
     ask_enabled: bool = False
     ask_daily_budget: int = Field(default=300, ge=0, le=1_000_000)  # model calls per UTC day, all workers
-    ask_rate_per_minute: int = Field(default=4, ge=1, le=600)  # requests per client IP per worker
+    # Per client IP and worker. The strict pair applies while a model can be called (it costs money);
+    # retrieval-only answers cost nothing, so visitors clicking the suggested questions get the generous pair.
+    ask_rate_per_minute: int = Field(default=4, ge=1, le=600)
     ask_rate_per_hour: int = Field(default=30, ge=1, le=100_000)
+    ask_retrieval_rate_per_minute: int = Field(default=20, ge=1, le=6_000)
+    ask_retrieval_rate_per_hour: int = Field(default=200, ge=1, le=100_000)
     # With True the daily budget and the per-client counters live in the PostgreSQL database (table
     # `ask_usage`, migration 0003) and are shared by every worker and kept across restarts; the in-memory
     # counters remain as the fallback when the database is unreachable. Off by default (the API then needs

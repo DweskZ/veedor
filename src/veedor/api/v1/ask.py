@@ -1,7 +1,8 @@
 """`POST /processes/{ocid}/ask`: the only route that may reach a language model.
 
 Off by default (`VEEDOR_ASK_ENABLED`): 404 when disabled, identical to an unknown route. Per-IP rate
-limits and a daily budget bound the cost; with no key, or the budget spent, it answers by retrieval only.
+limits (strict while a model can be called, generous for retrieval-only answers, which cost nothing)
+and a daily budget bound the cost; with no key, or the budget spent, it answers by retrieval only.
 The question is untrusted: never logged, stored or put in a span (docs/SECURITY.md, "Question answering").
 """
 
@@ -42,17 +43,20 @@ _PROBLEM_MESSAGES = {
 
 
 class AskLimits:
-    """Per-client-IP limits.
+    """Per-client-IP limits (one instance per kind of answer: `model` strict, `retrieval` generous).
 
     In memory (the default): sliding windows counted per worker process and reset on restart, so the effective
     limit is multiplied by the number of workers. With `VEEDOR_ASK_USAGE_SHARED` the counts live in the
     database (fixed one-minute and one-hour buckets per client hash): one count for every worker, kept across
     restarts. If the database fails the in-memory windows apply for that request."""
 
-    def __init__(self, per_minute: int, per_hour: int, store: UsageStore | None = None) -> None:
+    def __init__(
+        self, per_minute: int, per_hour: int, store: UsageStore | None = None, kind: str = "model"
+    ) -> None:
         self.minute = SlidingWindowRateLimiter(per_minute, 60.0)
         self.hour = SlidingWindowRateLimiter(per_hour, 3600.0)
         self._store = store
+        self._prefix = "" if kind == "model" else f"{kind}:"  # the model pair keeps its earlier bucket names
 
     def allow(self, client: str) -> bool:
         if self._store is not None:
@@ -66,8 +70,9 @@ class AskLimits:
         assert self._store is not None
         who = hashlib.sha256(client.encode()).hexdigest()[:16]
         now = int(time.time())
-        return self._store.consume(f"m:{who}:{now // 60}", self.minute.limit) and self._store.consume(
-            f"h:{who}:{now // 3600}", self.hour.limit
+        p = self._prefix
+        return self._store.consume(f"{p}m:{who}:{now // 60}", self.minute.limit) and self._store.consume(
+            f"{p}h:{who}:{now // 3600}", self.hour.limit
         )
 
     def retry_after(self, client: str) -> int:
@@ -88,23 +93,35 @@ class AskLimits:
         now = int(time.time())
         waits = []
         for prefix, size, limit in (("m", 60, self.minute.limit), ("h", 3600, self.hour.limit)):
-            if self._store.used(f"{prefix}:{who}:{now // size}") >= limit:
+            if self._store.used(f"{self._prefix}{prefix}:{who}:{now // size}") >= limit:
                 waits.append(size - now % size)
         return max(waits or [1])
 
 
-_limits: AskLimits | None = None
+_limits: dict[str, AskLimits] | None = {}  # reset to None by the tests
 
 
-def get_ask_limits() -> AskLimits:
+def get_ask_limits(*, model_mode: bool = True) -> AskLimits:
+    """Strict limits while a model can be called (it costs money), generous ones for retrieval only."""
     global _limits
+    if _limits is None:
+        _limits = {}
     settings = get_settings()
-    if _limits is None or (_limits.minute.limit, _limits.hour.limit) != (
-        settings.ask_rate_per_minute,
-        settings.ask_rate_per_hour,
-    ):
-        _limits = AskLimits(settings.ask_rate_per_minute, settings.ask_rate_per_hour, usage_store(settings))
-    return _limits
+    kind = "model" if model_mode else "retrieval"
+    wanted = (
+        (settings.ask_rate_per_minute, settings.ask_rate_per_hour)
+        if model_mode
+        else (settings.ask_retrieval_rate_per_minute, settings.ask_retrieval_rate_per_hour)
+    )
+    current = _limits.get(kind)
+    if current is None or (current.minute.limit, current.hour.limit) != wanted:
+        _limits[kind] = current = AskLimits(*wanted, usage_store(settings), kind)
+    return current
+
+
+def model_may_be_called(service: AskService) -> bool:
+    """True when this service can spend model budget: a model is set and the daily budget is not zero."""
+    return service.selector is not None and (service.budget is None or service.budget.limit > 0)
 
 
 def require_ask_enabled() -> None:
@@ -113,13 +130,14 @@ def require_ask_enabled() -> None:
         raise NotFoundError("route", "ask")
 
 
-def limit_questions(request: Request) -> None:
+def limit_questions(request: Request, service: Annotated[AskService, Depends(get_ask_service)]) -> None:
     client = request.client.host if request.client else "unknown"
-    if not get_ask_limits().allow(client):
+    limits = get_ask_limits(model_mode=model_may_be_called(service))
+    if not limits.allow(client):
         raise HTTPException(
             status_code=429,
             detail="Demasiadas preguntas recientes. Intente más tarde.",
-            headers={"Retry-After": str(get_ask_limits().retry_after(client))},
+            headers={"Retry-After": str(limits.retry_after(client))},
         )
 
 

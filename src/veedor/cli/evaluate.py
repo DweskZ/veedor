@@ -96,10 +96,12 @@ def run_qa(
         bool,
         typer.Option(
             "--heldout/--no-heldout",
-            help="Also evaluate the held-out phrasings. Each run that does is counted in eval/qa.json "
-            "(`heldout_runs`); use --no-heldout while developing.",
+            help="FINAL REPORT ONLY: also evaluate the second held-out set and the held-out adversarial "
+            "set, once (needs the shipped thresholds; refused when already evaluated). Without it they are "
+            "carried over from the previous eval/qa.json; the first held-out set is never re-run (it "
+            "measured intents-v1). `heldout_runs` in eval/qa.json counts every run of every held-out set.",
         ),
-    ] = True,
+    ] = False,
 ) -> None:
     """Question answering: retrieval-only over >= 300 processes, model mode over ~150 questions."""
     from veedor.evaluation.qa import render, runner
@@ -110,23 +112,25 @@ def run_qa(
     if with_model and not settings.model_configured:
         typer.echo("No model is configured (provider, model name and key): running retrieval only.", err=True)
     previous = out_dir / "qa.json"
-    runs_before = int(orjson.loads(previous.read_bytes()).get("heldout_runs", 0)) if previous.is_file() else 0
+    # A scratch --out-dir still carries the held-out numbers of the real file.
+    carry_from = previous if previous.is_file() else EVAL_DIR / "qa.json"
+    previous_result = orjson.loads(carry_from.read_bytes()) if carry_from.is_file() else {}
     try:
         result = runner.run_evaluation(
             settings,
             with_model=with_model,
             n=n,
             heldout=heldout,
-            heldout_runs_before=runs_before,
+            previous=previous_result,
             progress=typer.echo,
         )
     except (FileNotFoundError, ValueError) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
-    if not with_model and previous.is_file():
+    if not with_model and carry_from.is_file():
         # Model mode is not rerun (cost): keep its stored numbers, marked as measured on the original
         # (in-vocabulary) phrasings and the sample of that run.
-        old = _read_json(previous).get("model")
+        old = previous_result.get("model")
         if old and old.get("status") == "ran":
             old["measured_on"] = "in_vocabulary_phrasings"
             old["measured_with"] = "the earlier key-phrase retrieval; not rerun with the intent retrieval"
@@ -156,3 +160,32 @@ def run_report(
         text = text.rstrip("\n") + "\n\n## Question answering (generated)\n\n" + previous + "\n"
     out.write_text(text, encoding="utf-8")
     typer.echo(f"Wrote {out}")
+
+
+VALIDATION_DOC = REPO_ROOT / "docs" / "VALIDATION.md"
+
+
+@app.command("validation")
+def run_validation(
+    n_boot: Annotated[int, typer.Option(min=100, help="Bootstrap replicates (medians).")] = 1000,
+    seed: Annotated[int, typer.Option(help="Random seed.")] = 20260101,
+    out_dir: Annotated[Path, typer.Option(help="Directory for eval/validation.json.")] = EVAL_DIR,
+    doc: Annotated[Path, typer.Option(help="Markdown file with the results block.")] = VALIDATION_DOC,
+) -> None:
+    """Price validation and threshold bunching; writes eval/validation.json."""
+    from veedor.evaluation import threshold_bunching, validation, validation_report
+
+    settings = get_settings()
+    try:
+        result = validation.run_validation(
+            settings.lake_dir, settings.marts_dir, out_dir / "backtest.json", doc, n_boot, seed
+        )
+        result["thresholds"] = threshold_bunching.run_bunching(settings.lake_dir, seed)
+    except (FileNotFoundError, ValueError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+    _write_json(out_dir / "validation.json", result)
+    block = validation_report.render_markdown(result)
+    block += threshold_bunching.render_markdown(result["thresholds"])
+    validation_report.update_doc(doc, block)
+    typer.echo(f"Wrote {out_dir / 'validation.json'} and the results block of {doc}")

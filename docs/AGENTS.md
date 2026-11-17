@@ -199,20 +199,29 @@ flowchart TD
 ```
 
 **Retrieval without a model** (`domain/qa/intents.py`, `domain/qa/ranking.py`). The question is not compared with the wording of
-the fact keys; it is scored against 33 *intents* (kinds of question: winner, amounts, tenderers, history, signals, ... and `oos`, what the stored evidence
+the fact keys; it is scored against 34 *intents* (kinds of question: winner, amounts, tenderers, history, signals, ... and `oos`, what the stored evidence
 never answers). Per intent: the embedding similarity to the nearest of several differently worded prototype questions (plus the old key phrases) and a
 noisy lexical score of accent-folded stems (`ganó`, `ganador`, `adjudicatario`; `quien~ganó` allows words in between; a question of two content words
 counts its terms 1.5 times), mixed convexly (`lexical_weight`). The decision is made over all intents: if `oos`, or an intent whose facts this process lacks
 (no investigation stored, no company winner), scores within a margin of the best intent that has facts, nothing is stated. The facts of the winning
 intent are stated, as a group where the answer is a group (every fired signal for "which signals", both relation facts for the history; a named signal
-is matched by the distinctive words of its label). A second intent within `second_gap` is added when `k` is 2. The eight numbers are in
+is matched by the distinctive words of its label). A second intent within `second_gap` is added when `k` is 2. The ten numbers are in
 `Thresholds` (`domain/qa/selection.py`) and are chosen by `veedor evaluate qa` on the tuning half of the processes with the original and
-the development phrasings; the held-out phrasings (`evaluation/qa/heldout.py`) are never used for tuning. With a model, the same scores rank the 12 candidates
+the development phrasings; the held-out phrasings (`evaluation/qa/heldout*.py`) are never used for tuning (the developer's own probes, `evaluation/qa/probes.py`, are one more tuning set). With a model, the same scores rank the 12 candidates
 it is shown. `AskService(retrieval="legacy")` keeps the earlier key-phrase retrieval only so the evaluation can measure against it. The model never
 writes prose either way: the answer is the facts' dossier sentences. The first question after a start pays for embedding the prototypes (about 1 to 3 s with
 the local model, once per process); after that retrieval takes about a millisecond.
 
 What each control does, and what stays open, is in `docs/SECURITY.md` ("Question answering"): the model only picks ids (prompt injection can at most select true facts of this process), it never sees quotes or text from the data (exfiltration of third-party text), and rate limits, a daily budget, a token cap and a timeout bound the cost. Residual limits: the screen is heuristic; limits are per worker; the retrieval is only as good as its prototypes, lexicon and a static word-vector embedding (see docs/EVALUATION.md for measured recall by phrasing set and what stays weak); behaviour of a real model against a hostile question was measured on a small set, not reviewed adversarially by a third party.
+
+**Question-answering polish (retrieval `intents-v2`).** Six defects were found by asking the system its own questions; the general cause and fix of each:
+
+1. *One shared word answered a question about something else* ("cuál es la capital de Francia" got the "Capital suscrito" fact). A single ambiguous lexical term (weight 0.8) outweighed an out-of-scope intent whose embedding was in fact higher. Fix: **foreign words are evidence** (`IntentIndex.foreign_share`): a content word standing where a noun or a name stands (after a preposition or determiner), that is not a frame word, not in the domain vocabulary (every word of the in-scope prototypes, keys, lexicon and signal labels) and whose embedding is far (cosine < 0.5) from every domain word ("Francia", "pizza", "taxi"), counts as foreign. A share `f` of foreign content words raises the out-of-scope lexical score (`foreign_oos`) and scales every other intent by `1 - foreign_penalty * f`. Verbs, adverbs and fillers are not counted, so colloquial wording is not penalised. The out-of-scope intent also got general-knowledge prototypes and terms (grammar, politics, sport, money, geography).
+2. *Competition wordings missed* ("hubo más empresas compitiendo"): the tenderers lexicon lacked the verb families (`compit-`, `postul-`, `concursa-`, `rival-`, `presentarse`, `más empresas`) and its prototypes lacked competition phrasings.
+3. *A request to compare was refused as a judgement*: the screen matched "es raro" anywhere. The soft statistical adjectives (raro, normal, extraño, atípico, inusual, "se sale de lo común") are a verdict only when asked about the process itself; with a comparison frame (comparado con, frente a, respecto a, procesos parecidos, del mismo tipo...) they are a position question and a new intent (`context_compare`) answers with the comparison-context facts (a fact may now answer several intents). A request that asks for a verdict through any other word ("es sospechoso comparado con otros") stays a judgement.
+4. *Compound question* ("quién ganó y por cuánto"): when the question splits at a "y", "e", comma or "además" into two parts that each, scored alone, clear the bar for a different intent, both fact groups are stated (`AskService._compound`; never more than two intents; one question per call still holds).
+5. *Judgement slang unrecognised*: `domain/qa/slang.py` adds Ecuadorian and Latin American corruption slang and euphemisms, English, opinion requests and hidden-instruction wordings. Decisions on ambiguous words are in that module's docstring: `sobreprecio`, `direccionado`, `amañado`, `arreglado`, `a dedo`, `negociado` are accusations in every use found (the project vocabulary already treats the first two so); `dirigido` only when it says the process was steered ("dirigido a una sola empresa", "estaba dirigido"), not as an audience ("dirigido a bienes, obras o servicios"); `sobrecosto` and "cuánto pasó del presupuesto" are neutral.
+6. *Rate limit*: separate per-IP limits (docs/CONFIGURATION.md).
 
 ### Topic floor calibration (measured)
 

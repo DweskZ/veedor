@@ -100,6 +100,11 @@ class PhrasingSet:
     not_in_the_data: tuple[str, ...]
     off_topic: tuple[str, ...]
     attacks: tuple[tuple[str, str], ...] = ()
+    # Defects 3 and 4 (docs/EVALUATION.md): requests to compare with similar processes (not a judgement) and one
+    # question that joins two intents. Both are drawn after every other stream, so they never move the others.
+    comparison: tuple[str, ...] = ()
+    compound: tuple[tuple[str, str, str], ...] = ()  # (text, fact type A, fact type B)
+    adversarial: tuple[tuple[str, str, str], ...] = ()  # (category, expected reason, text): see `heldout_adversarial`
 
 
 def development_set() -> PhrasingSet:
@@ -118,6 +123,104 @@ def heldout_set() -> PhrasingSet:
     )
 
 
+def _earlier_texts() -> set[str]:
+    """Folded text of every phrasing of the sets that are not unseen: original, development, first held-out, probes."""
+    from veedor.domain.qa.intents import lexical_phrases, prototype_phrases
+    from veedor.evaluation.qa import heldout as h1
+    from veedor.evaluation.qa import probes as pr
+    from veedor.evaluation.qa.overlap import folded
+
+    texts: set[str] = set()
+    for t in (*q.ANSWERABLE, *q.INVESTIGATION):
+        texts |= {folded(p) for p in t.phrasings}
+    for group in (*q.DEV_ANSWERABLE.values(), *h1.HELDOUT_ANSWERABLE.values()):
+        texts |= {folded(p) for p in group}
+    for group in (
+        q.SIGNAL_PHRASINGS, q.DEV_SIGNAL_PHRASINGS, h1.HELDOUT_SIGNAL_PHRASINGS, q.ALL_SIGNALS_PHRASINGS, q.DEV_ALL_SIGNALS_PHRASINGS,
+        h1.HELDOUT_ALL_SIGNALS_PHRASINGS, q.ABSENT_INVESTIGATION, q.DEV_ABSENT_INVESTIGATION, h1.HELDOUT_ABSENT_INVESTIGATION,
+        q.NOT_IN_THE_DATA, q.DEV_NOT_IN_THE_DATA, h1.HELDOUT_NOT_IN_THE_DATA, q.OFF_TOPIC, q.DEV_OFF_TOPIC, h1.HELDOUT_OFF_TOPIC,
+        pr.OUT_OF_SCOPE_SHARED_WORD, pr.COMPETITION, pr.COMPARISON,
+    ):
+        texts |= {folded(p) for p in group}
+    for _, text in (*q.ATTACKS, *q.DEV_ATTACKS, *h1.HELDOUT_ATTACKS):
+        texts.add(folded(text))
+    # A held-out text may not be a prototype or a lexical phrase either.
+    texts |= {folded(p) for p in (*prototype_phrases(), *lexical_phrases())}
+    return texts
+
+
+def _unseen(texts: tuple[str, ...], earlier: set[str]) -> tuple[str, ...]:
+    """The phrasings of a held-out set that are not also a phrasing of a set the developers have seen. The held-out files
+    are frozen (their SHA-256 is recorded before the tuning); an accidental duplicate is dropped here, not edited."""
+    from veedor.evaluation.qa.overlap import folded
+
+    return tuple(t for t in texts if folded(t.replace("{label}", " ")) not in earlier)
+
+
+def heldout2_set() -> PhrasingSet:
+    """The second held-out set (answerable, unanswerable, comparison and compound questions), written before the
+    tuning of the retrieval that this report measures (`heldout2.py`; its SHA-256 is in `eval/qa.json`). A phrasing
+    that equals one of an earlier set is dropped (`dropped_duplicates` reports how many)."""
+    from veedor.evaluation.qa import heldout2 as h
+
+    earlier = _earlier_texts()
+    return PhrasingSet(
+        "heldout2", "heldout2",
+        {name: _unseen(texts, earlier) for name, texts in h.HELDOUT2_ANSWERABLE.items()},
+        _unseen(h.HELDOUT2_SIGNAL_PHRASINGS, earlier), _unseen(h.HELDOUT2_ALL_SIGNALS_PHRASINGS, earlier),
+        _unseen(h.HELDOUT2_ABSENT_INVESTIGATION, earlier), _unseen(h.HELDOUT2_NOT_IN_THE_DATA, earlier), _unseen(h.HELDOUT2_OFF_TOPIC, earlier),
+        comparison=_unseen(h.HELDOUT2_COMPARISON, earlier),
+        compound=tuple(c for c in h.HELDOUT2_COMPOUND if c[0] in set(_unseen((c[0],), earlier))),
+    )
+
+
+def dropped_duplicates() -> dict[str, int]:
+    """How many phrasings of each frozen held-out file equal a phrasing of an earlier set (and are not used)."""
+    from veedor.evaluation.qa import heldout2 as h
+    from veedor.evaluation.qa import heldout_adversarial as ha
+
+    earlier = _earlier_texts()
+    held2 = [t for ts in h.HELDOUT2_ANSWERABLE.values() for t in ts] + [
+        *h.HELDOUT2_SIGNAL_PHRASINGS, *h.HELDOUT2_ALL_SIGNALS_PHRASINGS, *h.HELDOUT2_ABSENT_INVESTIGATION,
+        *h.HELDOUT2_NOT_IN_THE_DATA, *h.HELDOUT2_OFF_TOPIC, *h.HELDOUT2_COMPARISON, *(c[0] for c in h.HELDOUT2_COMPOUND),
+    ]
+    return {
+        "heldout2": len(held2) - len(_unseen(tuple(held2), earlier)),
+        "heldout_adversarial": len(ha.HELDOUT_ADV) - len(_unseen(tuple(t for _, _, t in ha.HELDOUT_ADV), earlier)),
+    }
+
+
+def probe_set() -> PhrasingSet:
+    """The developer's own probes (`probes.py`): development material, one more tuning set."""
+    from veedor.evaluation.qa import probes as pr
+    from veedor.evaluation.qa import questions as qq
+
+    answerable = {t.name: () for t in (*qq.ANSWERABLE, *qq.INVESTIGATION)} | {"tenderers": pr.COMPETITION}
+    return PhrasingSet(
+        "probes", "probes", answerable, (), (), (), (), pr.OUT_OF_SCOPE_SHARED_WORD, comparison=pr.COMPARISON, compound=pr.COMPOUND
+    )
+
+
+def heldout_adversarial_set() -> PhrasingSet:
+    """The new held-out adversarial and judgement set (`heldout_adversarial.py`): only attacks, no answerable
+    or unanswerable question. The first held-out set's adversarial subset was read after the fact (docs/EVALUATION.md)."""
+    from veedor.evaluation.qa import heldout_adversarial as h
+
+    earlier = _earlier_texts()
+    kept = set(_unseen(tuple(t for _, _, t in h.HELDOUT_ADV), earlier))
+    return PhrasingSet(
+        "heldout_adversarial", "heldout-adv", {}, (), (), (), (), (), adversarial=tuple(a for a in h.HELDOUT_ADV if a[2] in kept)
+    )
+
+
+COMPARISON_TAG, COMPOUND_TAG = "comparison", "compound"
+
+
+def _context_facts(view: ProcessView) -> tuple[str, ...]:
+    """The facts a request to compare with similar processes is answered with: the comparison context."""
+    return tuple(sorted(f for f in view.fact_ids if f.startswith("context.") and f != "context.unavailable"))
+
+
 def generate_phrasing_set(views: list[ProcessView], phrasings: PhrasingSet, seed: int = 42) -> list[EvalQuestion]:
     """The same structure as `generate`, worded with one independent set of phrasings, for the given processes
     only (the caller passes the reporting half). Its own random stream: the original questions of `generate`
@@ -126,10 +229,12 @@ def generate_phrasing_set(views: list[ProcessView], phrasings: PhrasingSet, seed
     out: list[EvalQuestion] = []
     ordered = sorted(views, key=lambda v: v.ocid)
     for view in ordered:
-        types = _applicable(view)
+        if not phrasings.answerable:
+            break  # an attack-only set
+        types = [t for t in _applicable(view) if phrasings.answerable.get(t.name)]
         for fact_type in rng.sample(types, min(PER_PROCESS_ANSWERABLE, len(types))):
             out.append(EvalQuestion(view.ocid, rng.choice(phrasings.answerable[fact_type.name]), ANSWERABLE, fact_type.name, fact_type.expected))
-        if view.signal_labels:
+        if view.signal_labels and phrasings.signal and phrasings.all_signals:
             if rng.random() < 0.5:
                 fact_id = rng.choice(sorted(view.signal_labels))
                 text = rng.choice(phrasings.signal).format(label=view.signal_labels[fact_id])
@@ -146,4 +251,23 @@ def generate_phrasing_set(views: list[ProcessView], phrasings: PhrasingSet, seed
     for index, (category, text) in enumerate(phrasings.attacks):
         for view in attack_rng.sample(ordered, min(ATTACKS_PER_HALF[1], len(ordered))):
             out.append(EvalQuestion(view.ocid, text, ADVERSARIAL, category, attack=index))
+    # Every adversarial item carries the reason a correct answer has (judgement, person or instruction) in `expected`.
+    for index, (category, expected, text) in enumerate(phrasings.adversarial):
+        for view in attack_rng.sample(ordered, min(ATTACKS_PER_HALF[1], len(ordered))):
+            out.append(EvalQuestion(view.ocid, text, ADVERSARIAL, category, (expected,), attack=index))
+    by_name = {t.name: t for t in (*q.ANSWERABLE, *q.INVESTIGATION)}
+    extra_rng = random.Random(f"{phrasings.rng_tag}-extra:{seed}")
+    for view in ordered:
+        if phrasings.comparison and _context_facts(view) and extra_rng.random() < 0.5:
+            out.append(EvalQuestion(view.ocid, extra_rng.choice(phrasings.comparison), ANSWERABLE, COMPARISON_TAG, _context_facts(view)))
+        usable = [(t, a, b) for t, a, b in phrasings.compound if _both_apply(view, by_name, a, b)]
+        if usable and extra_rng.random() < 0.6:
+            text, a, b = extra_rng.choice(usable)
+            expected = tuple(dict.fromkeys((*by_name[a].expected, *by_name[b].expected)))
+            out.append(EvalQuestion(view.ocid, text, ANSWERABLE, COMPOUND_TAG, expected))
     return out
+
+
+def _both_apply(view: ProcessView, by_name: dict[str, q.FactType], a: str, b: str) -> bool:
+    applicable = {t.name for t in _applicable(view)}
+    return a in by_name and b in by_name and a in applicable and b in applicable

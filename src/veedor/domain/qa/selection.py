@@ -22,7 +22,7 @@ _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
 class Thresholds:
     """Chosen on the tuning half of the evaluation sample (docs/EVALUATION.md); not a claim of quality."""
 
-    floor: float = 0.30  # an intent is answered without a model when its fused score is at least this
+    floor: float = 0.20  # an intent is answered without a model when its fused score is at least this
     k: int = 2  # at most this many intents (their facts) without a model
     model_floor: float = 0.325  # below this fused score to every fact the model is not even asked
     candidates: int = MAX_MODEL_CANDIDATES
@@ -31,11 +31,16 @@ class Thresholds:
     # Intent retrieval (`domain.qa.ranking`): `floor` and `k` above mean "fused intent score" and "intents".
     e_lo: float = 0.30  # embedding cosine that maps to 0 in the fusion
     e_hi: float = 0.95  # embedding cosine that maps to 1
-    lexical_weight: float = 0.5  # weight of the lexical score in the fusion (the rest is the embedding's)
-    oos_margin: float = 0.05  # the winning intent must beat the "never answered" intent by this much
+    lexical_weight: float = 0.6  # weight of the lexical score in the fusion (the rest is the embedding's)
+    oos_margin: float = 0.10  # the winning intent must beat the "never answered" intent by this much
     absent_margin: float = 0.10  # ... and the best intent whose facts this process lacks by this much
-    second_gap: float = 0.05  # with k > 1, a second intent within this of the winner is answered too
-
+    second_gap: float = 0.03  # with k > 1, a second intent within this of the winner is answered too
+    # Words of the question that belong to no part of the domain (France, pizza, taxi) say it is about
+    # something else, which one shared word ("capital", "precio") must not outweigh. With f the share of
+    # foreign content words: f * foreign_oos is added (noisy-or) to the out-of-scope lexical score, and
+    # every other intent's fused score is scaled by (1 - foreign_penalty * f).
+    foreign_oos: float = 1.5
+    foreign_penalty: float = 1.0
 
 DEFAULT_THRESHOLDS = Thresholds()
 

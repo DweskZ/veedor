@@ -27,9 +27,12 @@ from veedor.evaluation.qa.generate import (
     EvalQuestion,
     ProcessView,
     development_set,
+    dropped_duplicates,
     generate,
     generate_phrasing_set,
-    heldout_set,
+    heldout2_set,
+    heldout_adversarial_set,
+    probe_set,
     view_of,
 )
 from veedor.evaluation.qa.metrics import Outcome, ProcessText, summarise
@@ -185,6 +188,8 @@ INTENT_GRID: dict[str, list[float | int]] = {
     "oos_margin": [-0.1, -0.05, 0.0, 0.05, 0.1],
     "absent_margin": [-0.15, -0.1, -0.05, 0.0, 0.05, 0.1],
     "second_gap": [0.0, 0.03, 0.05, 0.1],
+    "foreign_oos": [0.0, 0.5, 0.9, 1.2, 1.5],
+    "foreign_penalty": [0.0, 0.25, 0.5, 0.75, 1.0],
     "k": [1, 2],
 }
 TUNING_ROUNDS = 3
@@ -297,8 +302,23 @@ def make_service(contexts: dict[str, ProcessContext], embedder: CachedEmbedder, 
     return AskService(Fixed(), embedder, selector, thresholds, budget=DailyBudget(10**6) if selector else None, retrieval=retrieval)
 
 
-HELDOUT_PATH = "src/veedor/evaluation/qa/heldout.py"
+HELDOUT_FILES = {
+    "heldout": "src/veedor/evaluation/qa/heldout.py",
+    "heldout2": "src/veedor/evaluation/qa/heldout2.py",
+    "heldout_adversarial": "src/veedor/evaluation/qa/heldout_adversarial.py",
+}
+HELDOUT_PATH = HELDOUT_FILES["heldout"]
+# Sets that are evaluated once (final report) and then only carried over from the previous eval/qa.json.
+SINGLE_USE = {"heldout2": heldout2_set, "heldout_adversarial": heldout_adversarial_set}
+RESULT_KEY = {"heldout": "retrieval_only_heldout", "heldout2": "retrieval_only_heldout2", "heldout_adversarial": "retrieval_only_heldout_adversarial"}
 LEGACY_NOTE = "the earlier retrieval (retrieval keys compared with the question), re-measured in this run on the same questions"
+HELDOUT1_SUBSET_NOTE = {
+    "subset": "adversarial and judgement questions of the first held-out set",
+    "status": "no longer unseen",
+    "when": "2026-11-17",
+    "why": "its per-question misses (judgement slang such as coima, chanchullo, tongo, negociado, mano negra, coludidos, and hidden-instruction "
+    "wordings) were read and the screen was then extended to cover that vocabulary; the answerable and unanswerable subsets of the first held-out set were not read per question",
+}
 
 
 def _file_sha256(relative: str) -> str | None:
@@ -308,9 +328,24 @@ def _file_sha256(relative: str) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
-def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: int = SEED, heldout: bool = False, heldout_runs_before: int = 0, progress=print) -> dict[str, Any]:  # noqa: ANN001
-    """`heldout`: also evaluate the held-out phrasings (final report only: once per run, counted in the file)."""
+def _shipped_thresholds_differ(tuned: dict[str, Any]) -> list[str]:
+    """Fields where the thresholds chosen by the tuning differ from the ones the API ships (`DEFAULT_THRESHOLDS`)."""
+    return [k for k in (*INTENT_GRID, "model_floor") if getattr(DEFAULT_THRESHOLDS, k) != tuned[k]]
+
+
+def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: int = SEED, heldout: bool = False, previous: dict[str, Any] | None = None, progress=print) -> dict[str, Any]:  # noqa: ANN001
+    """Original and development phrasings are measured on every run. The held-out sets are not: the first one is
+    carried over from the previous `eval/qa.json` (it measured an earlier retrieval and is never re-run); the second
+    one and the new adversarial one are evaluated ONCE (`heldout=True`, final report, with exactly the shipped
+    thresholds) and carried over afterwards, so `heldout_runs` counts every run that ever happened."""
     started = time.perf_counter()
+    previous = previous or {}
+    previous_sets: dict[str, Any] = dict(previous.get("heldout_sets") or {})
+    if "heldout" not in previous_sets and previous.get("retrieval_only_heldout"):
+        previous_sets["heldout"] = {"runs": int(previous.get("heldout_runs", 1)), "retrieval_version": "intents-v1", "evaluated_at": previous.get("generated_at"), "sha256": previous.get("heldout_sha256")}
+    to_run = [name for name in SINGLE_USE if heldout and name not in previous_sets]
+    if heldout and not to_run:
+        raise ValueError("every held-out set was already evaluated once; a held-out set is not run twice")
     ocids = sample_ocids(settings, n, seed)
     progress(f"sampled {len(ocids)} processes; loading their evidence")
     contexts, texts, _ = load_contexts(settings, ocids)
@@ -327,20 +362,48 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
     index_started = time.perf_counter()
     ranking.IntentIndex(embedder.embed)  # the one-off cost of the prototype embeddings (the API pays it on the first question)
     index_ms = (time.perf_counter() - index_started) * 1000
-    tuning = tune_intents(make_service(contexts, embedder, DEFAULT_THRESHOLDS, None), contexts, {"original": tune_half, "development": development_tune})
+    # The developer's own probes (out-of-scope questions sharing a word, competition and comparison wordings) are one more
+    # tuning set. Compound questions are scored by the service (clause by clause), not by `decide`: left out here.
+    probes_tune = [q for q in generate_phrasing_set(tune_views, probe_set(), seed) if q.tag != "compound"]
+    tuning = tune_intents(make_service(contexts, embedder, DEFAULT_THRESHOLDS, None), contexts, {"original": tune_half, "development": development_tune, "probes": probes_tune})
+    differ = _shipped_thresholds_differ(tuning)
+    if heldout and differ:
+        raise ValueError(f"the tuning chose thresholds other than the shipped ones ({differ}): update DEFAULT_THRESHOLDS first; a held-out run needs the final thresholds")
     thresholds = replace(DEFAULT_THRESHOLDS, **{k: tuning[k] for k in (*INTENT_GRID, "model_floor")})
-    progress(f"chosen on the tuning half: {({k: tuning[k] for k in INTENT_GRID})}, model floor {thresholds.model_floor}")
+    progress(f"chosen on the tuning half: {({k: tuning[k] for k in INTENT_GRID})}, model floor {thresholds.model_floor}; differs from the shipped thresholds in: {differ or 'nothing'}")
     legacy_tuning = tune_legacy(make_service(contexts, embedder, DEFAULT_THRESHOLDS, None, "legacy"), contexts, tune_half)
     legacy_thresholds = replace(DEFAULT_THRESHOLDS, floor=legacy_tuning["floor"], k=legacy_tuning["k"], model_floor=legacy_tuning["model_floor"])
 
     development_questions = generate_phrasing_set(report_views, development_set(), seed)
     sets: dict[str, list[EvalQuestion]] = {"original": report_half, "development": development_questions}
-    if heldout:
-        sets["heldout"] = generate_phrasing_set(report_views, heldout_set(), seed)
     new_service = make_service(contexts, embedder, thresholds, None)
     old_service = make_service(contexts, embedder, legacy_thresholds, None, "legacy")
     summaries = {name: summarise(run_questions(new_service, qs), texts, model=False) for name, qs in sets.items()}
     baseline = {name: summarise(run_questions(old_service, qs), texts, model=False) for name, qs in sets.items()}
+    # Held-out sets: run the ones that were never run (once), carry the others over unchanged.
+    now = datetime.now(UTC).isoformat(timespec="seconds")
+    held: dict[str, dict[str, Any] | None] = {}
+    held_meta: dict[str, dict[str, Any]] = {}
+    for name in HELDOUT_FILES:
+        key = RESULT_KEY[name]
+        if name in to_run:
+            qs = generate_phrasing_set(report_views, SINGLE_USE[name](), seed)
+            held[name] = summarise(run_questions(new_service, qs), texts, model=False)
+            held_meta[name] = {"runs": 1, "retrieval_version": ranking.RETRIEVAL_VERSION, "evaluated_at": now, "sha256": _file_sha256(HELDOUT_FILES[name]), "questions": len(qs), "kinds": dict(Counter(q.kind for q in qs)), "status": "evaluated in this run"}
+        else:
+            held[name] = previous.get(key)
+            old = dict(previous_sets.get(name) or {})
+            if name == "heldout":
+                old.setdefault("retrieval_version", "intents-v1")
+                old["status"] = "carried over, not re-run: measured the earlier retrieval (" + str(old["retrieval_version"]) + ")"
+                old["questions"] = previous.get("sample", {}).get("questions_by_phrasing_set", {}).get("heldout", {}).get("total")
+                old["sha256"] = old.get("sha256") or previous.get("heldout_sha256")
+                old["adversarial_subset_unseen"] = HELDOUT1_SUBSET_NOTE
+            elif old:
+                old["status"] = "carried over, not re-run"
+            if old:
+                held_meta[name] = old
+    carried_runs = sum(int(m.get("runs", 0)) for k, m in held_meta.items() if k not in to_run)
     result: dict[str, Any] = {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "seed": seed,
@@ -354,7 +417,8 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
             "questions_tuning_half": len(tune_half),
             "questions_reporting_half": len(report_half),
             "distinct_attacks": len({q.attack for q in questions if q.kind == ADVERSARIAL}),
-            "questions_by_phrasing_set": {name: {"total": len(qs), "by_kind": dict(Counter(q.kind for q in qs))} for name, qs in sets.items()},
+            "questions_by_phrasing_set": {name: {"total": len(qs), "by_kind": dict(Counter(q.kind for q in qs))} for name, qs in sets.items()}
+            | {name: {"total": m["questions"], "by_kind": m.get("kinds") or (previous.get("sample", {}).get("questions_by_phrasing_set", {}).get(name, {}).get("by_kind"))} for name, m in held_meta.items() if m.get("questions")},
             "questions_tuning_development_phrasing": len(development_tune),
         },
         "thresholds": {k: tuning[k] for k in (*INTENT_GRID, "objective", "model_floor", "candidate_recall_tuning_half", "per_set")}
@@ -363,16 +427,32 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
         "phrasing_sets": {
             "original": "training and tuning phrasings (written together with the retrieval keys)",
             "development": "independently worded set of review 5, now seen by the developers and tuned against",
-            "heldout": "written before any tuning of the intent retrieval; not used for tuning, evaluated once for the final report",
+            "heldout": "written before any tuning of the first intent retrieval (intents-v1); not used for tuning; evaluated once, with intents-v1; its adversarial subset is no longer unseen",
+            "heldout2": "written before the tuning of intents-v2; not used for tuning; evaluated once",
+            "heldout_adversarial": "new adversarial and judgement set, written before the screen was extended; not used to choose any pattern; evaluated once",
         },
+        "retrieval_version": ranking.RETRIEVAL_VERSION,
+        # What the previous retrieval (intents-v1) measured on the original and development phrasings, kept for the
+        # before/after table; carried over from the first file that has it.
+        "retrieval_v1": previous.get("retrieval_v1")
+        or (
+            {"measured_at": previous.get("generated_at"), "thresholds": previous.get("thresholds"), "original": previous["retrieval_only"], "development": previous.get("retrieval_only_development")}
+            if previous.get("retrieval_only") and previous.get("retrieval_version") in (None, "intents-v1")
+            else None
+        ),
+        "probe_questions_tuned_on": {"out_of_scope_shared_word": len(probe_set().off_topic), "competition": len(probe_set().answerable["tenderers"]), "comparison": len(probe_set().comparison)},
+        "dropped_duplicates": dropped_duplicates(),
+        "heldout_sets": held_meta,
         "heldout_sha256": _file_sha256(HELDOUT_PATH),
-        "heldout_evaluated": heldout,
-        "heldout_runs": heldout_runs_before + (1 if heldout else 0),
+        "heldout_evaluated": bool(held_meta.get("heldout")),
+        "heldout_runs": carried_runs + len(to_run),  # every run of every held-out set, ever
         "intent_index_build_ms": round(index_ms, 1),
         "retrieval_only": summaries["original"],  # original phrasings, reporting-half processes
         "retrieval_only_development": summaries["development"],
-        "retrieval_only_heldout": summaries.get("heldout"),
-        "baseline_legacy": {"note": LEGACY_NOTE, "original": baseline["original"], "development": baseline["development"], "heldout": baseline.get("heldout")},
+        "retrieval_only_heldout": held["heldout"],  # the FIRST held-out set, measured with intents-v1 (carried over)
+        "retrieval_only_heldout2": held["heldout2"],
+        "retrieval_only_heldout_adversarial": held["heldout_adversarial"],
+        "baseline_legacy": {"note": LEGACY_NOTE, "original": baseline["original"], "development": baseline["development"], "heldout": (previous.get("baseline_legacy") or {}).get("heldout")},
         "tuning_grid": legacy_tuning["grid"],
         "model": None,
     }

@@ -17,7 +17,7 @@ import secrets
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Protocol
 
@@ -254,8 +254,31 @@ class AskService:
             return scores, retrieval_select(scores, self.thresholds)
         scores = self._intent_scores(text, query, facts)
         fact_ids = [f.fact_id for f in facts]
-        decision = ranking.decide(scores, ranking.facts_by_intent(fact_ids), self.thresholds)
-        return ranking.fact_scores(scores, fact_ids, self.thresholds), list(decision.chosen)
+        mapping = ranking.facts_by_intent(fact_ids)
+        decision = ranking.decide(scores, mapping, self.thresholds)
+        compound = self._compound(text, facts, mapping)
+        chosen = compound if compound else list(decision.chosen)
+        return ranking.fact_scores(scores, fact_ids, self.thresholds), chosen
+
+    def _compound(
+        self, text: str, facts: list[QaFact], mapping: dict[str, tuple[int, ...]]
+    ) -> list[int] | None:
+        """One question that joins two intents ("quién ganó y por cuánto"): when each part, scored alone,
+        clears the bar for a different intent, both groups of facts are stated. Never more than two."""
+        single = replace(self.thresholds, k=1)
+        for left, right in ranking.clause_splits(text):
+            decisions = []
+            for clause in (left, right):
+                scores = self._intent_scores(clause, self.embedder.embed(self._variants(clause)), facts)
+                decision = ranking.decide(scores, mapping, single)
+                if decision.reason != "answered":
+                    break
+                decisions.append(decision)
+            else:
+                if decisions[0].top_intent != decisions[1].top_intent:
+                    merged = list(dict.fromkeys((*decisions[0].chosen, *decisions[1].chosen)))
+                    return merged[: ranking.MAX_GROUP_FACTS]
+        return None
 
     def _intent_scores(self, text: str, query: np.ndarray, facts: list[QaFact]) -> ranking.IntentScores:
         if self._index is None:

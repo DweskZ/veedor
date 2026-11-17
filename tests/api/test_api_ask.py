@@ -49,7 +49,10 @@ def packs(ocid: str):
 @pytest.fixture
 def enable(monkeypatch, lake_dirs: tuple[Path, Path], client: TestClient):
     """Turn the route on with a service over the synthetic lake; returns a function to adjust the service."""
-    state = {"settings": Settings(_env_file=None, ask_enabled=True, ask_rate_per_minute=600, ask_rate_per_hour=10_000)}
+    state = {"settings": Settings(
+            _env_file=None, ask_enabled=True, ask_rate_per_minute=600, ask_rate_per_hour=10_000,
+            ask_retrieval_rate_per_minute=600, ask_retrieval_rate_per_hour=10_000,
+        )}
     monkeypatch.setattr(ask_route, "get_settings", lambda: state["settings"])
     ask_route._limits = None
 
@@ -123,14 +126,29 @@ def test_an_unknown_process_is_a_404_and_a_bad_path_a_422(client, enable):
 
 
 def test_per_ip_rate_limit_answers_429(client, enable):
-    enable.settings["settings"] = Settings(_env_file=None, ask_enabled=True, ask_rate_per_minute=3)
+    enable.settings["settings"] = Settings(_env_file=None, ask_enabled=True, ask_retrieval_rate_per_minute=3)
     codes = [post(client).status_code for _ in range(5)]
     assert codes == [200, 200, 200, 429, 429]
     assert "Demasiadas" in post(client).json()["error"]["message"]
 
 
+def test_retrieval_only_answers_have_a_generous_limit_and_model_answers_the_strict_one(client, enable):
+    """Five suggested questions in a row must not be blocked without a model (default 4 per minute for the model)."""
+    defaults = Settings(_env_file=None, ask_enabled=True)
+    assert (defaults.ask_rate_per_minute, defaults.ask_rate_per_hour) == (4, 30)
+    assert (defaults.ask_retrieval_rate_per_minute, defaults.ask_retrieval_rate_per_hour) == (20, 200)
+    enable.settings["settings"] = defaults
+    assert [post(client).status_code for _ in range(6)] == [200] * 6  # retrieval only: generous pair
+    reply = {"answerable": True, "fact_ids": ["process.tenderers"], "reason": "directa"}
+    enable([reply] * 8)  # a model can be called: the strict pair applies
+    ask_route._limits = None
+    codes = [post(client, question=f"{QUESTION} {n}").status_code for n in range(6)]
+    assert codes == [200, 200, 200, 200, 429, 429]
+    assert "retry-after" in post(client).headers
+
+
 def test_a_429_carries_retry_after_and_cors_exposes_it(client, enable):
-    enable.settings["settings"] = Settings(_env_file=None, ask_enabled=True, ask_rate_per_minute=1)
+    enable.settings["settings"] = Settings(_env_file=None, ask_enabled=True, ask_retrieval_rate_per_minute=1)
     origin = {"Origin": "http://localhost:3000"}
     assert client.post(f"{API}/processes/{fx.OCID_COMPANY}/ask", json={"question": QUESTION}, headers=origin).status_code == 200
     blocked = client.post(f"{API}/processes/{fx.OCID_COMPANY}/ask", json={"question": QUESTION}, headers=origin)
@@ -142,7 +160,7 @@ def test_a_429_carries_retry_after_and_cors_exposes_it(client, enable):
 
 def test_retry_after_is_the_longer_wait_when_the_hour_window_is_full(client, enable):
     enable.settings["settings"] = Settings(
-        _env_file=None, ask_enabled=True, ask_rate_per_minute=100, ask_rate_per_hour=1
+        _env_file=None, ask_enabled=True, ask_retrieval_rate_per_minute=100, ask_retrieval_rate_per_hour=1
     )
     assert post(client).status_code == 200
     blocked = post(client)

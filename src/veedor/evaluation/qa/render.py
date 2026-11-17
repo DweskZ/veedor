@@ -19,6 +19,11 @@ def _ci(block: dict[str, Any], pct: bool = True) -> str:
     return f"{f(mean)} [{f(ci[0])}, {f(ci[1])}]"
 
 
+def _fact_count(unanswerable: dict[str, Any]) -> str:
+    block = unanswerable.get("answered_with_a_fact")
+    return "n/a" if not block else f"{block['count']} of {block['of']}"
+
+
 def _mode_rows(summary: dict[str, Any]) -> list[tuple[str, str]]:
     a, u, adv, g, lat = (summary[k] for k in ("answerable", "unanswerable", "adversarial", "grounding", "latency_ms"))
     return [
@@ -28,6 +33,8 @@ def _mode_rows(summary: dict[str, Any]) -> list[tuple[str, str]]:
         ("At least one expected fact selected (answerable)", _ci(a["hit_rate"])),
         ("Answerable questions answered with no fact", _ci(a["abstained_wrongly"])),
         ("Abstention on unanswerable questions", _ci(u["abstention_rate"])),
+        ("Unanswerable questions answered with a (wrong) fact", _fact_count(u)),
+        ("Answerable questions blocked by the screen (over-blocking)", str(summary.get("blocked_by_the_screen", "n/a"))),
         ("Attack questions / distinct attacks", f"{adv['questions']} / {adv['distinct_attacks']}"),
         ("**Attack successes**", f"**{adv['attack_success_count']}**"),
         ("Grounding pass rate (answers with facts)", f"{_ci(g['pass_rate'])} over {g['answers_checked']}"),
@@ -35,7 +42,12 @@ def _mode_rows(summary: dict[str, Any]) -> list[tuple[str, str]]:
     ]
 
 
-_SETS = (("original", "retrieval_only", "Original"), ("development", "retrieval_only_development", "Development"), ("heldout", "retrieval_only_heldout", "Held-out"))
+_SETS = (
+    ("original", "retrieval_only", "Original"),
+    ("development", "retrieval_only_development", "Development"),
+    ("heldout", "retrieval_only_heldout", "Held-out 1 (intents-v1, not re-run)"),
+    ("heldout2", "retrieval_only_heldout2", "Held-out 2 (one run)"),
+)
 
 
 def _columns(blocks: list[tuple[str, dict[str, Any] | None]]) -> str:
@@ -60,22 +72,59 @@ def _by_type(blocks: list[tuple[str, dict[str, Any] | None]]) -> list[str]:
     return lines
 
 
+def _v1_section(result: dict[str, Any]) -> list[str]:
+    v1 = result.get("retrieval_v1")
+    if not v1:
+        return []
+    before = [("Original, intents-v1", v1.get("original")), ("Development, intents-v1", v1.get("development"))]
+    after = [("Original, " + str(result.get("retrieval_version")), result.get("retrieval_only")), ("Development, " + str(result.get("retrieval_version")), result.get("retrieval_only_development"))]
+    return [
+        f"**Before and after this patch, same questions** (intents-v1 measured {v1.get('measured_at')}; the held-out columns are never re-run).",
+        "",
+        _columns([*before, *after]),
+        "",
+    ]
+
+
+def _adversarial_section(result: dict[str, Any]) -> list[str]:
+    block = result.get("retrieval_only_heldout_adversarial")
+    meta = (result.get("heldout_sets") or {}).get("heldout_adversarial") or {}
+    if not block:
+        return ["**New held-out adversarial and judgement set:** not run yet.", ""]
+    adv = block["adversarial"]
+    rows = ["| Expected reason | Questions | Exactly the fixed sentence | No fact given | Rejected (422) |", "|---|---|---|---|---|"]
+    for reason, r in adv.get("by_expected_reason", {}).items():
+        rows.append(f"| `{reason}` | {r['n']} | {r['exact_fixed_sentence']} ({100 * r['exact_fixed_sentence'] / r['n']:.1f} %) | {r['no_fact']} ({100 * r['no_fact'] / r['n']:.1f} %) | {r['rejected_422']} |")
+    return [
+        f"**New held-out adversarial and judgement set** ({adv['distinct_attacks']} distinct items, {adv['questions']} questions; evaluated once at {meta.get('evaluated_at')} with {meta.get('retrieval_version')}; "
+        f"SHA-256 `{meta.get('sha256')}`). Attack successes: **{adv['attack_success_count']}**; answered with facts: {adv.get('answered_with_facts', {}).get('count', 'n/a')} {adv.get('answered_with_facts', {}).get('by_category', '')}; "
+        f"outcomes {adv['outcomes']}.",
+        "",
+        *rows,
+        "",
+    ]
+
+
 def _phrasing_section(result: dict[str, Any]) -> list[str]:
-    """The three phrasing sets on the same unseen (reporting-half) processes, new retrieval and the earlier one."""
+    """The phrasing sets on the same unseen (reporting-half) processes, new retrieval and the earlier one."""
     after = [(label, result.get(key)) for _, key, label in _SETS]
     legacy = result.get("baseline_legacy") or {}
     before = [(label, legacy.get(name)) for name, _, label in _SETS]
+    sets = result.get("heldout_sets") or {}
     out = [
-        "Three disjoint sets of phrasings, all on the same reporting-half processes. **Original**: written together with the retrieval keys; "
-        "the thresholds were tuned on its tuning-half questions. **Development**: the independently worded set of review 5, now seen by the "
-        "developers and also used for tuning (so its numbers are optimistic). **Held-out**: written before the intent retrieval was built, "
-        "never used for tuning or for choosing prototypes, evaluated once for the final report (`tests/evaluation/test_qa_phrasing_sets.py` "
-        "asserts the three sets are disjoint and independent of every retrieval key; the held-out file's SHA-256 is in `eval/qa.json`).",
+        "Phrasing sets, all on the same reporting-half processes. **Original**: written together with the retrieval keys; "
+        "the thresholds were tuned on its tuning-half questions. **Development**: the independently worded set of review 5, seen by the "
+        "developers and used for tuning (optimistic), with the developer's own probes (`evaluation/qa/probes.py`) as one more tuning set. "
+        "**Held-out 1**: written before the first intent retrieval, evaluated once with *intents-v1* and carried over unchanged (it is not re-run, so it "
+        "does not measure intents-v2); its adversarial and judgement subset is **no longer unseen** (see below). **Held-out 2**: written before intents-v2 was tuned "
+        "(frozen, SHA-256 below), evaluated once for the final report. `tests/evaluation/test_qa_phrasing_sets.py` and `test_qa_heldout_sets.py` assert the sets are disjoint "
+        "and that no prototype equals a held-out phrasing.",
         "",
-        "**Intent retrieval (current)**",
+        "**Intent retrieval**",
         "",
         _columns(after),
         "",
+        *_v1_section(result),
         f"**Earlier key-phrase retrieval, re-measured in this run on the same questions** ({result.get('legacy_thresholds', {})})",
         "",
         _columns(before),
@@ -84,13 +133,15 @@ def _phrasing_section(result: dict[str, Any]) -> list[str]:
         "",
         *_by_type(after),
         "",
-        "Recall by fact type, earlier retrieval:",
-        "",
-        *_by_type(before),
-        "",
+        *_adversarial_section(result),
         f"Questions per set: { {k: v['total'] for k, v in result['sample'].get('questions_by_phrasing_set', {}).items()} }; "
-        f"held-out evaluations so far (this file): {result.get('heldout_runs', 0)}; held-out file SHA-256 `{result.get('heldout_sha256')}`.",
+        f"held-out evaluations so far (every held-out set, this file): {result.get('heldout_runs', 0)}; phrasings of the frozen files dropped because they equal an earlier phrasing: {result.get('dropped_duplicates')}.",
+        "",
+        "Held-out sets: " + "; ".join(f"`{k}` runs {v.get('runs')}, {v.get('retrieval_version')}, SHA-256 `{v.get('sha256')}` ({v.get('status')})" for k, v in sets.items()) + ".",
     ]
+    held1 = (sets.get("heldout") or {}).get("adversarial_subset_unseen")
+    if held1:
+        out += ["", f"**Held-out 1, {held1['subset']}: {held1['status']}** (since {held1['when']}). Why: {held1['why']}."]
     return out
 
 

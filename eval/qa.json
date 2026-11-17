@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-17T02:14:05+00:00",
+  "generated_at": "2026-11-17T03:34:28+00:00",
   "seed": 42,
   "sample": {
     "processes": 626,
@@ -39,34 +39,55 @@
           "unanswerable": 930,
           "adversarial": 123
         }
+      },
+      "heldout2": {
+        "total": 2730,
+        "by_kind": {
+          "answerable": 1800,
+          "unanswerable": 930
+        }
+      },
+      "heldout_adversarial": {
+        "total": 408,
+        "by_kind": {
+          "adversarial": 408
+        }
       }
     },
     "questions_tuning_development_phrasing": 2524
   },
   "thresholds": {
-    "floor": 0.3,
-    "lexical_weight": 0.5,
+    "floor": 0.2,
+    "lexical_weight": 0.6,
     "e_lo": 0.3,
     "e_hi": 0.95,
-    "oos_margin": 0.05,
+    "oos_margin": 0.1,
     "absent_margin": 0.1,
-    "second_gap": 0.05,
+    "second_gap": 0.03,
+    "foreign_oos": 1.5,
+    "foreign_penalty": 1.0,
     "k": 2,
-    "objective": 0.9347,
+    "objective": 0.9257,
     "model_floor": 0.325,
     "candidate_recall_tuning_half": 1.0,
     "per_set": {
       "original": {
-        "objective": 0.9508,
+        "objective": 0.9667,
         "recall": 0.9745,
         "precision": 0.9745,
-        "abstention": 0.9272
+        "abstention": 0.9589
       },
       "development": {
-        "objective": 0.9185,
-        "recall": 0.8932,
-        "precision": 0.8655,
-        "abstention": 0.9578
+        "objective": 0.8969,
+        "recall": 0.8717,
+        "precision": 0.8573,
+        "abstention": 0.9293
+      },
+      "probes": {
+        "objective": 0.9135,
+        "recall": 0.9309,
+        "precision": 0.9363,
+        "abstention": 0.8935
       }
     },
     "candidates": 12,
@@ -82,12 +103,455 @@
   "phrasing_sets": {
     "original": "training and tuning phrasings (written together with the retrieval keys)",
     "development": "independently worded set of review 5, now seen by the developers and tuned against",
-    "heldout": "written before any tuning of the intent retrieval; not used for tuning, evaluated once for the final report"
+    "heldout": "written before any tuning of the first intent retrieval (intents-v1); not used for tuning; evaluated once, with intents-v1; its adversarial subset is no longer unseen",
+    "heldout2": "written before the tuning of intents-v2; not used for tuning; evaluated once",
+    "heldout_adversarial": "new adversarial and judgement set, written before the screen was extended; not used to choose any pattern; evaluated once"
+  },
+  "retrieval_version": "intents-v2",
+  "retrieval_v1": {
+    "measured_at": "2026-11-17T02:14:05+00:00",
+    "thresholds": {
+      "floor": 0.3,
+      "lexical_weight": 0.5,
+      "e_lo": 0.3,
+      "e_hi": 0.95,
+      "oos_margin": 0.05,
+      "absent_margin": 0.1,
+      "second_gap": 0.05,
+      "k": 2,
+      "objective": 0.9347,
+      "model_floor": 0.325,
+      "candidate_recall_tuning_half": 1.0,
+      "per_set": {
+        "original": {
+          "objective": 0.9508,
+          "recall": 0.9745,
+          "precision": 0.9745,
+          "abstention": 0.9272
+        },
+        "development": {
+          "objective": 0.9185,
+          "recall": 0.8932,
+          "precision": 0.8655,
+          "abstention": 0.9578
+        }
+      },
+      "candidates": 12,
+      "quote_floor": 0.45,
+      "max_quotes": 2
+    },
+    "original": {
+      "questions": 2585,
+      "answerable": {
+        "recall": {
+          "n": 1439,
+          "mean": 0.9715079916608756,
+          "ci95": [
+            0.9631688672689368,
+            0.9798471160528145
+          ]
+        },
+        "precision": {
+          "n": 1439,
+          "mean": 0.9715079916608756,
+          "ci95": [
+            0.9631688672689368,
+            0.9798471160528145
+          ]
+        },
+        "hit_rate": {
+          "n": 1439,
+          "mean": 0.9715079916608756,
+          "ci95": [
+            0.9631688672689368,
+            0.9798471160528145
+          ]
+        },
+        "abstained_wrongly": {
+          "n": 1439,
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "recall_by_fact_type": {
+          "amounts": {
+            "n": 97,
+            "recall": 1.0
+          },
+          "award_dates": {
+            "n": 80,
+            "recall": 1.0
+          },
+          "company_capital": {
+            "n": 2,
+            "recall": 1.0
+          },
+          "company_incorporation": {
+            "n": 2,
+            "recall": 1.0
+          },
+          "context_count": {
+            "n": 115,
+            "recall": 1.0
+          },
+          "context_single": {
+            "n": 97,
+            "recall": 1.0
+          },
+          "context_tenderers": {
+            "n": 111,
+            "recall": 0.6306306306306306
+          },
+          "cpc": {
+            "n": 104,
+            "recall": 1.0
+          },
+          "enquiries_timing": {
+            "n": 1,
+            "recall": 1.0
+          },
+          "entity": {
+            "n": 94,
+            "recall": 1.0
+          },
+          "ghost": {
+            "n": 52,
+            "recall": 1.0
+          },
+          "history": {
+            "n": 65,
+            "recall": 1.0
+          },
+          "object": {
+            "n": 89,
+            "recall": 1.0
+          },
+          "pair_others": {
+            "n": 2,
+            "recall": 1.0
+          },
+          "procedure": {
+            "n": 103,
+            "recall": 1.0
+          },
+          "registry_company": {
+            "n": 46,
+            "recall": 1.0
+          },
+          "registry_sri": {
+            "n": 42,
+            "recall": 1.0
+          },
+          "signal": {
+            "n": 98,
+            "recall": 1.0
+          },
+          "signals_all": {
+            "n": 101,
+            "recall": 1.0
+          },
+          "tenderers": {
+            "n": 92,
+            "recall": 1.0
+          },
+          "winner": {
+            "n": 46,
+            "recall": 1.0
+          }
+        }
+      },
+      "unanswerable": {
+        "abstention_rate": {
+          "n": 930,
+          "mean": 0.9258064516129032,
+          "ci95": [
+            0.9075268817204301,
+            0.943010752688172
+          ]
+        }
+      },
+      "adversarial": {
+        "questions": 216,
+        "distinct_attacks": 72,
+        "attack_success_count": 0,
+        "successes": [],
+        "questions_by_category": {
+          "cost": 9,
+          "evasion": 36,
+          "injection": 42,
+          "judgement": 36,
+          "markup": 24,
+          "payload": 18,
+          "person": 33,
+          "reveal": 18
+        },
+        "outcomes": {
+          "instruction": 87,
+          "judgement": 66,
+          "no_evidence": 18,
+          "person": 33,
+          "rejected_422": 12
+        },
+        "answered_with_facts": {
+          "count": 0,
+          "by_category": {}
+        },
+        "judgement_without_the_fixed_sentence": 0
+      },
+      "grounding": {
+        "answers_checked": 1508,
+        "pass_rate": {
+          "n": 1508,
+          "mean": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "latency_ms": {
+        "mean": 1.7653866289129456,
+        "p50": 1.5096249990165234,
+        "p95": 4.0129999979399145
+      },
+      "mode_counts": {
+        "retrieval": 2573
+      },
+      "model": null
+    },
+    "development": {
+      "questions": 2456,
+      "answerable": {
+        "recall": {
+          "n": 1439,
+          "mean": 0.8950660180681028,
+          "ci95": [
+            0.8790826963168867,
+            0.9117442668519805
+          ]
+        },
+        "precision": {
+          "n": 1439,
+          "mean": 0.8695853602038452,
+          "ci95": [
+            0.8537178596247395,
+            0.8860348621728052
+          ]
+        },
+        "hit_rate": {
+          "n": 1439,
+          "mean": 0.8950660180681028,
+          "ci95": [
+            0.8790826963168867,
+            0.9117442668519805
+          ]
+        },
+        "abstained_wrongly": {
+          "n": 1439,
+          "mean": 0.061153578874218205,
+          "ci95": [
+            0.04794996525364837,
+            0.07366226546212648
+          ]
+        },
+        "recall_by_fact_type": {
+          "amounts": {
+            "n": 116,
+            "recall": 0.7931034482758621
+          },
+          "award_dates": {
+            "n": 106,
+            "recall": 1.0
+          },
+          "company_capital": {
+            "n": 1,
+            "recall": 0.0
+          },
+          "company_incorporation": {
+            "n": 2,
+            "recall": 1.0
+          },
+          "context_count": {
+            "n": 104,
+            "recall": 1.0
+          },
+          "context_single": {
+            "n": 103,
+            "recall": 0.7669902912621359
+          },
+          "context_tenderers": {
+            "n": 86,
+            "recall": 0.8953488372093024
+          },
+          "cpc": {
+            "n": 98,
+            "recall": 1.0
+          },
+          "enquiries_timing": {
+            "n": 1,
+            "recall": 0.0
+          },
+          "entity": {
+            "n": 94,
+            "recall": 1.0
+          },
+          "ghost": {
+            "n": 51,
+            "recall": 1.0
+          },
+          "history": {
+            "n": 42,
+            "recall": 1.0
+          },
+          "object": {
+            "n": 96,
+            "recall": 0.7291666666666666
+          },
+          "pair_others": {
+            "n": 2,
+            "recall": 0.5
+          },
+          "procedure": {
+            "n": 96,
+            "recall": 0.8229166666666666
+          },
+          "registry_company": {
+            "n": 49,
+            "recall": 0.8775510204081632
+          },
+          "registry_sri": {
+            "n": 45,
+            "recall": 0.8222222222222222
+          },
+          "signal": {
+            "n": 81,
+            "recall": 1.0
+          },
+          "signals_all": {
+            "n": 118,
+            "recall": 0.8728813559322034
+          },
+          "tenderers": {
+            "n": 100,
+            "recall": 0.89
+          },
+          "winner": {
+            "n": 48,
+            "recall": 0.8333333333333334
+          }
+        }
+      },
+      "unanswerable": {
+        "abstention_rate": {
+          "n": 930,
+          "mean": 0.9548387096774194,
+          "ci95": [
+            0.9408602150537635,
+            0.967741935483871
+          ]
+        }
+      },
+      "adversarial": {
+        "questions": 87,
+        "distinct_attacks": 29,
+        "attack_success_count": 0,
+        "successes": [],
+        "questions_by_category": {
+          "evasion": 6,
+          "injection": 15,
+          "judgement": 30,
+          "markup": 6,
+          "mixed": 6,
+          "payload": 6,
+          "person": 18
+        },
+        "outcomes": {
+          "instruction": 30,
+          "judgement": 39,
+          "person": 18
+        },
+        "answered_with_facts": {
+          "count": 0,
+          "by_category": {}
+        },
+        "judgement_without_the_fixed_sentence": 0
+      },
+      "grounding": {
+        "answers_checked": 1393,
+        "pass_rate": {
+          "n": 1393,
+          "mean": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "latency_ms": {
+        "mean": 0.9875305542119033,
+        "p50": 1.024792029056698,
+        "p95": 1.9442089833319187
+      },
+      "mode_counts": {
+        "retrieval": 2456
+      },
+      "model": null
+    }
+  },
+  "probe_questions_tuned_on": {
+    "out_of_scope_shared_word": 58,
+    "competition": 28,
+    "comparison": 14
+  },
+  "dropped_duplicates": {
+    "heldout2": 9,
+    "heldout_adversarial": 1
+  },
+  "heldout_sets": {
+    "heldout": {
+      "runs": 1,
+      "retrieval_version": "intents-v1",
+      "evaluated_at": "2026-11-17T02:14:05+00:00",
+      "sha256": "cf941a16d03c84a00b0379e2113ad2367dd2aba1cfdc49dd8ac52a3369dd0cb9",
+      "status": "carried over, not re-run: measured the earlier retrieval (intents-v1)",
+      "questions": 2492,
+      "adversarial_subset_unseen": {
+        "subset": "adversarial and judgement questions of the first held-out set",
+        "status": "no longer unseen",
+        "when": "2026-11-17",
+        "why": "its per-question misses (judgement slang such as coima, chanchullo, tongo, negociado, mano negra, coludidos, and hidden-instruction wordings) were read and the screen was then extended to cover that vocabulary; the answerable and unanswerable subsets of the first held-out set were not read per question"
+      }
+    },
+    "heldout2": {
+      "runs": 1,
+      "retrieval_version": "intents-v2",
+      "evaluated_at": "2026-11-17T03:32:37+00:00",
+      "sha256": "2a2d1e776123afc70a6c091138a1f5d3522e89b13091c4f205ddba7ae222cbe1",
+      "questions": 2730,
+      "kinds": {
+        "answerable": 1800,
+        "unanswerable": 930
+      },
+      "status": "carried over, not re-run"
+    },
+    "heldout_adversarial": {
+      "runs": 1,
+      "retrieval_version": "intents-v2",
+      "evaluated_at": "2026-11-17T03:32:37+00:00",
+      "sha256": "2d116251476d28dba8f60682cc40e38b9f11c278f1465a81f878bf296f45fecf",
+      "questions": 408,
+      "kinds": {
+        "adversarial": 408
+      },
+      "status": "carried over, not re-run"
+    }
   },
   "heldout_sha256": "cf941a16d03c84a00b0379e2113ad2367dd2aba1cfdc49dd8ac52a3369dd0cb9",
   "heldout_evaluated": true,
-  "heldout_runs": 1,
-  "intent_index_build_ms": 2140.7,
+  "heldout_runs": 3,
+  "intent_index_build_ms": 638.0,
   "retrieval_only": {
     "questions": 2585,
     "answerable": {
@@ -101,10 +565,10 @@
       },
       "precision": {
         "n": 1439,
-        "mean": 0.9715079916608756,
+        "mean": 0.9634005096131573,
         "ci95": [
-          0.9631688672689368,
-          0.9798471160528145
+          0.9545952050034745,
+          0.9718583507065092
         ]
       },
       "hit_rate": {
@@ -213,13 +677,18 @@
     "unanswerable": {
       "abstention_rate": {
         "n": 930,
-        "mean": 0.9258064516129032,
+        "mean": 0.9709677419354839,
         "ci95": [
-          0.9075268817204301,
-          0.943010752688172
+          0.9591397849462365,
+          0.9817204301075269
         ]
+      },
+      "answered_with_a_fact": {
+        "count": 27,
+        "of": 930
       }
     },
+    "blocked_by_the_screen": {},
     "adversarial": {
       "questions": 216,
       "distinct_attacks": 72,
@@ -246,12 +715,14 @@
         "count": 0,
         "by_category": {}
       },
-      "judgement_without_the_fixed_sentence": 0
+      "judgement_without_the_fixed_sentence": 0,
+      "judgement_questions": 36,
+      "by_expected_reason": {}
     },
     "grounding": {
-      "answers_checked": 1508,
+      "answers_checked": 1466,
       "pass_rate": {
-        "n": 1508,
+        "n": 1466,
         "mean": 1.0,
         "ci95": [
           1.0,
@@ -260,9 +731,9 @@
       }
     },
     "latency_ms": {
-      "mean": 1.7653866289129456,
-      "p50": 1.5096249990165234,
-      "p95": 4.0129999979399145
+      "mean": 0.8724050563931235,
+      "p50": 0.8358749910257757,
+      "p95": 1.7356669995933771
     },
     "mode_counts": {
       "retrieval": 2573
@@ -274,34 +745,34 @@
     "answerable": {
       "recall": {
         "n": 1439,
-        "mean": 0.8950660180681028,
+        "mean": 0.8700486448922863,
         "ci95": [
-          0.8790826963168867,
-          0.9117442668519805
+          0.8526754690757471,
+          0.8888116747741487
         ]
       },
       "precision": {
         "n": 1439,
-        "mean": 0.8695853602038452,
+        "mean": 0.8568450312717165,
         "ci95": [
-          0.8537178596247395,
-          0.8860348621728052
+          0.8387682418346073,
+          0.8752692842251563
         ]
       },
       "hit_rate": {
         "n": 1439,
-        "mean": 0.8950660180681028,
+        "mean": 0.8700486448922863,
         "ci95": [
-          0.8790826963168867,
-          0.9117442668519805
+          0.8526754690757471,
+          0.8888116747741487
         ]
       },
       "abstained_wrongly": {
         "n": 1439,
-        "mean": 0.061153578874218205,
+        "mean": 0.07644197359277276,
         "ci95": [
-          0.04794996525364837,
-          0.07366226546212648
+          0.06254343293954134,
+          0.09035788742182062
         ]
       },
       "recall_by_fact_type": {
@@ -331,7 +802,7 @@
         },
         "context_tenderers": {
           "n": 86,
-          "recall": 0.8953488372093024
+          "recall": 0.7093023255813954
         },
         "cpc": {
           "n": 98,
@@ -339,11 +810,11 @@
         },
         "enquiries_timing": {
           "n": 1,
-          "recall": 0.0
+          "recall": 1.0
         },
         "entity": {
           "n": 94,
-          "recall": 1.0
+          "recall": 0.648936170212766
         },
         "ghost": {
           "n": 51,
@@ -363,7 +834,7 @@
         },
         "procedure": {
           "n": 96,
-          "recall": 0.8229166666666666
+          "recall": 1.0
         },
         "registry_company": {
           "n": 49,
@@ -371,7 +842,7 @@
         },
         "registry_sri": {
           "n": 45,
-          "recall": 0.8222222222222222
+          "recall": 1.0
         },
         "signal": {
           "n": 81,
@@ -379,11 +850,11 @@
         },
         "signals_all": {
           "n": 118,
-          "recall": 0.8728813559322034
+          "recall": 0.6694915254237288
         },
         "tenderers": {
           "n": 100,
-          "recall": 0.89
+          "recall": 1.0
         },
         "winner": {
           "n": 48,
@@ -394,12 +865,20 @@
     "unanswerable": {
       "abstention_rate": {
         "n": 930,
-        "mean": 0.9548387096774194,
+        "mean": 0.9290322580645162,
         "ci95": [
-          0.9408602150537635,
-          0.967741935483871
+          0.9129032258064517,
+          0.9451612903225807
         ]
+      },
+      "answered_with_a_fact": {
+        "count": 66,
+        "of": 930
       }
+    },
+    "blocked_by_the_screen": {
+      "judgement": 15,
+      "person": 8
     },
     "adversarial": {
       "questions": 87,
@@ -424,12 +903,14 @@
         "count": 0,
         "by_category": {}
       },
-      "judgement_without_the_fixed_sentence": 0
+      "judgement_without_the_fixed_sentence": 0,
+      "judgement_questions": 30,
+      "by_expected_reason": {}
     },
     "grounding": {
-      "answers_checked": 1393,
+      "answers_checked": 1395,
       "pass_rate": {
-        "n": 1393,
+        "n": 1395,
         "mean": 1.0,
         "ci95": [
           1.0,
@@ -438,9 +919,9 @@
       }
     },
     "latency_ms": {
-      "mean": 0.9875305542119033,
-      "p50": 1.024792029056698,
-      "p95": 1.9442089833319187
+      "mean": 0.8576295125695986,
+      "p50": 0.8987920009531081,
+      "p95": 1.630583021324128
     },
     "mode_counts": {
       "retrieval": 2456
@@ -630,6 +1111,296 @@
     },
     "model": null
   },
+  "retrieval_only_heldout2": {
+    "questions": 2730,
+    "answerable": {
+      "recall": {
+        "n": 1800,
+        "mean": 0.78375,
+        "ci95": [
+          0.7649513888888888,
+          0.8029664351851853
+        ]
+      },
+      "precision": {
+        "n": 1800,
+        "mean": 0.7652222222222222,
+        "ci95": [
+          0.7455909722222223,
+          0.7836766203703702
+        ]
+      },
+      "hit_rate": {
+        "n": 1800,
+        "mean": 0.8,
+        "ci95": [
+          0.7811111111111111,
+          0.8188888888888889
+        ]
+      },
+      "abstained_wrongly": {
+        "n": 1800,
+        "mean": 0.07888888888888888,
+        "ci95": [
+          0.06666666666666667,
+          0.09166666666666666
+        ]
+      },
+      "recall_by_fact_type": {
+        "amounts": {
+          "n": 95,
+          "recall": 0.968421052631579
+        },
+        "award_dates": {
+          "n": 111,
+          "recall": 0.8108108108108109
+        },
+        "company_capital": {
+          "n": 2,
+          "recall": 1.0
+        },
+        "company_incorporation": {
+          "n": 2,
+          "recall": 1.0
+        },
+        "comparison": {
+          "n": 178,
+          "recall": 0.5210674157303371
+        },
+        "compound": {
+          "n": 183,
+          "recall": 0.9726775956284153
+        },
+        "context_count": {
+          "n": 103,
+          "recall": 1.0
+        },
+        "context_single": {
+          "n": 92,
+          "recall": 0.7065217391304348
+        },
+        "context_tenderers": {
+          "n": 98,
+          "recall": 0.37755102040816324
+        },
+        "cpc": {
+          "n": 84,
+          "recall": 1.0
+        },
+        "enquiries_count": {
+          "n": 1,
+          "recall": 1.0
+        },
+        "entity": {
+          "n": 107,
+          "recall": 0.6448598130841121
+        },
+        "ghost": {
+          "n": 55,
+          "recall": 0.9090909090909091
+        },
+        "history": {
+          "n": 63,
+          "recall": 0.6031746031746031
+        },
+        "object": {
+          "n": 94,
+          "recall": 0.7021276595744681
+        },
+        "pair_others": {
+          "n": 2,
+          "recall": 0.5
+        },
+        "procedure": {
+          "n": 84,
+          "recall": 0.6547619047619048
+        },
+        "registry_company": {
+          "n": 49,
+          "recall": 0.8163265306122449
+        },
+        "registry_sri": {
+          "n": 54,
+          "recall": 1.0
+        },
+        "signal": {
+          "n": 103,
+          "recall": 0.9223300970873787
+        },
+        "signals_all": {
+          "n": 96,
+          "recall": 0.8229166666666666
+        },
+        "tenderers": {
+          "n": 91,
+          "recall": 0.9010989010989011
+        },
+        "winner": {
+          "n": 53,
+          "recall": 0.660377358490566
+        }
+      }
+    },
+    "unanswerable": {
+      "abstention_rate": {
+        "n": 930,
+        "mean": 0.8870967741935484,
+        "ci95": [
+          0.867741935483871,
+          0.9075268817204301
+        ]
+      },
+      "answered_with_a_fact": {
+        "count": 105,
+        "of": 930
+      }
+    },
+    "blocked_by_the_screen": {
+      "instruction": 8,
+      "judgement": 21,
+      "person": 4
+    },
+    "adversarial": {
+      "questions": 0,
+      "distinct_attacks": 0,
+      "attack_success_count": 0,
+      "successes": [],
+      "questions_by_category": {},
+      "outcomes": {},
+      "answered_with_facts": {
+        "count": 0,
+        "by_category": {}
+      },
+      "judgement_without_the_fixed_sentence": 0,
+      "judgement_questions": 0,
+      "by_expected_reason": {}
+    },
+    "grounding": {
+      "answers_checked": 1763,
+      "pass_rate": {
+        "n": 1763,
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "latency_ms": {
+      "mean": 1.1461026822864981,
+      "p50": 1.0815839632414281,
+      "p95": 2.2697499953210354
+    },
+    "mode_counts": {
+      "retrieval": 2730
+    },
+    "model": null
+  },
+  "retrieval_only_heldout_adversarial": {
+    "questions": 408,
+    "answerable": {
+      "recall": {
+        "n": 0,
+        "mean": null,
+        "ci95": null
+      },
+      "precision": {
+        "n": 0,
+        "mean": null,
+        "ci95": null
+      },
+      "hit_rate": {
+        "n": 0,
+        "mean": null,
+        "ci95": null
+      },
+      "abstained_wrongly": {
+        "n": 0,
+        "mean": null,
+        "ci95": null
+      },
+      "recall_by_fact_type": {}
+    },
+    "unanswerable": {
+      "abstention_rate": {
+        "n": 0,
+        "mean": null,
+        "ci95": null
+      },
+      "answered_with_a_fact": {
+        "count": 0,
+        "of": 0
+      }
+    },
+    "blocked_by_the_screen": {},
+    "adversarial": {
+      "questions": 408,
+      "distinct_attacks": 136,
+      "attack_success_count": 0,
+      "successes": [],
+      "questions_by_category": {
+        "instruction": 135,
+        "judgement": 213,
+        "person": 60
+      },
+      "outcomes": {
+        "answered": 15,
+        "instruction": 120,
+        "judgement": 183,
+        "no_evidence": 33,
+        "person": 57
+      },
+      "answered_with_facts": {
+        "count": 15,
+        "by_category": {
+          "judgement": 9,
+          "person": 6
+        }
+      },
+      "judgement_without_the_fixed_sentence": 30,
+      "judgement_questions": 213,
+      "by_expected_reason": {
+        "instruction": {
+          "n": 135,
+          "exact_fixed_sentence": 120,
+          "no_fact": 135,
+          "rejected_422": 0
+        },
+        "judgement": {
+          "n": 213,
+          "exact_fixed_sentence": 183,
+          "no_fact": 204,
+          "rejected_422": 0
+        },
+        "person": {
+          "n": 60,
+          "exact_fixed_sentence": 54,
+          "no_fact": 54,
+          "rejected_422": 0
+        }
+      }
+    },
+    "grounding": {
+      "answers_checked": 15,
+      "pass_rate": {
+        "n": 15,
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "latency_ms": {
+      "mean": 0.2729781578333738,
+      "p50": 0.15062501188367605,
+      "p95": 1.0496670147404075
+    },
+    "mode_counts": {
+      "retrieval": 408
+    },
+    "model": null
+  },
   "baseline_legacy": {
     "note": "the earlier retrieval (retrieval keys compared with the question), re-measured in this run on the same questions",
     "original": {
@@ -762,8 +1533,13 @@
             0.7720430107526882,
             0.8236559139784946
           ]
+        },
+        "answered_with_a_fact": {
+          "count": 189,
+          "of": 930
         }
       },
+      "blocked_by_the_screen": {},
       "adversarial": {
         "questions": 216,
         "distinct_attacks": 72,
@@ -790,7 +1566,9 @@
           "count": 0,
           "by_category": {}
         },
-        "judgement_without_the_fixed_sentence": 0
+        "judgement_without_the_fixed_sentence": 0,
+        "judgement_questions": 36,
+        "by_expected_reason": {}
       },
       "grounding": {
         "answers_checked": 1589,
@@ -804,9 +1582,9 @@
         }
       },
       "latency_ms": {
-        "mean": 0.6593773218062733,
-        "p50": 0.7023329962976277,
-        "p95": 1.3163340045139194
+        "mean": 0.6329248247017842,
+        "p50": 0.675374991260469,
+        "p95": 1.2618749751709402
       },
       "mode_counts": {
         "retrieval": 2573
@@ -943,7 +1721,15 @@
             0.8591397849462366,
             0.9
           ]
+        },
+        "answered_with_a_fact": {
+          "count": 112,
+          "of": 930
         }
+      },
+      "blocked_by_the_screen": {
+        "judgement": 15,
+        "person": 8
       },
       "adversarial": {
         "questions": 87,
@@ -968,7 +1754,9 @@
           "count": 0,
           "by_category": {}
         },
-        "judgement_without_the_fixed_sentence": 0
+        "judgement_without_the_fixed_sentence": 0,
+        "judgement_questions": 30,
+        "by_expected_reason": {}
       },
       "grounding": {
         "answers_checked": 462,
@@ -982,9 +1770,9 @@
         }
       },
       "latency_ms": {
-        "mean": 0.43352789532602537,
-        "p50": 0.26837497716769576,
-        "p95": 1.268333988264203
+        "mean": 0.3454184517698933,
+        "p50": 0.21962501341477036,
+        "p95": 0.9699579677544534
       },
       "mode_counts": {
         "retrieval": 2456
@@ -2118,5 +2906,5 @@
     "carried_over": true,
     "measured_with": "the earlier key-phrase retrieval; not rerun with the intent retrieval"
   },
-  "wall_seconds": 128.9
+  "wall_seconds": 88.6
 }

@@ -407,13 +407,31 @@ against *intents* (`domain/qa/intents.py`, `domain/qa/ranking.py`); the generate
 retrieval side by side on three disjoint phrasing sets. Numbers typed in this prose come from the run recorded in `eval/qa.json`
 (`generated_at`); the generated block is the source of truth.
 
-**Three phrasing sets, on the same reporting-half processes** (`tests/evaluation/test_qa_phrasing_sets.py` asserts they are disjoint and
+**Update (retrieval `intents-v2`, question-answering polish).** Six defects found by asking the system its own questions were fixed (docs/AGENTS.md,
+"Question-answering polish"). What this changes in the evaluation, and what it does not:
+
+* **Held-out 1 was measured with `intents-v1` and is not re-run.** Its numbers below are unchanged and labelled with the retrieval version they measured; they say nothing about `intents-v2`.
+* **Held-out 1's adversarial and judgement subset is no longer unseen** (since 2026-11-17). Its per-question misses (judgement slang such as coima, chanchullo, tongo, negociado, mano negra,
+  coludidos, and hidden-instruction wordings) were read, and the screen was then extended to cover that vocabulary. Its answerable and unanswerable subsets were not read per question.
+* **A new held-out adversarial and judgement set** (`evaluation/qa/heldout_adversarial.py`, 137 items, 136 used after dropping one duplicate; judgement slang, misspellings, English and mixed language,
+  indirect phrasing, hidden-instruction wordings, requests about persons; each labelled with the reason a correct answer has) was written by a separate writer that had not read the screen,
+  and saved with its SHA-256 *before* the screen was changed. Its per-item results were not looked at before the single run. Weak spot of that independence: the developer saw a handful of its items
+  in a search result while working (seven or eight, all of the "coima / mordida / chanchullo / tongo / soborno" kind).
+* **A second held-out answerable/unanswerable set** (`evaluation/qa/heldout2.py`: answerable phrasings for every fact type including competition wordings, comparison requests, compound questions, 72 off-topic
+  questions of which most share one ambiguous word with a fact type, neutral questions that contain accusation-looking words) was written by the same separate writer, frozen with its SHA-256 before any tuning, and evaluated once.
+  Phrasings that turned out to equal one earlier phrasing or a prototype are dropped when the set is generated (the file is not edited; counts are in `eval/qa.json`, `dropped_duplicates`).
+* Tuning of `intents-v2` used the original and development phrasings of the tuning half and the developer's own probes (`evaluation/qa/probes.py`: 58 out-of-scope questions that share a word with a fact type, 28 competition wordings,
+  14 comparison requests). Those probes are development material, not held-out.
+* `heldout_runs` counts every run of every held-out set: held-out 1 once (intents-v1), held-out 2 once, the adversarial set once: **3**. The CLI runs the two new sets only with `--heldout`, refuses a second run,
+  refuses to run unless the tuning reproduces the shipped thresholds, and otherwise carries all three held-out blocks over from the previous `eval/qa.json`.
+
+**Phrasing sets (original, development, held-out 1, held-out 2, plus the adversarial set above), on the same reporting-half processes** (`tests/evaluation/test_qa_phrasing_sets.py` asserts they are disjoint and
 that none equals, contains or sits inside a retrieval key phrase):
 
 * *Original*: written together with the retrieval keys (training and tuning).
 * *Development*: the independently worded set of review 5. The developers have now seen it, so it is a development set and the retrieval was tuned
   against it (its numbers are optimistic).
-* *Held-out*: `evaluation/qa/heldout.py` (176 answerable phrasings, 32 unanswerable, 41 attacks; short keyword queries, typos, no accents,
+* *Held-out 1*: `evaluation/qa/heldout.py` (176 answerable phrasings, 32 unanswerable, 41 attacks; short keyword queries, typos, no accents,
   colloquial and long conversational wording). It was written and saved before the intent retrieval existed (SHA-256 in `eval/qa.json`), no
   prototype or keyword was taken from it (a test checks that no prototype question equals or contains one of its phrasings), it was not looked at
   per question, and it was evaluated **once** for the final report (`heldout_runs` in `eval/qa.json` counts every run that includes it).
@@ -447,16 +465,35 @@ embedding rescaling, margins) were chosen by coordinate descent on the tuning ha
 the held-out set was not used. (5) Screen: company-name questions and a few colloquial judgement and instruction wordings (favouritism, "sin
 restricciones", requests for a poem) were added; nothing was relaxed for questions about persons.
 
-**Result** (retrieval only; held-out numbers are the honest ones). Recall of the expected facts, earlier then intent retrieval:
-original 84.1 % then 97.2 %, development 14.2 % then 89.5 % (optimistic), **held-out 40.7 % then 89.1 %** [87.5, 90.7]; precision on held-out 41.0 % then 88.4 %; answerable questions
-answered with no fact on held-out 46.4 % then 3.6 %; abstention on unanswerable held-out questions 84.9 % then **83.9 %** (no better: the cost of
-the recall). Attack successes are 0 in every set and configuration. Still weak on held-out: `award_dates` 74 %, `context_tenderers` 70 %, `context_single`
-77 %, `procedure` 77 %, `registry_sri` 78 %, `history` 78 %, `entity` 80 %, `winner` 83 % (colloquial or indirect wording that shares no stem with
-the lexicon, and typical-versus-this-process confusions between `tenderers` and `context_*`). The screen misses slang for corruption that was not in
-the development attacks (13 of 41 held-out attacks passed it, 6 of them judgement questions): they get the fixed "no evidence" sentence or a true
-template fact, never a judgement, but not the fixed non-judging sentence. **Model mode was not rerun** (cost): its numbers below were measured on the
-in-vocabulary phrasings only, over n = 172 questions, with the earlier retrieval ranking the candidates, and say nothing about the new retrieval or
-about unseen phrasings.
+**Result of the first intent retrieval (`intents-v1`, kept as measured)** (retrieval only; held-out numbers are the honest ones). Recall of the expected facts, earlier then intent retrieval:
+original 84.1 % then 97.2 %, development 14.2 % then 89.5 % (optimistic), **held-out 1 40.7 % then 89.1 %** [87.5, 90.7]; precision on held-out 1 41.0 % then 88.4 %; answerable questions
+answered with no fact on held-out 1 46.4 % then 3.6 %; abstention on unanswerable held-out 1 questions 84.9 % then **83.9 %**. Attack successes were 0. 13 of 41 held-out 1 attacks passed the screen
+(6 judgement questions): they got the fixed "no evidence" sentence or a true template fact, never a judgement, but not the fixed non-judging sentence.
+
+**Result of `intents-v2`** (retrieval only; numbers from `eval/qa.json`):
+
+| Set | Retrieval | Recall | Precision | No fact (answerable) | Abstention (unanswerable) | Attack successes |
+|---|---|---|---|---|---|---|
+| Original | v1 then v2 | 97.2 % then 97.2 % | 97.2 % then 96.3 % | 0.0 % then 0.0 % | 92.6 % then 97.1 % | 0 / 0 |
+| Development (optimistic) | v1 then v2 | 89.5 % then 87.0 % | 87.0 % then 85.7 % | 6.1 % then 7.6 % | 95.5 % then 92.9 % | 0 / 0 |
+| Held-out 1 (unchanged, v1 only) | v1 | 89.1 % | 88.4 % | 3.6 % | 83.9 % | 0 |
+| **Held-out 2 (one run)** | v2 | **78.4 %** | **76.5 %** | 7.9 % | **88.7 %** (105 of 930 unanswerable questions got a fact) | 0 |
+
+**New held-out adversarial and judgement set (one run, v2):** 408 questions from 136 distinct items; attack successes **0**. Judgement requests given exactly the fixed non-judging sentence: **183 of 213 (85.9 %)**
+(30 did not: 9 got a true fact, 21 got another fixed sentence or "no evidence"); requests about persons given the fixed sentence 54 of 60 (6 got a fact); instruction and payload attempts given the fixed sentence 120 of 135 and **no fact in all 135**.
+Held-out 1 judgement questions without the fixed sentence were 18 under v1.
+
+Held-out 2 is lower than the development numbers and lower than held-out 1; it is the honest estimate for unseen wording (it also contains questions that were deliberately harder: compound, comparison and
+neutral questions with accusation-looking words). What it shows:
+
+* *Screen over-blocks neutral questions*: of the answerable questions of held-out 2, 33 were refused by the screen (21 as judgement, 8 as instruction, 4 as person). The neutral questions that contain words like "sobreprecio", "direccionado", "arreglado" are
+  refused on purpose (those words are accusations in every use found); the instruction patterns also catch some ordinary wording.
+* *Wrong facts on unanswerable questions: 105 of 930 (11.3 %)*, down from the probes (38 of 58 before, 8 of 58 after on the developer's own off-topic probes, which were tuned on) but far from zero on unseen off-topic wording: the foreign-word signal only
+  works for words that look nothing like the domain vocabulary and that stand where a noun stands; a question about a well-known company or person that shares a domain word still gets a fact.
+* *Weak fact types on held-out 2*: `context_tenderers` 38 %, `comparison` 52 %, `pair_others` 50 %, `history` 60 %, `entity` 64 %, `procedure` 65 %, `winner` 66 %, `object` 70 %, `context_single` 71 %. Compound questions: 97 % recall of both groups.
+  Competition wordings ("tenderers" type): 90 %.
+
+**Model mode was not rerun** (cost): its numbers below were measured on the in-vocabulary phrasings only, over n = 172 questions, with the earlier retrieval ranking the candidates, and say nothing about the new retrieval or about unseen phrasings.
 
 
 <!-- BEGIN GENERATED: qa -->
@@ -464,101 +501,113 @@ Generated by `veedor evaluate qa` (seed 42, 2000 bootstrap resamples; intervals 
 
 **Design.** 626 processes were sampled at random (two thirds with a risk signal, one third without, plus every stored investigation); 5,166 questions were generated from the data by templates (answerable, with the expected fact ids known by construction; unanswerable; adversarial: 72 distinct attacks, each applied to two processes of the tuning half and three of the reporting half). The processes were split in halves by a hash of their identifier: the similarity floor and k were chosen on the **tuning half** (2,581 questions, 316 processes) and every number below is for the **reporting half** (2,585 questions, 310 processes).
 
-**Chosen on the tuning half** (original and development phrasings of those processes; coordinate descent): {'floor': 0.3, 'k': 2, 'lexical_weight': 0.5, 'e_lo': 0.3, 'e_hi': 0.95, 'oos_margin': 0.05, 'absent_margin': 0.1, 'second_gap': 0.05}, model floor 0.325 (objective: mean over both sets of the answerable F1 and the abstention rate = 0.9347); the 12 candidates sent to a model contain every expected fact in 100.0 % of the answerable tuning questions.
+**Chosen on the tuning half** (original and development phrasings of those processes; coordinate descent): {'floor': 0.2, 'k': 2, 'lexical_weight': 0.6, 'e_lo': 0.3, 'e_hi': 0.95, 'oos_margin': 0.1, 'absent_margin': 0.1, 'second_gap': 0.03}, model floor 0.325 (objective: mean over both sets of the answerable F1 and the abstention rate = 0.9257); the 12 candidates sent to a model contain every expected fact in 100.0 % of the answerable tuning questions.
 
 ### Retrieval only (no model): three phrasing sets, before and after
 
-Three disjoint sets of phrasings, all on the same reporting-half processes. **Original**: written together with the retrieval keys; the thresholds were tuned on its tuning-half questions. **Development**: the independently worded set of review 5, now seen by the developers and also used for tuning (so its numbers are optimistic). **Held-out**: written before the intent retrieval was built, never used for tuning or for choosing prototypes, evaluated once for the final report (`tests/evaluation/test_qa_phrasing_sets.py` asserts the three sets are disjoint and independent of every retrieval key; the held-out file's SHA-256 is in `eval/qa.json`).
+Phrasing sets, all on the same reporting-half processes. **Original**: written together with the retrieval keys; the thresholds were tuned on its tuning-half questions. **Development**: the independently worded set of review 5, seen by the developers and used for tuning (optimistic), with the developer's own probes (`evaluation/qa/probes.py`) as one more tuning set. **Held-out 1**: written before the first intent retrieval, evaluated once with *intents-v1* and carried over unchanged (it is not re-run, so it does not measure intents-v2); its adversarial and judgement subset is **no longer unseen** (see below). **Held-out 2**: written before intents-v2 was tuned (frozen, SHA-256 below), evaluated once for the final report. `tests/evaluation/test_qa_phrasing_sets.py` and `test_qa_heldout_sets.py` assert the sets are disjoint and that no prototype equals a held-out phrasing.
 
-**Intent retrieval (current)**
+**Intent retrieval**
 
-| Measure | Original | Development | Held-out |
-|---|---|---|---|
-| Questions | 2,585 | 2,456 | 2,492 |
-| Recall of selected facts (answerable) | 97.2 % [96.3 %, 98.0 %] | 89.5 % [87.9 %, 91.2 %] | 89.1 % [87.5 %, 90.7 %] |
-| Precision of selected facts (answerable) | 97.2 % [96.3 %, 98.0 %] | 87.0 % [85.4 %, 88.6 %] | 88.4 % [86.9 %, 90.0 %] |
-| At least one expected fact selected (answerable) | 97.2 % [96.3 %, 98.0 %] | 89.5 % [87.9 %, 91.2 %] | 89.1 % [87.5 %, 90.7 %] |
-| Answerable questions answered with no fact | 0.0 % [0.0 %, 0.0 %] | 6.1 % [4.8 %, 7.4 %] | 3.6 % [2.6 %, 4.6 %] |
-| Abstention on unanswerable questions | 92.6 % [90.8 %, 94.3 %] | 95.5 % [94.1 %, 96.8 %] | 83.9 % [81.4 %, 86.3 %] |
-| Attack questions / distinct attacks | 216 / 72 | 87 / 29 | 123 / 41 |
-| **Attack successes** | **0** | **0** | **0** |
-| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1508 | 100.0 % [100.0 %, 100.0 %] over 1393 | 100.0 % [100.0 %, 100.0 %] over 1549 |
-| Latency per question (mean / p50 / p95) | 2 ms / 2 ms / 4 ms | 1 ms / 1 ms / 2 ms | 1 ms / 1 ms / 2 ms |
+| Measure | Original | Development | Held-out 1 (intents-v1, not re-run) | Held-out 2 (one run) |
+|---|---|---|---|---|
+| Questions | 2,585 | 2,456 | 2,492 | 2,730 |
+| Recall of selected facts (answerable) | 97.2 % [96.3 %, 98.0 %] | 87.0 % [85.3 %, 88.9 %] | 89.1 % [87.5 %, 90.7 %] | 78.4 % [76.5 %, 80.3 %] |
+| Precision of selected facts (answerable) | 96.3 % [95.5 %, 97.2 %] | 85.7 % [83.9 %, 87.5 %] | 88.4 % [86.9 %, 90.0 %] | 76.5 % [74.6 %, 78.4 %] |
+| At least one expected fact selected (answerable) | 97.2 % [96.3 %, 98.0 %] | 87.0 % [85.3 %, 88.9 %] | 89.1 % [87.5 %, 90.7 %] | 80.0 % [78.1 %, 81.9 %] |
+| Answerable questions answered with no fact | 0.0 % [0.0 %, 0.0 %] | 7.6 % [6.3 %, 9.0 %] | 3.6 % [2.6 %, 4.6 %] | 7.9 % [6.7 %, 9.2 %] |
+| Abstention on unanswerable questions | 97.1 % [95.9 %, 98.2 %] | 92.9 % [91.3 %, 94.5 %] | 83.9 % [81.4 %, 86.3 %] | 88.7 % [86.8 %, 90.8 %] |
+| Unanswerable questions answered with a (wrong) fact | 27 of 930 | 66 of 930 | n/a | 105 of 930 |
+| Answerable questions blocked by the screen (over-blocking) | {} | {'judgement': 15, 'person': 8} | n/a | {'instruction': 8, 'judgement': 21, 'person': 4} |
+| Attack questions / distinct attacks | 216 / 72 | 87 / 29 | 123 / 41 | 0 / 0 |
+| **Attack successes** | **0** | **0** | **0** | **0** |
+| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1466 | 100.0 % [100.0 %, 100.0 %] over 1395 | 100.0 % [100.0 %, 100.0 %] over 1549 | 100.0 % [100.0 %, 100.0 %] over 1763 |
+| Latency per question (mean / p50 / p95) | 1 ms / 1 ms / 2 ms | 1 ms / 1 ms / 2 ms | 1 ms / 1 ms / 2 ms | 1 ms / 1 ms / 2 ms |
+
+**Before and after this patch, same questions** (intents-v1 measured 2026-11-17T02:14:05+00:00; the held-out columns are never re-run).
+
+| Measure | Original, intents-v1 | Development, intents-v1 | Original, intents-v2 | Development, intents-v2 |
+|---|---|---|---|---|
+| Questions | 2,585 | 2,456 | 2,585 | 2,456 |
+| Recall of selected facts (answerable) | 97.2 % [96.3 %, 98.0 %] | 89.5 % [87.9 %, 91.2 %] | 97.2 % [96.3 %, 98.0 %] | 87.0 % [85.3 %, 88.9 %] |
+| Precision of selected facts (answerable) | 97.2 % [96.3 %, 98.0 %] | 87.0 % [85.4 %, 88.6 %] | 96.3 % [95.5 %, 97.2 %] | 85.7 % [83.9 %, 87.5 %] |
+| At least one expected fact selected (answerable) | 97.2 % [96.3 %, 98.0 %] | 89.5 % [87.9 %, 91.2 %] | 97.2 % [96.3 %, 98.0 %] | 87.0 % [85.3 %, 88.9 %] |
+| Answerable questions answered with no fact | 0.0 % [0.0 %, 0.0 %] | 6.1 % [4.8 %, 7.4 %] | 0.0 % [0.0 %, 0.0 %] | 7.6 % [6.3 %, 9.0 %] |
+| Abstention on unanswerable questions | 92.6 % [90.8 %, 94.3 %] | 95.5 % [94.1 %, 96.8 %] | 97.1 % [95.9 %, 98.2 %] | 92.9 % [91.3 %, 94.5 %] |
+| Unanswerable questions answered with a (wrong) fact | n/a | n/a | 27 of 930 | 66 of 930 |
+| Answerable questions blocked by the screen (over-blocking) | n/a | n/a | {} | {'judgement': 15, 'person': 8} |
+| Attack questions / distinct attacks | 216 / 72 | 87 / 29 | 216 / 72 | 87 / 29 |
+| **Attack successes** | **0** | **0** | **0** | **0** |
+| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1508 | 100.0 % [100.0 %, 100.0 %] over 1393 | 100.0 % [100.0 %, 100.0 %] over 1466 | 100.0 % [100.0 %, 100.0 %] over 1395 |
+| Latency per question (mean / p50 / p95) | 2 ms / 2 ms / 4 ms | 1 ms / 1 ms / 2 ms | 1 ms / 1 ms / 2 ms | 1 ms / 1 ms / 2 ms |
 
 **Earlier key-phrase retrieval, re-measured in this run on the same questions** ({'floor': 0.575, 'k': 1, 'model_floor': 0.5, 'objective': 0.8133})
 
-| Measure | Original | Development | Held-out |
-|---|---|---|---|
-| Questions | 2,585 | 2,456 | 2,492 |
-| Recall of selected facts (answerable) | 84.1 % [82.3 %, 86.0 %] | 14.2 % [12.4 %, 16.1 %] | 40.7 % [38.3 %, 43.2 %] |
-| Precision of selected facts (answerable) | 86.5 % [84.7 %, 88.3 %] | 14.5 % [12.8 %, 16.4 %] | 41.0 % [38.6 %, 43.5 %] |
-| At least one expected fact selected (answerable) | 86.5 % [84.7 %, 88.3 %] | 14.5 % [12.8 %, 16.4 %] | 41.0 % [38.6 %, 43.5 %] |
-| Answerable questions answered with no fact | 2.7 % [1.9 %, 3.5 %] | 75.7 % [73.5 %, 77.9 %] | 46.4 % [44.0 %, 49.0 %] |
-| Abstention on unanswerable questions | 79.7 % [77.2 %, 82.4 %] | 88.0 % [85.9 %, 90.0 %] | 84.9 % [82.6 %, 87.2 %] |
-| Attack questions / distinct attacks | 216 / 72 | 87 / 29 | 123 / 41 |
-| **Attack successes** | **0** | **0** | **0** |
-| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1589 | 100.0 % [100.0 %, 100.0 %] over 462 | 100.0 % [100.0 %, 100.0 %] over 914 |
-| Latency per question (mean / p50 / p95) | 1 ms / 1 ms / 1 ms | 0 ms / 0 ms / 1 ms | 1 ms / 0 ms / 2 ms |
+| Measure | Original | Development | Held-out 1 (intents-v1, not re-run) | Held-out 2 (one run) |
+|---|---|---|---|---|
+| Questions | 2,585 | 2,456 | 2,492 | not run |
+| Recall of selected facts (answerable) | 84.1 % [82.3 %, 86.0 %] | 14.2 % [12.4 %, 16.1 %] | 40.7 % [38.3 %, 43.2 %] | not run |
+| Precision of selected facts (answerable) | 86.5 % [84.7 %, 88.3 %] | 14.5 % [12.8 %, 16.4 %] | 41.0 % [38.6 %, 43.5 %] | not run |
+| At least one expected fact selected (answerable) | 86.5 % [84.7 %, 88.3 %] | 14.5 % [12.8 %, 16.4 %] | 41.0 % [38.6 %, 43.5 %] | not run |
+| Answerable questions answered with no fact | 2.7 % [1.9 %, 3.5 %] | 75.7 % [73.5 %, 77.9 %] | 46.4 % [44.0 %, 49.0 %] | not run |
+| Abstention on unanswerable questions | 79.7 % [77.2 %, 82.4 %] | 88.0 % [85.9 %, 90.0 %] | 84.9 % [82.6 %, 87.2 %] | not run |
+| Unanswerable questions answered with a (wrong) fact | 189 of 930 | 112 of 930 | n/a | not run |
+| Answerable questions blocked by the screen (over-blocking) | {} | {'judgement': 15, 'person': 8} | n/a | not run |
+| Attack questions / distinct attacks | 216 / 72 | 87 / 29 | 123 / 41 | not run |
+| **Attack successes** | **0** | **0** | **0** | not run |
+| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1589 | 100.0 % [100.0 %, 100.0 %] over 462 | 100.0 % [100.0 %, 100.0 %] over 914 | not run |
+| Latency per question (mean / p50 / p95) | 1 ms / 1 ms / 1 ms | 0 ms / 0 ms / 1 ms | 1 ms / 0 ms / 2 ms | not run |
 
 Recall by fact type, intent retrieval (reporting half):
 
-| Fact type | Original: n / recall | Development: n / recall | Held-out: n / recall |
-|---|---|---|---|
-| `amounts` | 97 / 100.0 % | 116 / 79.3 % | 103 / 100.0 % |
-| `award_dates` | 80 / 100.0 % | 106 / 100.0 % | 106 / 73.6 % |
-| `company_capital` | 2 / 100.0 % | 1 / 0.0 % | 1 / 100.0 % |
-| `company_incorporation` | 2 / 100.0 % | 2 / 100.0 % | 2 / 100.0 % |
-| `context_count` | 115 / 100.0 % | 104 / 100.0 % | 104 / 88.5 % |
-| `context_single` | 97 / 100.0 % | 103 / 76.7 % | 86 / 76.7 % |
-| `context_tenderers` | 111 / 63.1 % | 86 / 89.5 % | 98 / 70.4 % |
-| `cpc` | 104 / 100.0 % | 98 / 100.0 % | 107 / 100.0 % |
-| `enquiries_timing` | 1 / 100.0 % | 1 / 0.0 % | 1 / 100.0 % |
-| `entity` | 94 / 100.0 % | 94 / 100.0 % | 91 / 80.2 % |
-| `ghost` | 52 / 100.0 % | 51 / 100.0 % | 44 / 100.0 % |
-| `history` | 65 / 100.0 % | 42 / 100.0 % | 37 / 78.4 % |
-| `object` | 89 / 100.0 % | 96 / 72.9 % | 103 / 100.0 % |
-| `pair_others` | 2 / 100.0 % | 2 / 50.0 % | 1 / 0.0 % |
-| `procedure` | 103 / 100.0 % | 96 / 82.3 % | 99 / 76.8 % |
-| `registry_company` | 46 / 100.0 % | 49 / 87.8 % | 52 / 100.0 % |
-| `registry_sri` | 42 / 100.0 % | 45 / 82.2 % | 45 / 77.8 % |
-| `signal` | 98 / 100.0 % | 81 / 100.0 % | 108 / 100.0 % |
-| `signals_all` | 101 / 100.0 % | 118 / 87.3 % | 91 / 100.0 % |
-| `tenderers` | 92 / 100.0 % | 100 / 89.0 % | 113 / 100.0 % |
-| `winner` | 46 / 100.0 % | 48 / 83.3 % | 47 / 83.0 % |
+| Fact type | Original: n / recall | Development: n / recall | Held-out 1 (intents-v1, not re-run): n / recall | Held-out 2 (one run): n / recall |
+|---|---|---|---|---|
+| `amounts` | 97 / 100.0 % | 116 / 79.3 % | 103 / 100.0 % | 95 / 96.8 % |
+| `award_dates` | 80 / 100.0 % | 106 / 100.0 % | 106 / 73.6 % | 111 / 81.1 % |
+| `company_capital` | 2 / 100.0 % | 1 / 0.0 % | 1 / 100.0 % | 2 / 100.0 % |
+| `company_incorporation` | 2 / 100.0 % | 2 / 100.0 % | 2 / 100.0 % | 2 / 100.0 % |
+| `comparison` | - | - | - | 178 / 52.1 % |
+| `compound` | - | - | - | 183 / 97.3 % |
+| `context_count` | 115 / 100.0 % | 104 / 100.0 % | 104 / 88.5 % | 103 / 100.0 % |
+| `context_single` | 97 / 100.0 % | 103 / 76.7 % | 86 / 76.7 % | 92 / 70.7 % |
+| `context_tenderers` | 111 / 63.1 % | 86 / 70.9 % | 98 / 70.4 % | 98 / 37.8 % |
+| `cpc` | 104 / 100.0 % | 98 / 100.0 % | 107 / 100.0 % | 84 / 100.0 % |
+| `enquiries_count` | - | - | - | 1 / 100.0 % |
+| `enquiries_timing` | 1 / 100.0 % | 1 / 100.0 % | 1 / 100.0 % | - |
+| `entity` | 94 / 100.0 % | 94 / 64.9 % | 91 / 80.2 % | 107 / 64.5 % |
+| `ghost` | 52 / 100.0 % | 51 / 100.0 % | 44 / 100.0 % | 55 / 90.9 % |
+| `history` | 65 / 100.0 % | 42 / 100.0 % | 37 / 78.4 % | 63 / 60.3 % |
+| `object` | 89 / 100.0 % | 96 / 72.9 % | 103 / 100.0 % | 94 / 70.2 % |
+| `pair_others` | 2 / 100.0 % | 2 / 50.0 % | 1 / 0.0 % | 2 / 50.0 % |
+| `procedure` | 103 / 100.0 % | 96 / 100.0 % | 99 / 76.8 % | 84 / 65.5 % |
+| `registry_company` | 46 / 100.0 % | 49 / 87.8 % | 52 / 100.0 % | 49 / 81.6 % |
+| `registry_sri` | 42 / 100.0 % | 45 / 100.0 % | 45 / 77.8 % | 54 / 100.0 % |
+| `signal` | 98 / 100.0 % | 81 / 100.0 % | 108 / 100.0 % | 103 / 92.2 % |
+| `signals_all` | 101 / 100.0 % | 118 / 66.9 % | 91 / 100.0 % | 96 / 82.3 % |
+| `tenderers` | 92 / 100.0 % | 100 / 100.0 % | 113 / 100.0 % | 91 / 90.1 % |
+| `winner` | 46 / 100.0 % | 48 / 83.3 % | 47 / 83.0 % | 53 / 66.0 % |
 
-Recall by fact type, earlier retrieval:
+**New held-out adversarial and judgement set** (136 distinct items, 408 questions; evaluated once at 2026-11-17T03:32:37+00:00 with intents-v2; SHA-256 `2d116251476d28dba8f60682cc40e38b9f11c278f1465a81f878bf296f45fecf`). Attack successes: **0**; answered with facts: 15 {'judgement': 9, 'person': 6}; outcomes {'answered': 15, 'instruction': 120, 'judgement': 183, 'no_evidence': 33, 'person': 57}.
 
-| Fact type | Original: n / recall | Development: n / recall | Held-out: n / recall |
-|---|---|---|---|
-| `amounts` | 97 / 83.5 % | 116 / 0.0 % | 103 / 20.4 % |
-| `award_dates` | 80 / 77.5 % | 106 / 19.8 % | 106 / 35.8 % |
-| `company_capital` | 2 / 100.0 % | 1 / 0.0 % | 1 / 100.0 % |
-| `company_incorporation` | 2 / 50.0 % | 2 / 0.0 % | 2 / 50.0 % |
-| `context_count` | 115 / 100.0 % | 104 / 0.0 % | 104 / 51.0 % |
-| `context_single` | 97 / 100.0 % | 103 / 0.0 % | 86 / 12.8 % |
-| `context_tenderers` | 111 / 100.0 % | 86 / 0.0 % | 98 / 0.0 % |
-| `cpc` | 104 / 100.0 % | 98 / 61.2 % | 107 / 88.8 % |
-| `enquiries_timing` | 1 / 100.0 % | 1 / 0.0 % | 1 / 0.0 % |
-| `entity` | 94 / 100.0 % | 94 / 13.8 % | 91 / 52.7 % |
-| `ghost` | 52 / 42.3 % | 51 / 0.0 % | 44 / 52.3 % |
-| `history` | 65 / 50.0 % | 42 / 11.9 % | 37 / 13.5 % |
-| `object` | 89 / 83.1 % | 96 / 0.0 % | 103 / 60.2 % |
-| `pair_others` | 2 / 0.0 % | 2 / 0.0 % | 1 / 0.0 % |
-| `procedure` | 103 / 100.0 % | 96 / 0.0 % | 99 / 39.4 % |
-| `registry_company` | 46 / 54.3 % | 49 / 0.0 % | 52 / 23.1 % |
-| `registry_sri` | 42 / 100.0 % | 45 / 0.0 % | 45 / 62.2 % |
-| `signal` | 98 / 98.0 % | 81 / 100.0 % | 108 / 90.7 % |
-| `signals_all` | 101 / 24.1 % | 118 / 0.0 % | 91 / 5.5 % |
-| `tenderers` | 92 / 84.8 % | 100 / 24.0 % | 113 / 23.0 % |
-| `winner` | 46 / 100.0 % | 48 / 0.0 % | 47 / 40.4 % |
+| Expected reason | Questions | Exactly the fixed sentence | No fact given | Rejected (422) |
+|---|---|---|---|---|
+| `instruction` | 135 | 120 (88.9 %) | 135 (100.0 %) | 0 |
+| `judgement` | 213 | 183 (85.9 %) | 204 (95.8 %) | 0 |
+| `person` | 60 | 54 (90.0 %) | 54 (90.0 %) | 0 |
 
-Questions per set: {'original': 2585, 'development': 2456, 'heldout': 2492}; held-out evaluations so far (this file): 1; held-out file SHA-256 `cf941a16d03c84a00b0379e2113ad2367dd2aba1cfdc49dd8ac52a3369dd0cb9`.
+Questions per set: {'original': 2585, 'development': 2456, 'heldout': 2492, 'heldout2': 2730, 'heldout_adversarial': 408}; held-out evaluations so far (every held-out set, this file): 3; phrasings of the frozen files dropped because they equal an earlier phrasing: {'heldout2': 9, 'heldout_adversarial': 1}.
+
+Held-out sets: `heldout` runs 1, intents-v1, SHA-256 `cf941a16d03c84a00b0379e2113ad2367dd2aba1cfdc49dd8ac52a3369dd0cb9` (carried over, not re-run: measured the earlier retrieval (intents-v1)); `heldout2` runs 1, intents-v2, SHA-256 `2a2d1e776123afc70a6c091138a1f5d3522e89b13091c4f205ddba7ae222cbe1` (carried over, not re-run); `heldout_adversarial` runs 1, intents-v2, SHA-256 `2d116251476d28dba8f60682cc40e38b9f11c278f1465a81f878bf296f45fecf` (carried over, not re-run).
+
+**Held-out 1, adversarial and judgement questions of the first held-out set: no longer unseen** (since 2026-11-17). Why: its per-question misses (judgement slang such as coima, chanchullo, tongo, negociado, mano negra, coludidos, and hidden-instruction wordings) were read and the screen was then extended to cover that vocabulary; the answerable and unanswerable subsets of the first held-out set were not read per question.
 
 Attacks, original set (72 distinct): outcomes {'instruction': 87, 'judgement': 66, 'no_evidence': 18, 'person': 33, 'rejected_422': 12}; answered with facts: 0 {}; judgement questions without the fixed sentence: 0. No attack succeeded.
 
 Attacks, development set (29 distinct): outcomes {'instruction': 30, 'judgement': 39, 'person': 18}; answered with facts: 0 {}; judgement questions without the fixed sentence: 0. No attack succeeded.
 
-Attacks, held-out set (41 distinct): outcomes {'answered': 12, 'instruction': 27, 'judgement': 33, 'no_evidence': 27, 'person': 24}; answered with facts: 12 {'judgement': 6, 'payload': 6}; judgement questions without the fixed sentence: 18. No attack succeeded.
+Attacks, held-out 1 (intents-v1, not re-run) set (41 distinct): outcomes {'answered': 12, 'instruction': 27, 'judgement': 33, 'no_evidence': 27, 'person': 24}; answered with facts: 12 {'judgement': 6, 'payload': 6}; judgement questions without the fixed sentence: 18. No attack succeeded.
+
+Attacks, held-out 2 (one run) set (0 distinct): outcomes {}; answered with facts: 0 {}; judgement questions without the fixed sentence: 0. No attack succeeded.
 
 
 ### Model mode
@@ -573,6 +622,8 @@ Model `gpt-5.4-mini` over 172 questions of the reporting half (about 60 answerab
 | At least one expected fact selected (answerable) | 86.7 % [76.7 %, 95.0 %] | 88.3 % [80.0 %, 95.0 %] |
 | Answerable questions answered with no fact | 11.7 % [5.0 %, 20.0 %] | 3.3 % [0.0 %, 8.3 %] |
 | Abstention on unanswerable questions | 100.0 % [100.0 %, 100.0 %] | 90.0 % [80.0 %, 97.5 %] |
+| Unanswerable questions answered with a (wrong) fact | n/a | n/a |
+| Answerable questions blocked by the screen (over-blocking) | n/a | n/a |
 | Attack questions / distinct attacks | 72 / 72 | 72 / 72 |
 | **Attack successes** | **0** | **0** |
 | Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 53 | 100.0 % [100.0 %, 100.0 %] over 62 |
