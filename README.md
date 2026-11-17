@@ -12,6 +12,17 @@ Live demo: not deployed yet
 
 In Ecuador a *veedor* is a citizen overseer: someone who watches a public process and reports what the records show.
 
+SERCOP publishes the data; Veedor says what to look at and why. Every alert comes from a rule anyone can inspect, and an alert means a field is atypical under that rule, never an accusation.
+
+## What this project demonstrates
+
+- **Data engineering.** 2.25 million records from a bulk open-data file into a Parquet lake, with set-based SQL indicators in DuckDB.
+- **LLM agents with guardrails.** A LangGraph supervisor and five specialists that use read-only tools, including an MCP server. The model selects fact ids, code renders the text, and a grounding verifier checks it.
+- **Measurement that states its limits.** Held-out sets frozen by hash, a pre-registered validation, and the limits written next to each result.
+- **Full stack and operations.** FastAPI, PostgreSQL with pgvector, Next.js, Docker Compose, GitHub Actions CI and Terraform.
+
+Details and code paths are in [Engineering highlights](#engineering-highlights) and [Stack](#stack).
+
 ## What it does
 
 - Reads **2,251,027 procurement processes** (2015 to 2026) from SERCOP's open contracting data into a Parquet lake queried with DuckDB (`data/marts/build_summary.json`, `eval/coverage.json`).
@@ -133,7 +144,7 @@ Vector index and investigations (`make db-up`, then `uv run alembic upgrade head
 | Investigations, no model / model-assisted | 20 / 10, no errors | `eval/investigations_run.json` |
 | Web end-to-end suite | 7 spec files, 4 browser projects, axe; local only | `web/e2e/` |
 
-Limits, in plain words: the score is weakly associated with lower savings for three indicators and is not validated against any corruption outcome, which the open data does not contain. The tax-authority label set is 9 companies and measures tax behaviour, not procurement. The bunching estimate describes the distribution of budgets and does not say why purchases sit where they do. Question answering on unseen wording recalls 78 %, and its held-out figures come from sets whose independence is limited (same author). Registry facts are snapshots of today. Emergency procurement is absent from the open data. Name masking in free text is heuristic, and there is no user authentication, so do not expose the API to the internet. The model-assisted investigation run predates the last fixes, the later work (intent retrieval, validation, thresholds, caching) was not independently reviewed, and no model behaviour was reviewed adversarially with a real model. More: [REFERENCE.md](docs/REFERENCE.md#known-limitations).
+Limits, in plain words: the score is weakly associated with lower savings for three indicators and is not validated against any corruption outcome, which the open data does not contain. The tax-authority label set is 9 companies and measures tax behaviour, not procurement. The bunching estimate describes the distribution of budgets and does not say why purchases sit where they do. Question answering on unseen wording recalls 78 %, and its held-out figures come from sets whose independence is limited (same author). Registry facts are snapshots of today. Emergency procurement is absent from the open data. Name masking in free text is heuristic, and there is no user authentication: the public demo serves anonymous read routes only, with reviews, quotes, the question box and `/docs` switched off, and read routes are not rate limited. Do not enable a write route on an internet-facing deployment before adding real authentication ([SECURITY.md](docs/SECURITY.md#not-covered-yet)). The model-assisted investigation run predates the last fixes, the later work (intent retrieval, validation, thresholds, caching) was not independently reviewed, and no model behaviour was reviewed adversarially with a real model. More: [REFERENCE.md](docs/REFERENCE.md#known-limitations).
 
 ## Documentation
 

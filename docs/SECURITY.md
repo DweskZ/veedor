@@ -128,7 +128,7 @@ All three are `GET`, unauthenticated, masked like every other response and answe
 
 ## Not covered yet
 
-- **User authentication.** Reads are anonymous. Writing reviews needs one shared bearer token, not per-user identities; `reviewer` is a free-text label, not an identity. Do not expose the API to the internet before adding real authentication.
+- **User authentication.** Reads are anonymous. Writing reviews needs one shared bearer token, not per-user identities; `reviewer` is a free-text label, not an identity. Do not expose a write route to the internet before adding real authentication. The documented public deployment (`docs/DEPLOYMENT_AWS.md`) exposes the anonymous read routes only: reviews and `/docs` are always off there, and quotes and the question route are off by default.
 - **Free-text masking is heuristic.** A person's name is masked only when it is a known party of the process or follows an honorific; a name that is neither can still appear in a process description returned by the detail endpoint or in a review note. Dossiers do not quote free-text descriptions at all, so this does not apply to dossier text.
 - **The data bundle contains unmasked personal data.** `data/` (lake, marts, registries, dossier cache) holds real names, RUCs and cédulas. Masking exists only at the API boundary: never publish or share the data directory or the Parquet files as-is.
 - **Shared rate limiting.** The limiter is in memory and per process: each worker or replica counts separately and a restart resets it. Behind a proxy the client IP is the proxy's unless forwarded headers are trusted. A real deployment needs a shared limiter (for example at the gateway or in Redis).
