@@ -155,7 +155,7 @@ on the in-vocabulary phrasings only, over n = 172 questions; it was not rerun on
 
 ## Multi-agent investigation
 
-For a flagged process, `veedor investigate` runs a **supervisor plus four specialists** (LangGraph). Each specialist has one objective, an allow-list of read-only tools and a budget of 4 tool calls. Facts are gathered and computed by code; a model, when configured, only chooses among enumerated options. Full design and threat model: [docs/AGENTS.md](docs/AGENTS.md).
+For a flagged process, `veedor investigate` runs a **supervisor plus up to five specialists** (LangGraph; the fifth, on the question-and-answer stage, runs only when the process has stored texts). Each specialist has one objective, an allow-list of read-only tools and a budget of 4 tool calls. Facts are gathered and computed by code; a model, when configured, only chooses among enumerated options. Full design and threat model: [docs/AGENTS.md](docs/AGENTS.md).
 
 | Agent | Objective | Tools |
 |---|---|---|
@@ -457,7 +457,7 @@ Results of the last run (2026-11-16, local stack up, quotes and ask disabled): *
 
 | Topic | Where |
 |---|---|
-| Agents and tool use | supervisor and four specialists with budgets: `src/veedor/agents/investigation/`, `docs/AGENTS.md` |
+| Agents and tool use | supervisor and five specialists with budgets: `src/veedor/agents/investigation/`, `docs/AGENTS.md` |
 | MCP | client for the author's EcuDataMCP server: `src/veedor/infrastructure/mcp/`; tool allow-list in `agents/investigation/tools.py` |
 | Retrieval and a vector database | embeddings, pgvector HNSW index, `find_similar`: `src/veedor/infrastructure/vectors/`, `alembic/versions/`, `docs/VECTOR_SEARCH.md` |
 | Evaluation | back-test against an external label with a null result, vector-search proxy evaluation: `src/veedor/evaluation/`, `eval/`, `docs/EVALUATION.md` |

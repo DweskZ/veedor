@@ -139,7 +139,7 @@ Rules to keep: ink outlines and white fills only, terracotta on a few elements, 
 | Monospace for codes and labels | Rejected by the founder as the "dark tech" look. Tabular figures in Plus Jakarta Sans instead. |
 | Gradients, glows, grid backgrounds, shadows with colour | Rejected outright by the founder. |
 | Hues outside ice, ink and terracotta (red/amber/green traffic lights, a teal accent) | Not in the palette. A traffic-light scale would also read as a verdict, against the contract. The scale goes from ice-deep to ink and keeps terracotta for the top band. |
-| Mascots, characters, robots, people in illustrations | Rejected by the founder (Ruray guide, "Rejected directions"). The four specialists are drawn as four work stations, not as figures. |
+| Mascots, characters, robots, people in illustrations | Rejected by the founder (Ruray guide, "Rejected directions"). The specialists are drawn as work stations, not as figures. |
 | Stock images, other image generators | The brand method is Codex with the Ruray maquetas as references. |
 | Screenshots of Ruray apps or client work | Not Veedor's to show. |
 | Chart libraries | Bars are plain HTML lists with the value as text. |
