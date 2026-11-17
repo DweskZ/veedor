@@ -54,6 +54,13 @@ export function Footer() {
               </a>
             </span>
             <span className="footer__author">Luis Figueroa, fundador de Ruray.</span>
+            <span className="footer__author">
+              Avisos (por ejemplo, un dato personal que ves en un texto):{" "}
+              <a href={RURAY_URL} rel="noopener" target="_blank" className="inline-link">
+                Instagram @ruray.tech<span className="sr-only"> (se abre en una pestaña nueva)</span>
+              </a>
+              .
+            </span>
             <span className="footer__place">Hazlo real. · Ecuador · Australia</span>
           </div>
         </div>

@@ -45,10 +45,12 @@ interface FrameProps {
   lastFull: number;
   title: string;
   id: string;
+  /** One plain sentence naming exactly what is counted. */
+  definition?: ReactNode;
 }
 
 /** Shared chart frame: card, reading sentence, live readout, keyboard and pointer year selection, notes and data table. */
-function Frame({ years, label, reading, readout, children, yMax, table, notes, lastFull, title, id }: FrameProps) {
+function Frame({ years, label, reading, readout, children, yMax, table, notes, lastFull, title, id, definition }: FrameProps) {
   const [ref, w] = useWidth();
   const [active, setActive] = useState(lastFull);
   const plotW = w - M.l - M.r;
@@ -74,6 +76,7 @@ function Frame({ years, label, reading, readout, children, yMax, table, notes, l
       <h2 className="h3" id={`${id}-t`}>
         {title}
       </h2>
+      {definition ? <p className="trend__def">{definition}</p> : null}
       <p className="trend__read">{reading}</p>
       <div className="trend__body">
         <div className="trend__chart" ref={ref}>
@@ -150,6 +153,7 @@ function LineChart({
   base,
   notes,
   lastFull,
+  definition,
 }: {
   years: YearRow[];
   series: (y: YearRow) => number | null;
@@ -160,6 +164,7 @@ function LineChart({
   base: (y: YearRow) => number | null;
   notes: string[];
   lastFull: number;
+  definition?: ReactNode;
 }) {
   const vals = years.map(series);
   const max = niceMax(Math.max(0.05, ...vals.map((v) => v ?? 0)));
@@ -178,6 +183,7 @@ function LineChart({
     <Frame
       id={id}
       title={title}
+      definition={definition}
       years={years}
       lastFull={lastFull}
       notes={notes}
@@ -342,7 +348,13 @@ export function TrendCharts({ years, notes }: { years: YearRow[]; notes: string[
     <div className="trends">
       <LineChart
         id="solo-oferente"
-        title="¿Cuántas subastas tienen un solo oferente?"
+        title="Subastas inversas con un solo oferente"
+        definition={
+          <>
+            Se cuentan las subastas inversas electrónicas con exactamente un oferente, sobre las que tienen el número de oferentes conocido. Es un conteo directo: no es la
+            señal «oferente único» del mapa, que excluye los procedimientos donde un solo oferente es normal por diseño.
+          </>
+        }
         what="la parte de subastas inversas electrónicas con un solo oferente"
         unit="de las subastas inversas electrónicas tuvo un solo oferente"
         base={(y) => y.single_bidder_base}
@@ -370,6 +382,7 @@ export function TrendCharts({ years, notes }: { years: YearRow[]; notes: string[
       <LineChart
         id="con-senal"
         title="¿Qué parte de los procesos competitivos tiene señales?"
+        definition={<>Se cuentan los procesos competitivos con al menos una señal de riesgo activada, sobre todos los procesos competitivos del año.</>}
         what="la parte de procesos competitivos con al menos una señal"
         unit="de los procesos competitivos tuvo al menos una señal"
         base={(y) => y.competitive_processes}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ApiError, getContext, getDossier as fetchDossier, getInvestigation, getMeta, getProcess, getProvenance, getQuotes, getReviews, getSignals } from "@/lib/api";
-import { citationFor, pickQuotes, sourceById, type Provenance } from "@/lib/provenance";
+import { citationFor, sourceById, type Provenance } from "@/lib/provenance";
 import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessFacts, SignalDef } from "@/lib/types";
 import { SignalCard } from "@/components/SignalCard";
@@ -20,7 +20,7 @@ import { Card, EmptyState, ErrorState, Name, Num, partyName, RiskScore, Section 
 import { displayName } from "@/lib/names";
 import { SectionNav, type NavItem } from "@/components/SectionNav";
 import { ProvenanceProvider, SourceMarker, SourcesToggle } from "@/components/Provenance";
-import { QuotesBlock, quoteAnchor } from "@/components/Quotes";
+import { QuotesBlock } from "@/components/Quotes";
 import { AskSection } from "@/components/AskProcess";
 import { suggestQuestions } from "@/lib/ask";
 import { CopyButton } from "@/components/CopyButton";
@@ -90,10 +90,12 @@ async function Dossier({
   // Every part is loaded here, before anything is rendered: a part still pending while the page is being sent would be
   // streamed after the footer, which is the wrong reading order without JavaScript (see PageFrame).
   const provPromise = getProvenance(ocid).catch(() => null);
+  const metaPromise = getMeta();
   const [prov, quotes, apiMeta, comparison, investigation, similar, reviewsBlock, dossierText] = await Promise.all([
     provPromise,
-    getQuotes(ocid).catch(() => null),
-    getMeta(),
+    // Quotes are requested only when the API says they are on; a missing flag, a 404 or any failure hides the section silently.
+    metaPromise.then((m) => (m.quotes_enabled === true ? getQuotes(ocid).catch(() => null) : null)),
+    metaPromise,
     ComparisonSection({ ocid }),
     InvestigationSection({ ocid }),
     SimilarBody({ ocid, sameBuyer }),
@@ -110,14 +112,11 @@ async function Dossier({
     hasWinner: Boolean(w && (w.ruc || w.name)),
     hasObject: Boolean(f.description || f.main_cpc_description),
   });
-  const quoteFor = new Map<string, string>();
-  (quotes ? pickQuotes(quotes) : []).forEach((q, i) => {
-    if (q.related_signal && !quoteFor.has(q.related_signal)) quoteFor.set(q.related_signal, `#${quoteAnchor(i)}`);
-  });
+  const quotesShown = apiMeta.quotes_enabled === true && quotes !== null;
   const nav: NavItem[] = [
     { id: "hechos", label: "Datos" },
     { id: "senales", label: "Señales", also: ["comparacion", ...(contextSignals.length ? ["contexto"] : [])] },
-    { id: "citas", label: "Citas" },
+    ...(quotesShown ? [{ id: "citas", label: "Citas" }] : []),
     ...(askEnabled ? [{ id: "preguntar", label: "Preguntar" }] : []),
     { id: "investigacion", label: "Investigación" },
     { id: "similares", label: "Parecidos" },
@@ -327,7 +326,7 @@ async function Dossier({
               ) : (
                 <div className="sigs sigs--2">
                   {riskSignals.map((s) => (
-                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quoteHref={quoteFor.get(s.code)} />
+                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} />
                   ))}
                 </div>
               )}
@@ -341,21 +340,23 @@ async function Dossier({
               <Section title="Contexto del proveedor" id="contexto" note="Estos datos describen el registro del proveedor en relación con el proceso. Son solo contexto: no suman puntos.">
                 <div className="sigs sigs--2">
                   {contextSignals.map((s) => (
-                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quiet quoteHref={quoteFor.get(s.code)} />
+                    <SignalCard key={s.code} signal={s} def={defByCode.get(s.code)} quiet />
                   ))}
                 </div>
               </Section>
             ) : null}
 
-            <Section
-              title="Citas de la fuente"
-              id="citas"
-              note="Palabras del expediente original que ayudan a entender las señales. No son texto de Veedor."
-            >
-              <QuotesBlock quotes={quotes} />
-            </Section>
+            {quotesShown ? (
+              <Section
+                title="Citas de la fuente"
+                id="citas"
+                note="Textos del expediente publicado, mostrados tal como se publicaron. No son texto de Veedor y no se presentan como prueba de ninguna señal."
+              >
+                <QuotesBlock quotes={quotes} />
+              </Section>
+            ) : null}
 
-            {askEnabled ? <AskSection ocid={ocid} suggestions={suggestions} /> : null}
+            {askEnabled ? <AskSection ocid={ocid} suggestions={suggestions} quotesEnabled={apiMeta.quotes_enabled === true} /> : null}
 
             <Section title="Investigación con agentes" id="investigacion">
               {investigation}

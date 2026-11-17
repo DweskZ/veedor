@@ -106,14 +106,18 @@ export async function getMeta(): Promise<ApiMeta> {
   if (USE_MOCKS) return mocks.meta;
   for (const path of ["/meta", "/health"]) {
     try {
-      const body = await request<{ reviews_enabled?: unknown; ask_enabled?: unknown }>(path);
+      const body = await request<{ reviews_enabled?: unknown; ask_enabled?: unknown; quotes_enabled?: unknown }>(path);
       if (typeof body.reviews_enabled === "boolean")
-        return { reviews_enabled: body.reviews_enabled, ask_enabled: typeof body.ask_enabled === "boolean" ? body.ask_enabled : null };
+        return {
+          reviews_enabled: body.reviews_enabled,
+          ask_enabled: typeof body.ask_enabled === "boolean" ? body.ask_enabled : null,
+          quotes_enabled: typeof body.quotes_enabled === "boolean" ? body.quotes_enabled : null,
+        };
     } catch {
       /* try the next endpoint */
     }
   }
-  return { reviews_enabled: null, ask_enabled: null };
+  return { reviews_enabled: null, ask_enabled: null, quotes_enabled: null };
 }
 
 export interface SignalIndex {

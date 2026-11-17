@@ -9,9 +9,9 @@ export const METRICS: Record<Metric, { label: string; short: string; question: s
     question: "de los procesos competitivos tuvo al menos una señal",
   },
   single: {
-    label: "Con un solo oferente",
-    short: "con un solo oferente",
-    question: "de los procesos competitivos tuvo un solo oferente",
+    label: "Con la señal «oferente único»",
+    short: "con la señal «oferente único»",
+    question: "de los procesos competitivos tuvo la señal «oferente único»",
   },
 };
 
@@ -75,4 +75,11 @@ export function classRangeLabel(cuts: number[], k: number): string {
 
 /** Fills: ice-to-ink sequential, terracotta only for the top class (which also gets a hatch). */
 export const CLASS_FILL = ["#ffffff", "#cadbfb", "#8fa6db", "#1a1f36", "#d9480f"];
-export const CLASS_NAME = ["Más bajo", "Bajo", "Medio", "Alto", "Más alto"];
+export const CLASS_NAME = ["Porcentaje más bajo", "Bajo", "Medio", "Alto", "Porcentaje más alto"];
+
+/** What the map counts for each metric, in one plain sentence. */
+export const METRIC_DEFINITION: Record<Metric, string> = {
+  signal: "Se cuentan los procesos competitivos en que se activó al menos una señal de riesgo, sobre todos los procesos competitivos de la provincia.",
+  single:
+    "Se cuentan los procesos competitivos en que se activó la señal «oferente único» (una sola oferta), que excluye los procedimientos donde un solo oferente es normal por diseño. No es el conteo de las subastas de la página de tendencias.",
+};

@@ -11,6 +11,7 @@ import {
   fractionOf,
   isSmall,
   METRICS,
+  METRIC_DEFINITION,
   quantileClasses,
   classRangeLabel,
   type Metric,
@@ -141,8 +142,9 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
   }, [byKey, metric]);
 
   const sorted = useMemo(() => {
-    const key = sort?.key ?? metric;
-    const dir = sort?.dir ?? -1;
+    // Default order is alphabetical by province: the table is not a ranking. The visitor can still sort by any column.
+    const key = sort?.key ?? "name";
+    const dir = sort?.dir ?? 1;
     const val = (r: RegionRow) =>
       key === "name" ? r.region_label : key === "competitive" ? r.competitive_processes : (fractionOf(r, key as Metric) ?? -1);
     return [...rows].sort((a, b) => {
@@ -150,11 +152,14 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
       const c = typeof x === "string" ? x.localeCompare(String(y), "es") : (x as number) - (y as number);
       return c * dir;
     });
-  }, [rows, sort, metric]);
+  }, [rows, sort]);
 
-  const sortBy = (key: string, first: 1 | -1) => setSort((s) => (s?.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: first }));
+  const sortBy = (key: string, first: 1 | -1) => setSort((s) => {
+      const cur = s ?? { key: "name", dir: 1 as const };
+      return cur.key === key ? { key, dir: (cur.dir * -1) as 1 | -1 } : { key, dir: first };
+    });
   const ariaSort = (key: string): "ascending" | "descending" | "none" => {
-    const cur = sort ?? { key: metric, dir: -1 as const };
+    const cur = sort ?? { key: "name", dir: 1 as const };
     return cur.key === key ? (cur.dir === 1 ? "ascending" : "descending") : "none";
   };
 
@@ -190,6 +195,7 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
           ))}
         </fieldset>
       )}
+      <p className="small muted map__def">{METRIC_DEFINITION[metric]}</p>
       <p className="sr-only" role="status" aria-live="polite">
         Mostrando el porcentaje de procesos competitivos {METRICS[metric].short}.
       </p>
@@ -332,8 +338,8 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
             ))}
           </ul>
           <p className="small muted">
-            Cinco grupos con el mismo número de provincias (quintiles). Son una forma de ordenarlas, no umbrales: el grupo más alto siempre existe,
-            aunque las diferencias sean pequeñas. El grupo más alto lleva rayas para que se distinga sin color.
+            Cinco grupos con el mismo número de provincias (quintiles). Son una forma de agruparlas, no umbrales: siempre hay un grupo con el
+            porcentaje más alto, aunque las diferencias sean pequeñas. Ese grupo lleva rayas para que se distinga sin color.
           </p>
           {small ? (
             <p className="small muted">
@@ -343,8 +349,8 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
           {best ? (
             <p className="map__read">
               En el país, {fmtP(nat)} de los procesos competitivos tuvo{" "}
-              {metric === "signal" ? "al menos una señal" : "un solo oferente"}. Por provincia va de {fmtP(best.low.v)} ({best.low.label}) a{" "}
-              {fmtP(best.top.v)} ({best.top.label}).
+              {metric === "signal" ? "al menos una señal" : "la señal «oferente único»"}. Por provincia va de {fmtP(best.low.v)} a{" "}
+              {fmtP(best.top.v)}.
             </p>
           ) : null}
           <p className="small muted">
@@ -363,10 +369,14 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
       ) : (
         <>
           <h3 className="h3 map__tbltitle" id="tabla-provincias">
-            Los mismos datos en una tabla
+            Datos por provincia
           </h3>
           <p className="small muted" style={{ marginTop: 6 }}>
-            Ordena por la columna que quieras. Cada provincia lleva a sus procesos.
+            En orden alfabético; puedes ordenar por la columna que quieras. Cada provincia lleva a sus procesos.
+          </p>
+          <p className="callout" style={{ marginTop: 10 }}>
+            <b>Más señales no significa más problemas:</b> el orden de una columna no es un ranking ni un juicio sobre la provincia. La provincia es la de la
+            entidad que compra.
           </p>
           <div className="tbl-wrap" tabIndex={0} role="region" aria-labelledby="tabla-provincias" style={{ marginTop: 14 }}>
             <table className="tbl tbl--regions">
@@ -383,7 +393,7 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
                     <button type="button" className="sortbtn" onClick={() => sortBy("signal", -1)}>Con al menos una señal</button>
                   </th>
                   <th scope="col" className="r" aria-sort={ariaSort("single")}>
-                    <button type="button" className="sortbtn" onClick={() => sortBy("single", -1)}>Con un solo oferente</button>
+                    <button type="button" className="sortbtn" onClick={() => sortBy("single", -1)}>Con la señal «oferente único»</button>
                   </th>
                 </tr>
               </thead>

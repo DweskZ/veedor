@@ -12,8 +12,11 @@ FROM base AS build
 # Public API URL seen by the browser. It is inlined into the client bundle, so it is a build argument.
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# Search engines stay out unless the owner sets this to 1 at build time.
+ARG NEXT_PUBLIC_ALLOW_INDEXING=0
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
-    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_ALLOW_INDEXING=$NEXT_PUBLIC_ALLOW_INDEXING
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build

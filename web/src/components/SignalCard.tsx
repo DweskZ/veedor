@@ -22,7 +22,7 @@ function Comparison({ value, threshold }: { value: number; threshold: number }) 
  * One signal, answering three questions in plain words: what was observed, why it can matter,
  * and how it can be perfectly normal. Context signals are quieter and do not add points.
  */
-export function SignalCard({ signal, def, quiet = false, quoteHref }: { signal: FiredSignal; def: SignalDef | undefined; quiet?: boolean; quoteHref?: string }) {
+export function SignalCard({ signal, def, quiet = false }: { signal: FiredSignal; def: SignalDef | undefined; quiet?: boolean }) {
   const evidence = Object.entries(signal.evidence);
   const copy = SIGNAL_COPY[signal.code] ?? FALLBACK_COPY;
   const label = signal.label_es ?? def?.label_es ?? signal.code;
@@ -59,13 +59,6 @@ export function SignalCard({ signal, def, quiet = false, quoteHref }: { signal: 
           <p>{copy.normal}</p>
         </div>
       </div>
-      {quoteHref ? (
-        <p className="sig__quote">
-          <a href={quoteHref} className="inline-link">
-            Ver la cita de la fuente relacionada
-          </a>
-        </p>
-      ) : null}
       {evidence.length ? (
         <details>
           <summary>Datos que se usaron ({evidence.length})</summary>

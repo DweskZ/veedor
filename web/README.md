@@ -20,14 +20,30 @@ The API allows CORS only from `http://localhost:3000`, so serve the web on that 
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000/api/v1` | build time (inlined) | API base URL used by the browser (review form) and by the server unless overridden |
 | `API_INTERNAL_URL` | unset | runtime, server only | API URL for server-side calls, e.g. `http://api:8000/api/v1` inside a container network |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | build time | Base URL for Open Graph metadata |
+| `NEXT_PUBLIC_ALLOW_INDEXING` | `0` | build time | `1` or `true` lets search engines in (`robots.txt` allows static pages and lists `sitemap.xml`). Default: nothing is indexed (`Disallow: /`, empty sitemap, `noindex` meta). Process, supplier and entity pages are never in the sitemap and are disallowed in `robots.txt` even when indexing is on |
 | `NEXT_PUBLIC_USE_MOCKS` | unset | build time | `1` serves clearly labelled SAMPLE data and shows a "Datos de ejemplo" banner. Never set in production |
 
 `NEXT_PUBLIC_*` values are baked into the bundle: change them, rebuild.
+
+## Feature flags from the API
+
+`GET /api/v1/meta` returns `ask_enabled` and `quotes_enabled`. A missing flag counts as `false`.
+
+- `ask_enabled`: the "Pregunta sobre este proceso" section, with its disclosure before the submit button.
+- `quotes_enabled`: the "Citas de la fuente" section, its item in the section bar and the quotes inside answers. The quotes request is only made when the flag is true; a 404 or any failure hides the section silently. Quotes are never linked to a risk signal.
+- Contact for reports: the quotes note says "si ves un dato personal, avísanos por el contacto del pie de página". The only contact the site has is the Ruray Instagram profile shown in the footer. **The owner must supply a dedicated contact (e-mail address or issue tracker URL) before `quotes_enabled` is turned on**; replace the footer line in `src/components/Footer.tsx`.
+
+## Content Security Policy
+
+The policy is built per request in `src/proxy.ts` with a nonce, as described in `node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md`: `script-src 'self' 'nonce-…' 'strict-dynamic'` (plus `'unsafe-eval'` in development only). Next.js puts the nonce on its own scripts; `src/app/layout.tsx` reads the `x-nonce` request header and puts it on its one inline script. Reading the header makes every page render per request (the previously static `/agentes`, `/glosario` and the 404 page are now dynamic); the site already rendered without streaming, so output order is unchanged.
+
+`style-src` still has `'unsafe-inline'`. The pages use many `style="…"` attributes (React `style` props) and a nonce does not cover style attributes, so removing it would break layout. The only way to drop it is to move every inline style into CSS classes; that is not done. Static assets, icons, `robots.txt` and `sitemap.xml` are excluded from the proxy matcher and carry no CSP (they are not documents).
 
 ## Docker
 
 ```bash
 docker build -t veedor-web --build-arg NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 .
+# optional: --build-arg NEXT_PUBLIC_ALLOW_INDEXING=1 (default 0)
 docker run --rm -p 3000:3000 -e API_INTERNAL_URL=http://host.docker.internal:8000/api/v1 \
   --add-host host.docker.internal:host-gateway veedor-web
 ```

@@ -16,8 +16,13 @@ const METHODS = ["Subasta Inversa Electrónica", "Menor Cuantía", "Cotización"
 const PAGE_SIZE = 25;
 const KEYS = ["year", "method", "signal", "region", "min_score", "min_amount", "max_amount", "q", "sort", "page"] as const;
 
-const QUICK: { id: string; label: string; signal: string }[] = [
-  { id: "single", label: "Un solo oferente", signal: "SINGLE_BIDDER" },
+const QUICK: { id: string; label: string; signal: string; hint?: string }[] = [
+  {
+    id: "single",
+    label: "Con la señal «oferente único»",
+    signal: "SINGLE_BIDDER",
+    hint: "Procesos competitivos con una sola oferta en que se activó la señal; excluye los procedimientos donde un solo oferente es normal por diseño.",
+  },
   { id: "new", label: "Proveedor nuevo", signal: "NEW_SUPPLIER" },
   { id: "repeat", label: "Compras repetidas", signal: "REPEATED_DIRECT_AWARDS" },
 ];
@@ -101,7 +106,7 @@ async function Explorer({ searchParams }: { searchParams: PageProps<"/procesos">
   );
   const chips: QuickChip[] = QUICK.map((c, i) => {
     const on = q.signal === c.signal;
-    return { id: c.id, label: c.label, on, count: counts[i], href: href(q, { signal: on ? undefined : c.signal, page: undefined }) };
+    return { id: c.id, label: c.label, hint: c.hint, on, count: counts[i], href: href(q, { signal: on ? undefined : c.signal, page: undefined }) };
   });
 
   const regionLabel = (k: string) => regionList.find((r) => r.region === k)?.region_label ?? k;

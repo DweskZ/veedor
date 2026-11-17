@@ -10,6 +10,7 @@ const ACRONYMS = new Set([
   "MIDUVI", "MINEDUC", "CNEL", "CNT", "CELEC", "ESPOL", "ESPE", "ESPOCH", "UTPL", "PUCE", "UCE", "UTA", "UTC", "UTN", "ONG", "UE", "UNE", "UPS",
   "SA", "SAS", "CA", "CIA", "LTDA", "CLTDA", "MIT", "TV", "USD", "ECU", "GPS", "IVA", "CPC", "PYMES", "TIC", "TICS", "SENAE", "INEC", "BCE", "BIESS",
   "DIGMAT", "IASA", "ASTINAVE", "DINARDAP", "SENESCYT", "SENPLADES", "ARCOTEL", "ARCSA", "INIAP", "INAMHI", "SECOB", "SECAP", "SETEC", "ECU911", "FFAA",
+  "RUC", "RUP", "PAC", "CIIU", "SIE", "UAF", "NIT", "PDF", "SOAT", "ISO",
   "II", "III", "IV", "VI", "VII", "VIII", "IX", "XI", "XII", "XIII", "XIV", "XV",
 ]);
 
@@ -36,14 +37,9 @@ function cap(word: string): string {
 
 /** One whitespace-free token: may carry punctuation, hyphens, slashes and dots. */
 function caseToken(token: string, first: boolean): string {
-  if (/\d/.test(token)) {
-    // Codes and numbers ("N° 12", "10D01") are untouched; the words around them in a hyphen compound are cased.
-    if (!/-/.test(token)) return token;
-    return token
-      .split("-")
-      .map((part) => (/\d/.test(part) || !part ? part : caseWord(part.replace(/[^\p{L}.]/gu, ""), false) || part))
-      .join("-");
-  }
+  // Identifiers are left exactly as published: any token with a digit, and so any hyphen-joined group in which one part has a digit
+  // ("SIE-GADMB-2021-20973", "10D01-IBARRA"). Casing part of a code would change what it says.
+  if (/\d/.test(token)) return token;
   const core = token.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, "");
   if (!core) return token;
   // Dotted initials such as S.A., C.A., E.P., S.A.S.: keep.

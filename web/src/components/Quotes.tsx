@@ -47,13 +47,10 @@ function omittedLine(q: Quotes): string | null {
   const parts = [
     personal_data ? `${personal_data} por contener datos personales` : null,
     unsafe ? `${unsafe} por contenido no apto para mostrar` : null,
-    below_relevance ? `${below_relevance} por no estar relacionados con las señales del proceso` : null,
+    below_relevance ? `${below_relevance} por no cumplir el criterio de selección` : null,
   ].filter(Boolean);
-  return `Se dejaron fuera ${total === 1 ? "1 pasaje" : `${total} pasajes`}: ${parts.join(", ")}.`;
+  return `Se dejaron fuera ${total === 1 ? "1 pasaje" : `${total} pasajes`}: ${parts.join(", ")}. Lo que ves es una selección, no el expediente completo.`;
 }
-
-/** Anchor id of the quote at position `i`, used by the signal cards that point to it. */
-export const quoteAnchor = (i: number) => `cita-${i}`;
 
 export function QuotesBlock({ quotes }: { quotes: Quotes | null }) {
   const items = quotes ? pickQuotes(quotes) : [];
@@ -73,29 +70,23 @@ export function QuotesBlock({ quotes }: { quotes: Quotes | null }) {
         <Icon name="quote" size={20} />
         <span>
           <b>Estas palabras no son de Veedor.</b> Las escribieron oferentes o la entidad que compra y se muestran tal como se publicaron, como texto sin
-          formato.{left ? ` ${left}` : ""}
+          formato. El filtro que quita datos personales y contenido no apto es automático y no es perfecto: si ves un dato personal, avísanos por el contacto
+          del pie de página.{left ? ` ${left}` : ""}
         </span>
       </p>
+      <h3 className="h4" style={{ margin: "22px 0 12px" }}>Textos del expediente publicado</h3>
       <ol className="qt__list">
         {items.map((it, i) => (
-          <li key={`${it.kind}-${i}`} id={quoteAnchor(i)} className="qt__item">
+          <li key={`${it.kind}-${i}`} className="qt__item">
             <Passage part={it} date={it.date} author_kind={it.author_kind} truncated={it.truncated} />
             {it.pair ? <Passage part={it.pair} date={null} truncated={false} author_kind={null} /> : null}
-            {it.related_signal ? (
-              <p className="qt__rel">
-                Relacionada con la señal{" "}
-                <a href={`#sig-${it.related_signal}`} className="inline-link">
-                  {it.related_signal_label_es ?? it.related_signal}
-                </a>
-              </p>
-            ) : null}
           </li>
         ))}
       </ol>
       {quotes.note_es ? <p className="muted small qt__api">{quotes.note_es}</p> : null}
       <p className="muted small">
         {quotes.available_total > items.length
-          ? `Se muestran ${items.length} de ${quotes.available_total} pasajes disponibles en el expediente original.`
+          ? `Se muestran ${items.length} de ${quotes.available_total} pasajes disponibles en el expediente original; no es la lista completa.`
           : `Se ${items.length === 1 ? "muestra 1 pasaje" : `muestran ${items.length} pasajes`}.`}
       </p>
     </div>

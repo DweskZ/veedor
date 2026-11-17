@@ -38,7 +38,7 @@ export default function Home() {
           <header className="sec__head reveal">
             <p className="eyebrow">Mapa</p>
             <h2 className="h2" id="mapa-h">
-              Dónde aparecen <em>más señales.</em>
+              Señales <em>por provincia.</em>
             </h2>
             <p className="lead">Por provincia, qué parte de los procesos competitivos tiene alguna señal. Pasa el cursor o toca una provincia para ver las cifras.</p>
           </header>
@@ -209,7 +209,7 @@ function HowToRead() {
               </h3>
               <p>Cada señal responde tres preguntas: qué se observó, por qué puede importar y cómo puede ser normal. La evidencia va al lado.</p>
               <RandomProcessButton className="link step__go step__btn" label="Ver un proceso de ejemplo →" />
-              <Link href="/procesos?signal=SINGLE_BIDDER" className="link step__go nojs-only">Ver procesos con un solo oferente <span aria-hidden="true">→</span></Link>
+              <Link href="/procesos?signal=SINGLE_BIDDER" className="link step__go nojs-only">Ver procesos con la señal «oferente único» <span aria-hidden="true">→</span></Link>
             </div>
           </li>
           <li className="step">

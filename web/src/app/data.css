@@ -524,15 +524,6 @@ dialog.spanel::backdrop {
   color: var(--ink);
   font-weight: 800;
 }
-.qt__rel {
-  font-size: var(--fs-sm);
-  font-weight: 600;
-}
-.sig__quote {
-  padding: 0 clamp(18px, 2.4vw, 26px) 14px;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-}
 
 /* ---------- Provenance list (Fuentes) ---------- */
 .provsrc {
@@ -920,6 +911,27 @@ dialog.spanel::backdrop {
 }
 .ask__chip:hover {
   background: var(--ice-deep);
+}
+.ask__disc {
+  margin: 6px 0 10px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 44rem;
+}
+.ask__can {
+  margin: 0 0 14px;
+  font-size: var(--fs-sm);
+}
+.ask__can summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.ask__can-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  max-width: 44rem;
 }
 .ask__row {
   display: flex;

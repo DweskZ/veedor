@@ -14,6 +14,8 @@ export interface QuickChip {
   href: string;
   on: boolean;
   count: number | null;
+  /** What the filter counts, shown as a tooltip and read by assistive technology. */
+  hint?: string;
 }
 export interface ActiveFilter {
   id: string;
@@ -125,7 +127,7 @@ export function ExplorerShell({ values, years, methods, signals, regions, sorts,
         <div className="qchips" role="group" aria-label="Filtros rápidos">
           <span className="qchips__t">Empieza por:</span>
           {chips.map((c) => (
-            <a key={c.id} href={c.href} data-nav className={`qchip ${c.on ? "qchip--on" : ""}`} aria-current={c.on ? "true" : undefined}>
+            <a key={c.id} href={c.href} data-nav className={`qchip ${c.on ? "qchip--on" : ""}`} aria-current={c.on ? "true" : undefined} title={c.hint}>
               {c.on ? <span aria-hidden="true">✓ </span> : null}
               {c.label}
               {c.count != null ? <span className="qchip__n"> {fmt.format(c.count)}</span> : null}

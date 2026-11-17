@@ -588,6 +588,12 @@ th[aria-sort="descending"] .sortbtn::after {
   display: grid;
   gap: clamp(24px, 4vw, 40px);
 }
+.trend__def {
+  margin-top: 8px;
+  max-width: 48rem;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
 .trend__read {
   margin-top: 10px;
   max-width: 48rem;

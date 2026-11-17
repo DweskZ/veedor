@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { Header, MockBanner } from "@/components/SiteChrome";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import "./globals.css";
 import "./features.css";
 import "./data.css";
+import { ALLOW_INDEXING } from "@/lib/site";
 
 // Plus Jakarta Sans, the Ruray typeface, self-hosted (no request to Google).
 const jakarta = localFont({
@@ -24,15 +26,19 @@ export const metadata: Metadata = {
   description:
     "Veedor lee los datos abiertos de la contratación pública del Ecuador y marca los procesos con señales atípicas, con su evidencia. Una señal no es una acusación. Un producto de Ruray.",
   openGraph: { siteName: "Veedor", locale: "es_EC", type: "website" },
+  // Nothing is indexed until the owner opts in (see lib/site.ts).
+  robots: ALLOW_INDEXING ? undefined : { index: false, follow: false },
 };
 
 export const viewport: Viewport = { themeColor: "#E3EEFF" };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // The per-request CSP nonce set by src/proxy.ts. Reading it makes every page render per request, which a nonce requires.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="es-EC" className={`${jakarta.variable} h-full antialiased`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
       </head>
       <body className="flex min-h-full flex-col">
         <a href="#contenido" className="skip">

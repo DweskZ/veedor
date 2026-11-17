@@ -295,12 +295,12 @@ export function provenance(ocid: string): Provenance | null {
 
 export function quotes(ocid: string): Quotes | null {
   if (!ocid.startsWith("sample-ocid")) return null;
-  const base = { truncated: false, similarity: 0.71, related_signal: null, related_signal_label_es: null, pair: null };
+  const base = { truncated: false, similarity: 0.71, pair: null };
   if (ocid === "sample-ocid-0001")
     return {
       ocid,
       items: [
-        { ...base, kind: "enquiry_question", text: "Texto ficticio de una pregunta: ¿el plazo para entregar las ofertas puede ampliarse unos días?", date: "2019-03-12", author_kind: "oferente", source_field: "tender.enquiries[].description", related_signal: "SHORT_TENDER_WINDOW", related_signal_label_es: "Plazo de ofertas corto", pair: { kind: "enquiry_answer", text: "Texto ficticio de una respuesta: el plazo se mantiene según el cronograma publicado.", source_field: "tender.enquiries[].answer" } },
+        { ...base, kind: "enquiry_question", text: "Texto ficticio de una pregunta: ¿el plazo para entregar las ofertas puede ampliarse unos días?", date: "2019-03-12", author_kind: "oferente", source_field: "tender.enquiries[].description", pair: { kind: "enquiry_answer", text: "Texto ficticio de una respuesta: el plazo se mantiene según el cronograma publicado.", source_field: "tender.enquiries[].answer" } },
       ],
       available_total: 4,
       omitted: { personal_data: 1, unsafe: 0, below_relevance: 2 },
@@ -309,7 +309,7 @@ export function quotes(ocid: string): Quotes | null {
   if (ocid === "sample-ocid-0002")
     return {
       ocid,
-      items: [{ ...base, kind: "award_text", text: "Texto ficticio de adjudicación: se adjudica el contrato al único oferente calificado.", date: "2024-07-01", author_kind: "entidad", source_field: "awards[].description", related_signal: "SINGLE_BIDDER", related_signal_label_es: "Un solo oferente" }],
+      items: [{ ...base, kind: "award_text", text: "Texto ficticio de adjudicación: se adjudica el contrato al único oferente calificado.", date: "2024-07-01", author_kind: "entidad", source_field: "awards[].description" }],
       available_total: 1,
       omitted: { personal_data: 0, unsafe: 0, below_relevance: 0 },
       note_es: null,
@@ -317,7 +317,7 @@ export function quotes(ocid: string): Quotes | null {
   return { ocid, items: [], available_total: 0, omitted: { personal_data: 0, unsafe: 0, below_relevance: 0 }, note_es: null };
 }
 
-export const meta = { reviews_enabled: false, ask_enabled: true };
+export const meta = { reviews_enabled: false, ask_enabled: true, quotes_enabled: true };
 export const reviews = (): Review[] => [];
 
 /** Sample investigation (fictional): only the first two sample processes have one. */

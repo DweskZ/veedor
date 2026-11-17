@@ -40,8 +40,6 @@ export interface QuotePart {
 export interface QuoteItem extends QuotePart {
   date: string | null;
   author_kind: "oferente" | "entidad" | null;
-  related_signal: string | null;
-  related_signal_label_es: string | null;
   similarity: number | null;
   truncated: boolean;
   pair: QuotePart | null;
@@ -129,8 +127,6 @@ export function normalizeQuotes(raw: unknown): Quotes | null {
         ...p,
         date: str(it.date),
         author_kind: it.author_kind === "oferente" || it.author_kind === "entidad" ? it.author_kind : null,
-        related_signal: str(it.related_signal),
-        related_signal_label_es: str(it.related_signal_label_es),
         similarity: typeof it.similarity === "number" ? it.similarity : null,
         truncated: it.truncated === true,
         pair: part(it.pair),

@@ -40,7 +40,7 @@ const useMounted = () =>
  * "Pregunta sobre este proceso". Rendered only when the API reports the route as enabled. Questions and answers live in
  * memory for the visit: nothing goes to storage, and the only place a question is sent is the POST body to the API.
  */
-export function AskSection({ ocid, suggestions }: { ocid: string; suggestions: string[] }) {
+export function AskSection({ ocid, suggestions, quotesEnabled }: { ocid: string; suggestions: string[]; quotesEnabled: boolean }) {
   const off = useAskOff();
   if (off) return null;
   return (
@@ -50,12 +50,12 @@ export function AskSection({ ocid, suggestions }: { ocid: string; suggestions: s
       note="Escribe una pregunta en tus palabras. La respuesta sale solo de los datos guardados de este proceso, y cada frase dice de dónde viene."
     >
       <p className="nojs-only ask__nojs">Esta función necesita JavaScript. Todo lo que usa está en la página, más arriba.</p>
-      <AskBox ocid={ocid} suggestions={suggestions} />
+      <AskBox ocid={ocid} suggestions={suggestions} quotesEnabled={quotesEnabled} />
     </Section>
   );
 }
 
-function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) {
+function AskBox({ ocid, suggestions, quotesEnabled }: { ocid: string; suggestions: string[]; quotesEnabled: boolean }) {
   const mounted = useMounted();
   const uid = useId();
   const [text, setText] = useState("");
@@ -101,7 +101,9 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
         outcome = { kind: "answer", answer };
         setAnnounce(
           answer.answerable
-            ? `Respuesta lista: ${answer.sentences.length} ${answer.sentences.length === 1 ? "frase" : "frases"} y ${answer.quotes.length} ${answer.quotes.length === 1 ? "cita" : "citas"}.`
+            ? `Respuesta lista: ${answer.sentences.length} ${answer.sentences.length === 1 ? "frase" : "frases"}${
+                quotesEnabled ? ` y ${answer.quotes.length} ${answer.quotes.length === 1 ? "cita" : "citas"}` : ""
+              }.`
             : "La evidencia guardada no responde esta pregunta.",
         );
       } catch (e) {
@@ -126,7 +128,7 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
       focusId.current = id;
       setEntries((prev) => prev.map((p) => (p.id === id ? { ...p, outcome } : p)));
     },
-    [ocid],
+    [ocid, quotesEnabled],
   );
 
   const onSubmit = (e: FormEvent) => {
@@ -144,12 +146,25 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
   const [latest, ...older] = entries;
   const helpId = `${uid}-help`;
   const errId = `${uid}-err`;
+  const discId = `${uid}-disc`;
 
   return (
     <div className="ask">
       <div role="status" className="sr-only">
         {announce}
       </div>
+      <details className="ask__can">
+        <summary>Qué puede y qué no puede responder</summary>
+        <div className="ask__can-body">
+          <p>
+            <b>Responde bien datos sueltos:</b> quién compró, qué empresa ganó, los montos, cuántos oferentes hubo o una señal en concreto.
+          </p>
+          <p>
+            <b>Responde mal</b> cuando se le pide enumerar todas las señales a la vez, preguntar por coofertantes o pedir listados de los registros. Para eso es más
+            fiable leer las secciones de esta página.
+          </p>
+        </div>
+      </details>
       {suggestions.length ? (
         <div role="group" aria-labelledby={`${uid}-sug`} className="ask__chips">
           <span id={`${uid}-sug`} className="ask__chips-t">
@@ -166,6 +181,10 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
         <label htmlFor={`${uid}-q`} className="field__label">
           Tu pregunta
         </label>
+        <p id={discId} className="ask__disc">
+          Tu pregunta puede enviarse a un proveedor externo de modelos de lenguaje, que elige qué datos guardados mostrar. No escribas datos personales. La
+          pregunta no se guarda.
+        </p>
         <div className="ask__row">
           <input
             ref={input}
@@ -178,7 +197,7 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
             spellCheck
             enterKeyHint="send"
             aria-invalid={formError ? true : undefined}
-            aria-describedby={`${helpId}${formError ? ` ${errId}` : ""}`}
+            aria-describedby={`${discId} ${helpId}${formError ? ` ${errId}` : ""}`}
             placeholder="Por ejemplo: ¿Cuántos oferentes hubo?"
             onChange={(e) => {
               setText(e.target.value);
@@ -204,7 +223,7 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
         ) : null}
       </form>
 
-      {latest ? <EntryView entry={latest} uid={uid} suggestions={suggestions} onPick={pick} onRetry={() => void ask(latest.question)} /> : null}
+      {latest ? <EntryView entry={latest} uid={uid} suggestions={suggestions} quotesEnabled={quotesEnabled} onPick={pick} onRetry={() => void ask(latest.question)} /> : null}
 
       {older.length ? (
         <section aria-labelledby={`${uid}-prev`} className="ask__prev">
@@ -214,7 +233,7 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
           {older.map((e) => (
             <details key={e.id} className="card card--quiet card--tight ask__old">
               <summary>{e.question}</summary>
-              <EntryView entry={e} uid={uid} suggestions={suggestions} onPick={pick} onRetry={() => void ask(e.question)} />
+              <EntryView entry={e} uid={uid} suggestions={suggestions} quotesEnabled={quotesEnabled} onPick={pick} onRetry={() => void ask(e.question)} />
             </details>
           ))}
         </section>
@@ -223,7 +242,7 @@ function AskBox({ ocid, suggestions }: { ocid: string; suggestions: string[] }) 
   );
 }
 
-function EntryView({ entry, uid, suggestions, onPick, onRetry }: { entry: Entry; uid: string; suggestions: string[]; onPick: (q: string) => void; onRetry: () => void }) {
+function EntryView({ entry, uid, suggestions, quotesEnabled, onPick, onRetry }: { entry: Entry; uid: string; suggestions: string[]; quotesEnabled: boolean; onPick: (q: string) => void; onRetry: () => void }) {
   const hid = `${uid}-h-${entry.id}`;
   const o = entry.outcome;
   const asked = (
@@ -313,12 +332,12 @@ function EntryView({ entry, uid, suggestions, onPick, onRetry }: { entry: Entry;
           </div>
         </>
       ) : null}
-      {a.quotes.length ? (
+      {quotesEnabled && a.quotes.length ? (
         <div className="ask__quotes qt">
           <p className="qt__note">
             <Icon name="quote" size={20} />
             <span>
-              <b>Estas palabras no son de Veedor.</b> Las escribieron oferentes o la entidad que compra y se muestran tal como se publicaron.
+              <b>Estas palabras no son de Veedor.</b> Las escribieron oferentes o la entidad que compra y se muestran tal como se publicaron. El filtro que quita datos personales es automático y no es perfecto: si ves un dato personal, avísanos por el contacto del pie de página.
             </span>
           </p>
           <ol className="qt__list" style={{ margin: 0 }}>

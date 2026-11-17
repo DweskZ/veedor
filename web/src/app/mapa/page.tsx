@@ -5,9 +5,9 @@ import { RegionExplorer } from "@/components/RegionExplorer";
 import { Term } from "@/components/Term";
 import { ErrorState, PageHeader } from "@/components/ui";
 
-const TITLE = "Dónde aparecen más señales";
+const TITLE = "Señales por provincia";
 const DESCRIPTION =
-  "Mapa del Ecuador con el porcentaje de procesos competitivos que tienen señales, por provincia de la entidad que compra. Más señales no significa más problemas.";
+  "Mapa del Ecuador con el porcentaje de procesos competitivos que tienen señales, por provincia de la entidad que compra. Más señales no significa más problemas ni es un ranking.";
 export const metadata: Metadata = {
   title: "Mapa de señales por provincia",
   description: DESCRIPTION,
@@ -21,13 +21,13 @@ export default function MapPage() {
         eyebrow="Mapa"
         title={
           <>
-            Dónde aparecen <em>más señales.</em>
+            Señales <em>por provincia.</em>
           </>
         }
         lead={
           <>
-            Por provincia, qué parte de los <Term t="proceso competitivo">procesos competitivos</Term> tiene alguna <Term t="señal de riesgo">señal</Term>. Sirve para ver
-            dónde hay más que revisar, no para juzgar a una provincia.
+            Por provincia, qué parte de los <Term t="proceso competitivo">procesos competitivos</Term> tiene alguna <Term t="señal de riesgo">señal</Term>. Sirve para ubicar
+            qué revisar, no para comparar ni juzgar a una provincia.
           </>
         }
       />
