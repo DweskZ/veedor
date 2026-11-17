@@ -17,6 +17,7 @@ import numpy as np
 
 from veedor.agents.qa.selector import ModelSelector
 from veedor.core.settings import Settings
+from veedor.domain.qa import ranking
 from veedor.domain.qa.screen import Intent, classify_question, validate_question
 from veedor.domain.qa.selection import DEFAULT_THRESHOLDS, Thresholds, retrieval_select, top_indices
 from veedor.evaluation.qa.generate import (
@@ -25,8 +26,10 @@ from veedor.evaluation.qa.generate import (
     UNANSWERABLE,
     EvalQuestion,
     ProcessView,
+    development_set,
     generate,
-    generate_unseen,
+    generate_phrasing_set,
+    heldout_set,
     view_of,
 )
 from veedor.evaluation.qa.metrics import Outcome, ProcessText, summarise
@@ -129,8 +132,9 @@ def _scores(service: AskService, contexts: dict[str, ProcessContext], questions:
     return out
 
 
-def tune(service: AskService, contexts: dict[str, ProcessContext], questions: list[EvalQuestion]) -> dict[str, Any]:
-    """Choose floor and k on the tuning half: maximise the mean of the answerable F1 and the abstention rate."""
+def tune_legacy(service: AskService, contexts: dict[str, ProcessContext], questions: list[EvalQuestion]) -> dict[str, Any]:
+    """The earlier retrieval (key phrases): floor and k on the tuning half, maximising the mean of the answerable F1
+    and the abstention rate. Kept only to measure the new retrieval against it."""
     items = [q for q in questions if q.kind in (ANSWERABLE, UNANSWERABLE)]
     scores = _scores(service, contexts, items)
     ids = {ocid: [f.fact_id for f in ctx.facts] for ocid, ctx in contexts.items()}
@@ -170,6 +174,91 @@ def tune(service: AskService, contexts: dict[str, ProcessContext], questions: li
             "candidate_recall_tuning_half": round(candidate_recall, 4), "grid": grid}
 
 
+# The intent retrieval has more numbers than a floor and a k. They are chosen by coordinate descent on the tuning
+# half of the processes, with the original AND the development phrasings of those processes (the held-out phrasings
+# are never used), maximising the mean over both sets of (answerable F1 + abstention) / 2.
+INTENT_GRID: dict[str, list[float | int]] = {
+    "floor": [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5],
+    "lexical_weight": [0.3, 0.4, 0.5, 0.6, 0.7],
+    "e_lo": [0.2, 0.3, 0.4, 0.5],
+    "e_hi": [0.8, 0.9, 0.95, 1.0],
+    "oos_margin": [-0.1, -0.05, 0.0, 0.05, 0.1],
+    "absent_margin": [-0.15, -0.1, -0.05, 0.0, 0.05, 0.1],
+    "second_gap": [0.0, 0.03, 0.05, 0.1],
+    "k": [1, 2],
+}
+TUNING_ROUNDS = 3
+
+
+def _objective(rows: list[tuple[EvalQuestion, ranking.IntentScores | None, list[str], dict[str, tuple[int, ...]]]], t: Thresholds) -> tuple[float, float, float, float]:
+    """``(objective, recall, precision, abstention)`` of one set of questions under `t`."""
+    recalls, precisions, abstained = [], [], []
+    for item, scores, ids, mapping in rows:
+        chosen = [] if scores is None else [ids[i] for i in ranking.decide(scores, mapping, t).chosen]
+        if item.kind == ANSWERABLE:
+            hit = len(set(chosen) & set(item.expected))
+            recalls.append(hit / len(item.expected))
+            precisions.append(hit / len(chosen) if chosen else 0.0)
+        else:
+            abstained.append(0.0 if chosen else 1.0)
+    recall, precision, abstention = float(np.mean(recalls)), float(np.mean(precisions)), float(np.mean(abstained))
+    f1 = 2 * recall * precision / (recall + precision) if recall + precision else 0.0
+    return (f1 + abstention) / 2, recall, precision, abstention
+
+
+def tune_intents(service: AskService, contexts: dict[str, ProcessContext], phrasing_sets: dict[str, list[EvalQuestion]]) -> dict[str, Any]:
+    """Coordinate descent over `INTENT_GRID`, on the answerable and unanswerable questions of each given set."""
+    ids = {ocid: [f.fact_id for f in ctx.facts] for ocid, ctx in contexts.items()}
+    mappings = {ocid: ranking.facts_by_intent(i) for ocid, i in ids.items()}
+    prepared: dict[str, list] = {}
+    for name, questions in phrasing_sets.items():
+        items = [q for q in questions if q.kind in (ANSWERABLE, UNANSWERABLE)]
+        scores = _intent_rows(service, contexts, items)
+        prepared[name] = [(item, score, ids[item.ocid], mappings[item.ocid]) for item, score in zip(items, scores, strict=True)]
+
+    def total(t: Thresholds) -> float:
+        return float(np.mean([_objective(rows, t)[0] for rows in prepared.values()]))
+
+    current = replace(DEFAULT_THRESHOLDS)
+    best = total(current)
+    for _ in range(TUNING_ROUNDS):
+        before = best
+        for name, values in INTENT_GRID.items():
+            for value in values:
+                candidate = replace(current, **{name: value})
+                score = total(candidate)
+                if score > best + 1e-9:
+                    best, current = score, candidate
+        if best <= before + 1e-9:
+            break
+    per_set = {name: dict(zip(("objective", "recall", "precision", "abstention"), (round(v, 4) for v in _objective(rows, current)), strict=True)) for name, rows in prepared.items()}
+    # Gate for the model: ask it whenever some expected fact scores above this in 95 % of the answerable questions.
+    ceilings = []
+    for rows in prepared.values():
+        for item, score, fact_ids, _ in rows:
+            if item.kind == ANSWERABLE and score is not None:
+                fact_scores = ranking.fact_scores(score, fact_ids, current)
+                ceilings.append(max(float(fact_scores[fact_ids.index(e)]) for e in item.expected))
+    model_floor = float(np.floor(np.percentile(ceilings, 5) / 0.025) * 0.025)
+    candidate_recall = float(np.mean([
+        all(fact_ids.index(e) in top_indices(ranking.fact_scores(score, fact_ids, current), DEFAULT_THRESHOLDS.candidates) for e in item.expected)
+        for rows in prepared.values() for item, score, fact_ids, _ in rows if item.kind == ANSWERABLE and score is not None
+    ]))
+    chosen = {name: getattr(current, name) for name in INTENT_GRID}
+    return {**chosen, "objective": round(best, 4), "model_floor": round(model_floor, 3), "candidate_recall_tuning_half": round(candidate_recall, 4), "per_set": per_set}
+
+
+def _intent_rows(service: AskService, contexts: dict[str, ProcessContext], questions: list[EvalQuestion]) -> list[ranking.IntentScores | None]:
+    out: list[ranking.IntentScores | None] = []
+    for item in questions:
+        screened = validate_question(item.text)
+        if not screened.ok or classify_question(screened.text) is not Intent.ANSWERABLE:
+            out.append(None)
+        else:
+            out.append(service.intent_scores(contexts[item.ocid], screened.text))
+    return out
+
+
 # --- running ----------------------------------------------------------------------------------------------
 
 
@@ -200,33 +289,58 @@ def model_subsample(questions: list[EvalQuestion], seed: int = SEED) -> list[Eva
     return [*rng.sample(answerable, min(MODEL_ANSWERABLE, len(answerable))), *rng.sample(unanswerable, min(MODEL_UNANSWERABLE, len(unanswerable))), *attacks]
 
 
-def make_service(contexts: dict[str, ProcessContext], embedder: CachedEmbedder, thresholds: Thresholds, selector: ModelSelector | None) -> AskService:
+def make_service(contexts: dict[str, ProcessContext], embedder: CachedEmbedder, thresholds: Thresholds, selector: ModelSelector | None, retrieval: str = "intents") -> AskService:
     class Fixed:
         def load(self, ocid: str) -> ProcessContext:
             return contexts[ocid]
 
-    return AskService(Fixed(), embedder, selector, thresholds, budget=DailyBudget(10**6) if selector else None)
+    return AskService(Fixed(), embedder, selector, thresholds, budget=DailyBudget(10**6) if selector else None, retrieval=retrieval)
 
 
-def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: int = SEED, progress=print) -> dict[str, Any]:  # noqa: ANN001
+HELDOUT_PATH = "src/veedor/evaluation/qa/heldout.py"
+LEGACY_NOTE = "the earlier retrieval (retrieval keys compared with the question), re-measured in this run on the same questions"
+
+
+def _file_sha256(relative: str) -> str | None:
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[4] / relative
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+
+def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: int = SEED, heldout: bool = False, heldout_runs_before: int = 0, progress=print) -> dict[str, Any]:  # noqa: ANN001
+    """`heldout`: also evaluate the held-out phrasings (final report only: once per run, counted in the file)."""
     started = time.perf_counter()
     ocids = sample_ocids(settings, n, seed)
     progress(f"sampled {len(ocids)} processes; loading their evidence")
     contexts, texts, _ = load_contexts(settings, ocids)
     investigated = set(InvestigationStore(settings.data_dir / "investigations").ocids()) & set(contexts)
-    questions = generate(views_of(contexts, investigated), seed, split_of)
+    all_views = views_of(contexts, investigated)
+    questions = generate(all_views, seed, split_of)
     tune_half = [q for q in questions if split_of(q.ocid) == "tune"]
     report_half = [q for q in questions if split_of(q.ocid) == "report"]
     progress(f"{len(contexts)} processes, {len(questions)} questions ({len(tune_half)} tuning, {len(report_half)} reporting)")
     embedder = CachedEmbedder(lambda: FastEmbedEmbedder(local_files_only=True))
-    tuning = tune(make_service(contexts, embedder, DEFAULT_THRESHOLDS, None), contexts, tune_half)
-    thresholds = replace(DEFAULT_THRESHOLDS, floor=tuning["floor"], k=tuning["k"], model_floor=tuning["model_floor"])
-    progress(f"chosen on the tuning half: floor {thresholds.floor}, k {thresholds.k}, model floor {thresholds.model_floor}")
-    retrieval = summarise(run_questions(make_service(contexts, embedder, thresholds, None), report_half), texts, model=False)
-    # Unseen phrasings on the same unseen (reporting-half) processes; thresholds are NOT retuned.
-    report_views = [v for v in views_of(contexts, investigated) if split_of(v.ocid) == "report"]
-    unseen_questions = generate_unseen(report_views, seed)
-    unseen = summarise(run_questions(make_service(contexts, embedder, thresholds, None), unseen_questions), texts, model=False)
+    tune_views = [v for v in all_views if split_of(v.ocid) == "tune"]
+    report_views = [v for v in all_views if split_of(v.ocid) == "report"]
+    development_tune = generate_phrasing_set(tune_views, development_set(), seed)
+    index_started = time.perf_counter()
+    ranking.IntentIndex(embedder.embed)  # the one-off cost of the prototype embeddings (the API pays it on the first question)
+    index_ms = (time.perf_counter() - index_started) * 1000
+    tuning = tune_intents(make_service(contexts, embedder, DEFAULT_THRESHOLDS, None), contexts, {"original": tune_half, "development": development_tune})
+    thresholds = replace(DEFAULT_THRESHOLDS, **{k: tuning[k] for k in (*INTENT_GRID, "model_floor")})
+    progress(f"chosen on the tuning half: {({k: tuning[k] for k in INTENT_GRID})}, model floor {thresholds.model_floor}")
+    legacy_tuning = tune_legacy(make_service(contexts, embedder, DEFAULT_THRESHOLDS, None, "legacy"), contexts, tune_half)
+    legacy_thresholds = replace(DEFAULT_THRESHOLDS, floor=legacy_tuning["floor"], k=legacy_tuning["k"], model_floor=legacy_tuning["model_floor"])
+
+    development_questions = generate_phrasing_set(report_views, development_set(), seed)
+    sets: dict[str, list[EvalQuestion]] = {"original": report_half, "development": development_questions}
+    if heldout:
+        sets["heldout"] = generate_phrasing_set(report_views, heldout_set(), seed)
+    new_service = make_service(contexts, embedder, thresholds, None)
+    old_service = make_service(contexts, embedder, legacy_thresholds, None, "legacy")
+    summaries = {name: summarise(run_questions(new_service, qs), texts, model=False) for name, qs in sets.items()}
+    baseline = {name: summarise(run_questions(old_service, qs), texts, model=False) for name, qs in sets.items()}
     result: dict[str, Any] = {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "seed": seed,
@@ -240,14 +354,26 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
             "questions_tuning_half": len(tune_half),
             "questions_reporting_half": len(report_half),
             "distinct_attacks": len({q.attack for q in questions if q.kind == ADVERSARIAL}),
-            "questions_unseen_phrasing": len(unseen_questions),
-            "questions_unseen_phrasing_by_kind": dict(Counter(q.kind for q in unseen_questions)),
+            "questions_by_phrasing_set": {name: {"total": len(qs), "by_kind": dict(Counter(q.kind for q in qs))} for name, qs in sets.items()},
+            "questions_tuning_development_phrasing": len(development_tune),
         },
-        "thresholds": {k: tuning[k] for k in ("floor", "k", "model_floor", "objective", "candidate_recall_tuning_half")}
+        "thresholds": {k: tuning[k] for k in (*INTENT_GRID, "objective", "model_floor", "candidate_recall_tuning_half", "per_set")}
         | {"candidates": thresholds.candidates, "quote_floor": thresholds.quote_floor, "max_quotes": thresholds.max_quotes},
-        "tuning_grid": tuning["grid"],
-        "retrieval_only": retrieval,  # in-vocabulary phrasings (the original set), reporting-half processes
-        "retrieval_only_unseen_phrasing": unseen,  # independently worded set, same reporting-half processes
+        "legacy_thresholds": {k: legacy_tuning[k] for k in ("floor", "k", "model_floor", "objective")},
+        "phrasing_sets": {
+            "original": "training and tuning phrasings (written together with the retrieval keys)",
+            "development": "independently worded set of review 5, now seen by the developers and tuned against",
+            "heldout": "written before any tuning of the intent retrieval; not used for tuning, evaluated once for the final report",
+        },
+        "heldout_sha256": _file_sha256(HELDOUT_PATH),
+        "heldout_evaluated": heldout,
+        "heldout_runs": heldout_runs_before + (1 if heldout else 0),
+        "intent_index_build_ms": round(index_ms, 1),
+        "retrieval_only": summaries["original"],  # original phrasings, reporting-half processes
+        "retrieval_only_development": summaries["development"],
+        "retrieval_only_heldout": summaries.get("heldout"),
+        "baseline_legacy": {"note": LEGACY_NOTE, "original": baseline["original"], "development": baseline["development"], "heldout": baseline.get("heldout")},
+        "tuning_grid": legacy_tuning["grid"],
         "model": None,
     }
     if with_model:
@@ -260,7 +386,7 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
             model_outcomes = run_questions(make_service(contexts, embedder, thresholds, ModelSelector(model)), sub)
             result["model"] = {
                 "status": "ran",
-                "measured_on": "in_vocabulary_phrasings",  # not rerun on the unseen set (cost)
+                "measured_on": "in_vocabulary_phrasings",  # not rerun on the other sets (cost)
                 "model": model.model_name,
                 "questions": len(sub),
                 "model_mode": summarise(model_outcomes, texts, model=True),

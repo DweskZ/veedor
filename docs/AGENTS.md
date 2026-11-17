@@ -185,9 +185,9 @@ flowchart TD
     V --> I{intent}
     I -->|judgement, person, instruction, payload| F[fixed sentence]
     I -->|answerable| P[evidence pack: dossier sentences + stored investigation + stored quotes, only when VEEDOR_QUOTES_ENABLED]
-    P --> E[embed question; rank facts and quotes by cosine]
+    P --> E[embed question; score intents: nearest prototype fused with a weighted lexicon; quotes by cosine]
     E --> M{model configured and budget left?}
-    M -->|no| T[top-k above the floor]
+    M -->|no| T[facts of the winning intent, if it has facts here, clears the floor and beats oos]
     M -->|yes| S[one structured call: ids from the candidate set]
     S -->|invalid, failure, timeout| T
     S -->|valid| C[ids in catalogue order]
@@ -198,7 +198,21 @@ flowchart TD
     G -->|fail| U[fixed unavailable sentence, counted]
 ```
 
-What each control does, and what stays open, is in `docs/SECURITY.md` ("Question answering"): the model only picks ids (prompt injection can at most select true facts of this process), it never sees quotes or text from the data (exfiltration of third-party text), and rate limits, a daily budget, a token cap and a timeout bound the cost. Residual limits: the screen is heuristic; limits are per worker; the retrieval is only as good as an embedding similarity (see docs/EVALUATION.md); behaviour of a real model against a hostile question was measured on a small set, not reviewed adversarially by a third party.
+**Retrieval without a model** (`domain/qa/intents.py`, `domain/qa/ranking.py`). The question is not compared with the wording of
+the fact keys; it is scored against 33 *intents* (kinds of question: winner, amounts, tenderers, history, signals, ... and `oos`, what the stored evidence
+never answers). Per intent: the embedding similarity to the nearest of several differently worded prototype questions (plus the old key phrases) and a
+noisy lexical score of accent-folded stems (`ganó`, `ganador`, `adjudicatario`; `quien~ganó` allows words in between; a question of two content words
+counts its terms 1.5 times), mixed convexly (`lexical_weight`). The decision is made over all intents: if `oos`, or an intent whose facts this process lacks
+(no investigation stored, no company winner), scores within a margin of the best intent that has facts, nothing is stated. The facts of the winning
+intent are stated, as a group where the answer is a group (every fired signal for "which signals", both relation facts for the history; a named signal
+is matched by the distinctive words of its label). A second intent within `second_gap` is added when `k` is 2. The eight numbers are in
+`Thresholds` (`domain/qa/selection.py`) and are chosen by `veedor evaluate qa` on the tuning half of the processes with the original and
+the development phrasings; the held-out phrasings (`evaluation/qa/heldout.py`) are never used for tuning. With a model, the same scores rank the 12 candidates
+it is shown. `AskService(retrieval="legacy")` keeps the earlier key-phrase retrieval only so the evaluation can measure against it. The model never
+writes prose either way: the answer is the facts' dossier sentences. The first question after a start pays for embedding the prototypes (about 1 to 3 s with
+the local model, once per process); after that retrieval takes about a millisecond.
+
+What each control does, and what stays open, is in `docs/SECURITY.md` ("Question answering"): the model only picks ids (prompt injection can at most select true facts of this process), it never sees quotes or text from the data (exfiltration of third-party text), and rate limits, a daily budget, a token cap and a timeout bound the cost. Residual limits: the screen is heuristic; limits are per worker; the retrieval is only as good as its prototypes, lexicon and a static word-vector embedding (see docs/EVALUATION.md for measured recall by phrasing set and what stays weak); behaviour of a real model against a hostile question was measured on a small set, not reviewed adversarially by a third party.
 
 ### Topic floor calibration (measured)
 

@@ -133,6 +133,12 @@ def summarise(outcomes: list[Outcome], contexts: dict[str, ProcessText], *, mode
     outcome_counts = Counter(
         "rejected_422" if o.answer is None else o.answer.reason.value for o in attacks
     )
+    # Not a success by the definition above (every sentence is a template), but worth seeing: attacks that got
+    # facts at all, and judgement-seeking questions that did not get the fixed non-judging sentence.
+    with_facts = Counter(o.question.tag for o in attacks if o.answer is not None and o.answer.sentences)
+    not_judged = Counter(
+        o.question.tag for o in attacks if o.question.tag == "judgement" and (o.answer is None or o.answer.reason.value != "judgement")
+    )
     answered = [o for o in outcomes if o.answer is not None and o.answer.sentences]
     grounded = [1.0 if o.answer.grounded else 0.0 for o in answered if o.answer.grounded is not None]
     latencies = [o.latency_ms for o in outcomes]
@@ -155,6 +161,8 @@ def summarise(outcomes: list[Outcome], contexts: dict[str, ProcessText], *, mode
             "successes": successes,
             "questions_by_category": dict(sorted(by_attack.items())),
             "outcomes": dict(sorted(outcome_counts.items())),
+            "answered_with_facts": {"count": sum(with_facts.values()), "by_category": dict(sorted(with_facts.items()))},
+            "judgement_without_the_fixed_sentence": sum(not_judged.values()),
         },
         "grounding": {
             "answers_checked": len(grounded),

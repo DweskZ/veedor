@@ -22,12 +22,19 @@ _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
 class Thresholds:
     """Chosen on the tuning half of the evaluation sample (docs/EVALUATION.md); not a claim of quality."""
 
-    floor: float = 0.45  # a fact is selected without a model when its similarity is at least this
-    k: int = 2  # at most this many facts without a model
-    model_floor: float = 0.30  # below this similarity to every fact the model is not even asked
+    floor: float = 0.30  # an intent is answered without a model when its fused score is at least this
+    k: int = 2  # at most this many intents (their facts) without a model
+    model_floor: float = 0.325  # below this fused score to every fact the model is not even asked
     candidates: int = MAX_MODEL_CANDIDATES
     quote_floor: float = 0.45
     max_quotes: int = 2
+    # Intent retrieval (`domain.qa.ranking`): `floor` and `k` above mean "fused intent score" and "intents".
+    e_lo: float = 0.30  # embedding cosine that maps to 0 in the fusion
+    e_hi: float = 0.95  # embedding cosine that maps to 1
+    lexical_weight: float = 0.5  # weight of the lexical score in the fusion (the rest is the embedding's)
+    oos_margin: float = 0.05  # the winning intent must beat the "never answered" intent by this much
+    absent_margin: float = 0.10  # ... and the best intent whose facts this process lacks by this much
+    second_gap: float = 0.05  # with k > 1, a second intent within this of the winner is answered too
 
 
 DEFAULT_THRESHOLDS = Thresholds()

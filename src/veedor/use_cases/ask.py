@@ -27,6 +27,7 @@ from veedor.agents.qa.selector import ModelSelector
 from veedor.domain.dossier.grounding import verify
 from veedor.domain.dossier.models import EvidencePack
 from veedor.domain.dossier.text import strip_accents
+from veedor.domain.qa import ranking
 from veedor.domain.qa.answer import (
     ANSWERED_NOTE_ES,
     MODE_MODEL,
@@ -38,6 +39,7 @@ from veedor.domain.qa.answer import (
     fixed_answer,
 )
 from veedor.domain.qa.facts import QaFact
+from veedor.domain.qa.intents import embedding_variants
 from veedor.domain.qa.screen import (
     Fingerprint,
     Intent,
@@ -169,7 +171,9 @@ class AskService:
     observer: Callable[[Answer, float], None] | None = None
     salt: bytes = field(default_factory=lambda: secrets.token_bytes(16))
     counters: AskCounters = field(default_factory=AskCounters)
+    retrieval: str = "intents"  # "intents" (domain.qa.ranking) or "legacy" (the earlier key retrieval)
     _cache: OrderedDict[tuple, Answer] = field(default_factory=OrderedDict)
+    _index: ranking.IntentIndex | None = None
 
     # --- public -----------------------------------------------------------------------------------------
 
@@ -208,8 +212,8 @@ class AskService:
         facts = context.facts
         if not facts:
             return fixed_answer(ocid, Reason.NO_EVIDENCE)
-        query = self.embedder.embed(_variants(text))
-        fact_scores = self._fact_scores(query, facts)
+        query = self.embedder.embed(self._variants(text))
+        fact_scores, by_retrieval = self._rank(text, query, facts)
         chosen: list[int] | None = None
         mode, usage = MODE_RETRIEVAL, (0, 0, 0, 0)
         best = float(max(fact_scores)) if len(fact_scores) else 0.0
@@ -218,7 +222,7 @@ class AskService:
             if chosen is not None:
                 mode = MODE_MODEL
         if chosen is None:
-            chosen = retrieval_select(fact_scores, self.thresholds)
+            chosen = by_retrieval
         if not chosen:
             answer = fixed_answer(ocid, Reason.NO_EVIDENCE, mode)
             return _with_usage(answer, usage)
@@ -235,12 +239,40 @@ class AskService:
         return answer
 
     def score_facts(self, context: ProcessContext, text: str) -> np.ndarray:
-        """Similarity of a screened question to every fact of the context (used by the evaluation to tune
-        thresholds without asking the same question once per setting)."""
-        return self._fact_scores(self.embedder.embed(_variants(text)), context.facts)
+        """Score of a screened question for every fact of the context (candidate ranking for a model)."""
+        return self._rank(text, self.embedder.embed(self._variants(text)), context.facts)[0]
+
+    def intent_scores(self, context: ProcessContext, text: str) -> ranking.IntentScores:
+        """Raw embedding and lexical score per intent (the evaluation tunes the fusion on these without asking
+        the same question once per setting)."""
+        return self._intent_scores(text, self.embedder.embed(self._variants(text)), context.facts)
+
+    def _rank(self, text: str, query: np.ndarray, facts: list[QaFact]) -> tuple[np.ndarray, list[int]]:
+        """``(score per fact, facts retrieval alone would state)``."""
+        if self.retrieval == "legacy":
+            scores = self._fact_scores(query, facts)
+            return scores, retrieval_select(scores, self.thresholds)
+        scores = self._intent_scores(text, query, facts)
+        fact_ids = [f.fact_id for f in facts]
+        decision = ranking.decide(scores, ranking.facts_by_intent(fact_ids), self.thresholds)
+        return ranking.fact_scores(scores, fact_ids, self.thresholds), list(decision.chosen)
+
+    def _intent_scores(self, text: str, query: np.ndarray, facts: list[QaFact]) -> ranking.IntentScores:
+        if self._index is None:
+            self._index = ranking.IntentIndex(self.embedder.embed)
+        signals: dict[str, tuple[np.ndarray, str]] = {}
+        for fact in facts:
+            if fact.fact_id.startswith("signal:"):
+                phrases = [*fact.key_phrases, fact.text[:EMBED_CHARS]]
+                vectors = self.embedder.embed([v for p in phrases for v in embedding_variants(p)])
+                signals[fact.fact_id] = (vectors, fact.key_phrases[0])
+        return ranking.raw_scores(self._index, query, text, signals)
+
+    def _variants(self, text: str) -> list[str]:
+        return _variants(text) if self.retrieval == "legacy" else embedding_variants(text)
 
     def _fact_scores(self, query: np.ndarray, facts: list[QaFact]) -> np.ndarray:
-        """Per fact, the best similarity of the question to any of its key phrases or to its sentence."""
+        """The earlier retrieval: best similarity of the question to a fact's key phrases or sentence."""
         phrases = [(i, p) for i, f in enumerate(facts) for p in f.key_phrases]
         owner = np.array([i for i, _ in phrases], dtype=int)
         by_phrase = similarity_scores(query, self.embedder.embed([p for _, p in phrases]))

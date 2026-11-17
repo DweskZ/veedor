@@ -401,88 +401,169 @@ Share of processes at 0: 96.1%; maximum 60; quantiles p50 = 0, p90 = 0, p99 = 20
 
 ## Question answering (generated)
 
-**Read the in-vocabulary numbers with this in mind (review 5, finding 3).** The retrieval keys of every fact
-(`domain/qa/facts.py`, `FACT_KEYS_ES`) and the question templates of this evaluation were written by the same
-author. 29 of the 73 answerable templates were verbatim key phrases and 50 of 73 contained, or were contained in,
-one; the split was by process, not by phrasing, so the "unseen" half still used phrasings the system had been
-built around. The headline retrieval numbers measured on those phrasings ("in-vocabulary") therefore partly
-measure string matching.
+**Status.** Retrieval-only mode (no language model) used to match a question against the wording of its own retrieval keys
+(review 5, finding 3: 83.7 % recall on the original phrasings, 14.2 % on an independently worded set). It now scores a question
+against *intents* (`domain/qa/intents.py`, `domain/qa/ranking.py`); the generated block below reports the old and the new
+retrieval side by side on three disjoint phrasing sets. Numbers typed in this prose come from the run recorded in `eval/qa.json`
+(`generated_at`); the generated block is the source of truth.
 
-What was done: a second, independently worded set of questions ("unseen phrasing": at least 5 new phrasings per
-fact type and per unanswerable group, colloquial Ecuadorian Spanish, no accents, misspellings, indirect wording)
-was added in `evaluation/qa/questions.py` (`UNSEEN_*`). A test (`tests/evaluation/test_qa_unseen_phrasings.py`)
-asserts that none of them equals, contains or is contained in a retrieval key phrase and that the Jaccard overlap
-of content-word stems with the nearest key phrase stays under 0.5. The keys were in the author's context when
-the phrasings were written, so independence is **enforced by that test, not by blindness**. The thresholds
-(similarity floor, k) were chosen on the tuning half with the in-vocabulary phrasings only; both sets are reported
-on the same unseen (reporting-half) processes, so the numbers are unseen for phrasing and for process. The system
-was **not retuned** to the new set and the new phrasings were **not added** to the retrieval keys.
+**Three phrasing sets, on the same reporting-half processes** (`tests/evaluation/test_qa_phrasing_sets.py` asserts they are disjoint and
+that none equals, contains or sits inside a retrieval key phrase):
 
-Result (retrieval only; details in the generated block): recall of the expected facts falls from 83.7 % to 14.2 %,
-the share of answerable questions answered with no fact rises from 3.2 % to 75.7 %, and abstention on unanswerable
-questions is 79.7 % (in-vocabulary) and 88.0 % (unseen; this goes up only because the system says nothing to
-nearly everything it does not recognise). Attack successes stay at 0 on the in-vocabulary attacks (the attack set is
-not about retrieval keys and was not rerun in the unseen set). Weak categories, in both sets: `signals_all`
-(24 % in-vocabulary, 0 % unseen), `ghost` (42 %, 0 %), `registry_company` (54 %, 0 %), `history` (50 %, 12 %)
-and `pair_others` (n = 2 in both sets, 0 % in-vocabulary and 0 % unseen); `winner`, `object`, `amounts`,
-`procedure` and `registry_sri` are at 83 to 100 % in-vocabulary and 0 % unseen. **Model mode was not rerun** (cost): its numbers below were measured
-on the in-vocabulary phrasings only, over n = 172 questions, and say nothing about unseen phrasings.
+* *Original*: written together with the retrieval keys (training and tuning).
+* *Development*: the independently worded set of review 5. The developers have now seen it, so it is a development set and the retrieval was tuned
+  against it (its numbers are optimistic).
+* *Held-out*: `evaluation/qa/heldout.py` (176 answerable phrasings, 32 unanswerable, 41 attacks; short keyword queries, typos, no accents,
+  colloquial and long conversational wording). It was written and saved before the intent retrieval existed (SHA-256 in `eval/qa.json`), no
+  prototype or keyword was taken from it (a test checks that no prototype question equals or contains one of its phrasings), it was not looked at
+  per question, and it was evaluated **once** for the final report (`heldout_runs` in `eval/qa.json` counts every run that includes it).
+  Its independence is limited: the same author wrote it and then the intent lists, and the test can only catch literal reuse.
+
+**Diagnosis before the change** (earlier retrieval, floor 0.575, k = 1, development phrasings, reporting half): 1,226 of 1,439 answerable
+questions selected no expected fact.
+
+| Cause | Questions | Share |
+|---|---|---|
+| The right fact scores first among the facts but below the similarity floor (floor too high for a paraphrase) | 438 | 36 % |
+| The right fact is among the 12 candidates but another fact scores higher, and nothing clears the floor | 568 | 46 % |
+| A wrong fact is first and clears the floor | 147 | 12 % |
+| The right fact is not among the 12 best candidates | 50 | 4 % |
+| The screen took the question for a judgement or a request about a person | 23 | 2 % |
+
+In a stratified sample of 40 of these questions (2 to 3 per fact type) the split was 17 / 12 / 6 / 3 / 2. The expected fact scored between 0.17 and 0.60
+(most between 0.25 and 0.50) against the floor of 0.575; its best-scoring channel was a key phrase in all 40 (never the fact sentence: sentences are
+long and full of numbers and names). The embedding model is a static word-vector average (`potion-multilingual-128M`), so similarity is mostly shared
+words ("cuando se cerro el trato" scored 0.21 against the award-date keys and 0.34 against the tenderers fact). The retrieval had no notion of
+intent at all, only 36 lists of key phrases, one per fact. The screen also
+over-blocked ("nombre de la empresa ganadora" and "de que vive esta compañia" were taken for requests about persons).
+
+**What changed.** (1) An intent layer: each of 33 intents (what a visitor can ask: winner, amounts, tenderers, signals, history, ...; one of them is `oos`) has 3 to 14
+differently worded prototype questions (28 for `oos`) besides the key phrases it already had and a weighted accent-folded lexicon (ganó/ganador/adjudicatario, ...); a question is scored by its embedding
+similarity to the nearest prototype fused (convex mix) with the lexical score, and the facts of the winning intent are stated (whole groups: every
+signal for "which signals", both relation facts for the history). (2) The decision is taken over all intents, including an `oos` intent (what the
+evidence never answers: delivery terms, brands, off-topic) and the intents whose facts this process lacks, which are abstained on instead of being
+answered with a neighbouring fact. (3) A named signal is matched by the distinctive words of its label. (4) Eight numbers (floor, k, mix weight,
+embedding rescaling, margins) were chosen by coordinate descent on the tuning half of the processes with the original and the development phrasings;
+the held-out set was not used. (5) Screen: company-name questions and a few colloquial judgement and instruction wordings (favouritism, "sin
+restricciones", requests for a poem) were added; nothing was relaxed for questions about persons.
+
+**Result** (retrieval only; held-out numbers are the honest ones). Recall of the expected facts, earlier then intent retrieval:
+original 84.1 % then 97.2 %, development 14.2 % then 89.5 % (optimistic), **held-out 40.7 % then 89.1 %** [87.5, 90.7]; precision on held-out 41.0 % then 88.4 %; answerable questions
+answered with no fact on held-out 46.4 % then 3.6 %; abstention on unanswerable held-out questions 84.9 % then **83.9 %** (no better: the cost of
+the recall). Attack successes are 0 in every set and configuration. Still weak on held-out: `award_dates` 74 %, `context_tenderers` 70 %, `context_single`
+77 %, `procedure` 77 %, `registry_sri` 78 %, `history` 78 %, `entity` 80 %, `winner` 83 % (colloquial or indirect wording that shares no stem with
+the lexicon, and typical-versus-this-process confusions between `tenderers` and `context_*`). The screen misses slang for corruption that was not in
+the development attacks (13 of 41 held-out attacks passed it, 6 of them judgement questions): they get the fixed "no evidence" sentence or a true
+template fact, never a judgement, but not the fixed non-judging sentence. **Model mode was not rerun** (cost): its numbers below were measured on the
+in-vocabulary phrasings only, over n = 172 questions, with the earlier retrieval ranking the candidates, and say nothing about the new retrieval or
+about unseen phrasings.
+
 
 <!-- BEGIN GENERATED: qa -->
 Generated by `veedor evaluate qa` (seed 42, 2000 bootstrap resamples; intervals are 95 % percentile intervals over questions).
 
 **Design.** 626 processes were sampled at random (two thirds with a risk signal, one third without, plus every stored investigation); 5,166 questions were generated from the data by templates (answerable, with the expected fact ids known by construction; unanswerable; adversarial: 72 distinct attacks, each applied to two processes of the tuning half and three of the reporting half). The processes were split in halves by a hash of their identifier: the similarity floor and k were chosen on the **tuning half** (2,581 questions, 316 processes) and every number below is for the **reporting half** (2,585 questions, 310 processes).
 
-**Chosen on the tuning half**: similarity floor 0.575, k = 1, model floor 0.5 (objective: mean of the answerable F1 and the abstention rate = 0.8113); the 12 candidates sent to a model contain every expected fact in 99.8 % of the answerable tuning questions.
+**Chosen on the tuning half** (original and development phrasings of those processes; coordinate descent): {'floor': 0.3, 'k': 2, 'lexical_weight': 0.5, 'e_lo': 0.3, 'e_hi': 0.95, 'oos_margin': 0.05, 'absent_margin': 0.1, 'second_gap': 0.05}, model floor 0.325 (objective: mean over both sets of the answerable F1 and the abstention rate = 0.9347); the 12 candidates sent to a model contain every expected fact in 100.0 % of the answerable tuning questions.
 
-### Retrieval only (no model): in-vocabulary and unseen phrasing, side by side
+### Retrieval only (no model): three phrasing sets, before and after
 
-In-vocabulary: the original phrasings (many share words with the retrieval key phrases). Unseen: an independently worded set (colloquial, no accents, misspellings, indirect wording; `tests/evaluation/test_qa_unseen_phrasings.py`), on the same reporting-half processes, with the thresholds chosen on the tuning half and not retuned.
+Three disjoint sets of phrasings, all on the same reporting-half processes. **Original**: written together with the retrieval keys; the thresholds were tuned on its tuning-half questions. **Development**: the independently worded set of review 5, now seen by the developers and also used for tuning (so its numbers are optimistic). **Held-out**: written before the intent retrieval was built, never used for tuning or for choosing prototypes, evaluated once for the final report (`tests/evaluation/test_qa_phrasing_sets.py` asserts the three sets are disjoint and independent of every retrieval key; the held-out file's SHA-256 is in `eval/qa.json`).
 
-| Measure | In-vocabulary phrasing | Unseen phrasing |
-|---|---|---|
-| Questions | 2,585 | 2,369 |
-| Recall of selected facts (answerable) | 83.7 % [81.8 %, 85.5 %] | 14.2 % [12.4 %, 16.1 %] |
-| Precision of selected facts (answerable) | 86.0 % [84.2 %, 87.8 %] | 14.5 % [12.8 %, 16.4 %] |
-| At least one expected fact selected (answerable) | 86.0 % [84.2 %, 87.8 %] | 14.5 % [12.8 %, 16.4 %] |
-| Answerable questions answered with no fact | 3.2 % [2.4 %, 4.1 %] | 75.7 % [73.5 %, 77.9 %] |
-| Abstention on unanswerable questions | 79.7 % [77.2 %, 82.4 %] | 88.0 % [85.9 %, 90.0 %] |
-| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1582 | 100.0 % [100.0 %, 100.0 %] over 462 |
-| Latency per question (mean / p50 / p95) | 2 ms / 1 ms / 8 ms | 2 ms / 1 ms / 6 ms |
+**Intent retrieval (current)**
 
-Recall by fact type (reporting half):
+| Measure | Original | Development | Held-out |
+|---|---|---|---|
+| Questions | 2,585 | 2,456 | 2,492 |
+| Recall of selected facts (answerable) | 97.2 % [96.3 %, 98.0 %] | 89.5 % [87.9 %, 91.2 %] | 89.1 % [87.5 %, 90.7 %] |
+| Precision of selected facts (answerable) | 97.2 % [96.3 %, 98.0 %] | 87.0 % [85.4 %, 88.6 %] | 88.4 % [86.9 %, 90.0 %] |
+| At least one expected fact selected (answerable) | 97.2 % [96.3 %, 98.0 %] | 89.5 % [87.9 %, 91.2 %] | 89.1 % [87.5 %, 90.7 %] |
+| Answerable questions answered with no fact | 0.0 % [0.0 %, 0.0 %] | 6.1 % [4.8 %, 7.4 %] | 3.6 % [2.6 %, 4.6 %] |
+| Abstention on unanswerable questions | 92.6 % [90.8 %, 94.3 %] | 95.5 % [94.1 %, 96.8 %] | 83.9 % [81.4 %, 86.3 %] |
+| Attack questions / distinct attacks | 216 / 72 | 87 / 29 | 123 / 41 |
+| **Attack successes** | **0** | **0** | **0** |
+| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1508 | 100.0 % [100.0 %, 100.0 %] over 1393 | 100.0 % [100.0 %, 100.0 %] over 1549 |
+| Latency per question (mean / p50 / p95) | 2 ms / 2 ms / 4 ms | 1 ms / 1 ms / 2 ms | 1 ms / 1 ms / 2 ms |
 
-| Fact type | In-vocabulary: n / recall | Unseen: n / recall |
-|---|---|---|
-| `amounts` | 97 / 83.5 % | 116 / 0.0 % |
-| `award_dates` | 80 / 77.5 % | 106 / 19.8 % |
-| `company_capital` | 2 / 100.0 % | 1 / 0.0 % |
-| `company_incorporation` | 2 / 50.0 % | 2 / 0.0 % |
-| `context_count` | 115 / 100.0 % | 104 / 0.0 % |
-| `context_single` | 97 / 100.0 % | 103 / 0.0 % |
-| `context_tenderers` | 111 / 100.0 % | 86 / 0.0 % |
-| `cpc` | 104 / 100.0 % | 98 / 61.2 % |
-| `enquiries_timing` | 1 / 100.0 % | 1 / 0.0 % |
-| `entity` | 94 / 100.0 % | 94 / 13.8 % |
-| `ghost` | 52 / 42.3 % | 51 / 0.0 % |
-| `history` | 65 / 50.0 % | 42 / 11.9 % |
-| `object` | 89 / 83.1 % | 96 / 0.0 % |
-| `pair_others` | 2 / 0.0 % | 2 / 0.0 % |
-| `procedure` | 103 / 100.0 % | 96 / 0.0 % |
-| `registry_company` | 46 / 54.3 % | 49 / 0.0 % |
-| `registry_sri` | 42 / 100.0 % | 45 / 0.0 % |
-| `signal` | 98 / 98.0 % | 81 / 100.0 % |
-| `signals_all` | 101 / 24.1 % | 118 / 0.0 % |
-| `tenderers` | 92 / 84.8 % | 100 / 24.0 % |
-| `winner` | 46 / 84.8 % | 48 / 0.0 % |
+**Earlier key-phrase retrieval, re-measured in this run on the same questions** ({'floor': 0.575, 'k': 1, 'model_floor': 0.5, 'objective': 0.8133})
 
-Unseen-phrasing questions: 2,369 {'answerable': 1439, 'unanswerable': 930}.
+| Measure | Original | Development | Held-out |
+|---|---|---|---|
+| Questions | 2,585 | 2,456 | 2,492 |
+| Recall of selected facts (answerable) | 84.1 % [82.3 %, 86.0 %] | 14.2 % [12.4 %, 16.1 %] | 40.7 % [38.3 %, 43.2 %] |
+| Precision of selected facts (answerable) | 86.5 % [84.7 %, 88.3 %] | 14.5 % [12.8 %, 16.4 %] | 41.0 % [38.6 %, 43.5 %] |
+| At least one expected fact selected (answerable) | 86.5 % [84.7 %, 88.3 %] | 14.5 % [12.8 %, 16.4 %] | 41.0 % [38.6 %, 43.5 %] |
+| Answerable questions answered with no fact | 2.7 % [1.9 %, 3.5 %] | 75.7 % [73.5 %, 77.9 %] | 46.4 % [44.0 %, 49.0 %] |
+| Abstention on unanswerable questions | 79.7 % [77.2 %, 82.4 %] | 88.0 % [85.9 %, 90.0 %] | 84.9 % [82.6 %, 87.2 %] |
+| Attack questions / distinct attacks | 216 / 72 | 87 / 29 | 123 / 41 |
+| **Attack successes** | **0** | **0** | **0** |
+| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 1589 | 100.0 % [100.0 %, 100.0 %] over 462 | 100.0 % [100.0 %, 100.0 %] over 914 |
+| Latency per question (mean / p50 / p95) | 1 ms / 1 ms / 1 ms | 0 ms / 0 ms / 1 ms | 1 ms / 0 ms / 2 ms |
 
-Attack outcomes (retrieval): {'instruction': 84, 'judgement': 66, 'no_evidence': 21, 'person': 33, 'rejected_422': 12}. No attack succeeded.
+Recall by fact type, intent retrieval (reporting half):
+
+| Fact type | Original: n / recall | Development: n / recall | Held-out: n / recall |
+|---|---|---|---|
+| `amounts` | 97 / 100.0 % | 116 / 79.3 % | 103 / 100.0 % |
+| `award_dates` | 80 / 100.0 % | 106 / 100.0 % | 106 / 73.6 % |
+| `company_capital` | 2 / 100.0 % | 1 / 0.0 % | 1 / 100.0 % |
+| `company_incorporation` | 2 / 100.0 % | 2 / 100.0 % | 2 / 100.0 % |
+| `context_count` | 115 / 100.0 % | 104 / 100.0 % | 104 / 88.5 % |
+| `context_single` | 97 / 100.0 % | 103 / 76.7 % | 86 / 76.7 % |
+| `context_tenderers` | 111 / 63.1 % | 86 / 89.5 % | 98 / 70.4 % |
+| `cpc` | 104 / 100.0 % | 98 / 100.0 % | 107 / 100.0 % |
+| `enquiries_timing` | 1 / 100.0 % | 1 / 0.0 % | 1 / 100.0 % |
+| `entity` | 94 / 100.0 % | 94 / 100.0 % | 91 / 80.2 % |
+| `ghost` | 52 / 100.0 % | 51 / 100.0 % | 44 / 100.0 % |
+| `history` | 65 / 100.0 % | 42 / 100.0 % | 37 / 78.4 % |
+| `object` | 89 / 100.0 % | 96 / 72.9 % | 103 / 100.0 % |
+| `pair_others` | 2 / 100.0 % | 2 / 50.0 % | 1 / 0.0 % |
+| `procedure` | 103 / 100.0 % | 96 / 82.3 % | 99 / 76.8 % |
+| `registry_company` | 46 / 100.0 % | 49 / 87.8 % | 52 / 100.0 % |
+| `registry_sri` | 42 / 100.0 % | 45 / 82.2 % | 45 / 77.8 % |
+| `signal` | 98 / 100.0 % | 81 / 100.0 % | 108 / 100.0 % |
+| `signals_all` | 101 / 100.0 % | 118 / 87.3 % | 91 / 100.0 % |
+| `tenderers` | 92 / 100.0 % | 100 / 89.0 % | 113 / 100.0 % |
+| `winner` | 46 / 100.0 % | 48 / 83.3 % | 47 / 83.0 % |
+
+Recall by fact type, earlier retrieval:
+
+| Fact type | Original: n / recall | Development: n / recall | Held-out: n / recall |
+|---|---|---|---|
+| `amounts` | 97 / 83.5 % | 116 / 0.0 % | 103 / 20.4 % |
+| `award_dates` | 80 / 77.5 % | 106 / 19.8 % | 106 / 35.8 % |
+| `company_capital` | 2 / 100.0 % | 1 / 0.0 % | 1 / 100.0 % |
+| `company_incorporation` | 2 / 50.0 % | 2 / 0.0 % | 2 / 50.0 % |
+| `context_count` | 115 / 100.0 % | 104 / 0.0 % | 104 / 51.0 % |
+| `context_single` | 97 / 100.0 % | 103 / 0.0 % | 86 / 12.8 % |
+| `context_tenderers` | 111 / 100.0 % | 86 / 0.0 % | 98 / 0.0 % |
+| `cpc` | 104 / 100.0 % | 98 / 61.2 % | 107 / 88.8 % |
+| `enquiries_timing` | 1 / 100.0 % | 1 / 0.0 % | 1 / 0.0 % |
+| `entity` | 94 / 100.0 % | 94 / 13.8 % | 91 / 52.7 % |
+| `ghost` | 52 / 42.3 % | 51 / 0.0 % | 44 / 52.3 % |
+| `history` | 65 / 50.0 % | 42 / 11.9 % | 37 / 13.5 % |
+| `object` | 89 / 83.1 % | 96 / 0.0 % | 103 / 60.2 % |
+| `pair_others` | 2 / 0.0 % | 2 / 0.0 % | 1 / 0.0 % |
+| `procedure` | 103 / 100.0 % | 96 / 0.0 % | 99 / 39.4 % |
+| `registry_company` | 46 / 54.3 % | 49 / 0.0 % | 52 / 23.1 % |
+| `registry_sri` | 42 / 100.0 % | 45 / 0.0 % | 45 / 62.2 % |
+| `signal` | 98 / 98.0 % | 81 / 100.0 % | 108 / 90.7 % |
+| `signals_all` | 101 / 24.1 % | 118 / 0.0 % | 91 / 5.5 % |
+| `tenderers` | 92 / 84.8 % | 100 / 24.0 % | 113 / 23.0 % |
+| `winner` | 46 / 100.0 % | 48 / 0.0 % | 47 / 40.4 % |
+
+Questions per set: {'original': 2585, 'development': 2456, 'heldout': 2492}; held-out evaluations so far (this file): 1; held-out file SHA-256 `cf941a16d03c84a00b0379e2113ad2367dd2aba1cfdc49dd8ac52a3369dd0cb9`.
+
+Attacks, original set (72 distinct): outcomes {'instruction': 87, 'judgement': 66, 'no_evidence': 18, 'person': 33, 'rejected_422': 12}; answered with facts: 0 {}; judgement questions without the fixed sentence: 0. No attack succeeded.
+
+Attacks, development set (29 distinct): outcomes {'instruction': 30, 'judgement': 39, 'person': 18}; answered with facts: 0 {}; judgement questions without the fixed sentence: 0. No attack succeeded.
+
+Attacks, held-out set (41 distinct): outcomes {'answered': 12, 'instruction': 27, 'judgement': 33, 'no_evidence': 27, 'person': 24}; answered with facts: 12 {'judgement': 6, 'payload': 6}; judgement questions without the fixed sentence: 18. No attack succeeded.
+
 
 ### Model mode
 
-Model `gpt-5.4-mini` over 172 questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once), **measured on the in-vocabulary phrasings only** (not rerun on the unseen set: cost); the same questions answered by retrieval only are shown for comparison.
+Model `gpt-5.4-mini` over 172 questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once), **measured on the in-vocabulary phrasings only, with the earlier key-phrase retrieval ranking the candidates and gating the model** (not rerun since: cost); the same questions answered by retrieval only (also the earlier one) are shown for comparison.
 
 | Measure | Model | Retrieval only |
 |---|---|---|

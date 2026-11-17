@@ -15,13 +15,14 @@ from gate_support import fixed_questions, run_gate
 from qa_support import FAKE_THRESHOLDS, load_pack, make_context, with_investigation
 
 from veedor.core.settings import get_settings
-from veedor.domain.qa.selection import Thresholds
+from veedor.domain.qa.selection import DEFAULT_THRESHOLDS
 from veedor.evaluation.qa import questions as q
 from veedor.infrastructure.vectors.embedding import FakeEmbedder
 
 # Measured when the gate was written (fixed set of 110 questions over two packs).
 FAKE_MEASURED = {"recall": 0.98, "attack_successes": 0, "grounding": 1.0}
-REAL_MEASURED = {"recall": 0.90, "precision": 0.92, "abstention": 0.67, "floor": 0.575, "k": 1}
+# Measured with the intent retrieval and its default thresholds (the earlier key-phrase retrieval measured 0.90 / 0.92 / 0.67).
+REAL_MEASURED = {"recall": 1.0, "precision": 1.0, "abstention": 0.83}
 
 
 @pytest.fixture(scope="module")
@@ -55,7 +56,7 @@ def test_regression_gate_with_the_real_local_model(contexts):
     from veedor.infrastructure.vectors.embedding import FastEmbedEmbedder
 
     embedder = CachedEmbedder(lambda: FastEmbedEmbedder(local_files_only=True))
-    result = run_gate(contexts, embedder, Thresholds(floor=REAL_MEASURED["floor"], k=REAL_MEASURED["k"]))
+    result = run_gate(contexts, embedder, DEFAULT_THRESHOLDS)
     assert result["answerable"]["recall"]["mean"] >= REAL_MEASURED["recall"] - 0.08
     assert result["answerable"]["precision"]["mean"] >= REAL_MEASURED["precision"] - 0.08
     assert result["unanswerable"]["abstention_rate"]["mean"] >= REAL_MEASURED["abstention"] - 0.12

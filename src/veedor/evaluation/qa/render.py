@@ -35,36 +35,63 @@ def _mode_rows(summary: dict[str, Any]) -> list[tuple[str, str]]:
     ]
 
 
-def _phrasing_section(result: dict[str, Any], ret: dict[str, Any]) -> list[str]:
-    """Both question sets on the same unseen (reporting-half) processes. The in-vocabulary set shares words
-    with the retrieval keys; the unseen set was worded independently and the system was not tuned on it."""
-    unseen = result.get("retrieval_only_unseen_phrasing")
-    if not unseen:
-        return [_table(_mode_rows(ret))]
-    cols = "| Measure | In-vocabulary phrasing | Unseen phrasing |\n|---|---|---|\n"
-    rows = [(a[0], a[1], b[1]) for a, b in zip(_mode_rows(ret), _mode_rows(unseen), strict=True) if not a[0].startswith(("Attack", "**Attack"))]
-    body = "\n".join(f"| {a} | {b} | {c} |" for a, b, c in rows)
-    types = sorted(set(ret["answerable"]["recall_by_fact_type"]) | set(unseen["answerable"]["recall_by_fact_type"]))
-    by_type = ["| Fact type | In-vocabulary: n / recall | Unseen: n / recall |", "|---|---|---|"]
+_SETS = (("original", "retrieval_only", "Original"), ("development", "retrieval_only_development", "Development"), ("heldout", "retrieval_only_heldout", "Held-out"))
+
+
+def _columns(blocks: list[tuple[str, dict[str, Any] | None]]) -> str:
+    """Rows of `_mode_rows` side by side, one column per phrasing set (a missing set shows "not run")."""
+    present = [(label, block) for label, block in blocks if block]
+    header = "| Measure | " + " | ".join(label for label, _ in blocks) + " |\n|---|" + "---|" * len(blocks)
+    rows = {label: dict(_mode_rows(block)) for label, block in present}
+    names = [name for name, _ in _mode_rows(present[0][1])]
+    body = ["| " + name + " | " + " | ".join(rows[label][name] if label in rows else "not run" for label, _ in blocks) + " |" for name in names]
+    return header + "\n" + "\n".join(body)
+
+
+def _by_type(blocks: list[tuple[str, dict[str, Any] | None]]) -> list[str]:
+    types = sorted({k for _, b in blocks if b for k in b["answerable"]["recall_by_fact_type"]})
+    lines = ["| Fact type | " + " | ".join(f"{label}: n / recall" for label, _ in blocks) + " |", "|---|" + "---|" * len(blocks)]
     for k in types:
         cells = []
-        for block in (ret, unseen):
-            v = block["answerable"]["recall_by_fact_type"].get(k)
+        for _, block in blocks:
+            v = block["answerable"]["recall_by_fact_type"].get(k) if block else None
             cells.append("-" if v is None else f"{v['n']} / {100 * v['recall']:.1f} %")
-        by_type.append(f"| `{k}` | {cells[0]} | {cells[1]} |")
-    return [
-        "In-vocabulary: the original phrasings (many share words with the retrieval key phrases). Unseen: an independently worded set "
-        "(colloquial, no accents, misspellings, indirect wording; `tests/evaluation/test_qa_unseen_phrasings.py`), on the same reporting-half processes, "
-        "with the thresholds chosen on the tuning half and not retuned.",
+        lines.append(f"| `{k}` | " + " | ".join(cells) + " |")
+    return lines
+
+
+def _phrasing_section(result: dict[str, Any]) -> list[str]:
+    """The three phrasing sets on the same unseen (reporting-half) processes, new retrieval and the earlier one."""
+    after = [(label, result.get(key)) for _, key, label in _SETS]
+    legacy = result.get("baseline_legacy") or {}
+    before = [(label, legacy.get(name)) for name, _, label in _SETS]
+    out = [
+        "Three disjoint sets of phrasings, all on the same reporting-half processes. **Original**: written together with the retrieval keys; "
+        "the thresholds were tuned on its tuning-half questions. **Development**: the independently worded set of review 5, now seen by the "
+        "developers and also used for tuning (so its numbers are optimistic). **Held-out**: written before the intent retrieval was built, "
+        "never used for tuning or for choosing prototypes, evaluated once for the final report (`tests/evaluation/test_qa_phrasing_sets.py` "
+        "asserts the three sets are disjoint and independent of every retrieval key; the held-out file's SHA-256 is in `eval/qa.json`).",
         "",
-        cols + body,
+        "**Intent retrieval (current)**",
         "",
-        "Recall by fact type (reporting half):",
+        _columns(after),
         "",
-        *by_type,
+        f"**Earlier key-phrase retrieval, re-measured in this run on the same questions** ({result.get('legacy_thresholds', {})})",
         "",
-        f"Unseen-phrasing questions: {result['sample'].get('questions_unseen_phrasing', 0):,} {result['sample'].get('questions_unseen_phrasing_by_kind', {})}.",
+        _columns(before),
+        "",
+        "Recall by fact type, intent retrieval (reporting half):",
+        "",
+        *_by_type(after),
+        "",
+        "Recall by fact type, earlier retrieval:",
+        "",
+        *_by_type(before),
+        "",
+        f"Questions per set: { {k: v['total'] for k, v in result['sample'].get('questions_by_phrasing_set', {}).items()} }; "
+        f"held-out evaluations so far (this file): {result.get('heldout_runs', 0)}; held-out file SHA-256 `{result.get('heldout_sha256')}`.",
     ]
+    return out
 
 
 def _table(rows: list[tuple[str, str]]) -> str:
@@ -81,8 +108,24 @@ def _successes(adv: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _attack_lines(result: dict[str, Any]) -> list[str]:
+    out = []
+    for _, key, label in _SETS:
+        block = result.get(key)
+        if not block:
+            continue
+        adv = block["adversarial"]
+        out.append(
+            f"Attacks, {label.lower()} set ({adv['distinct_attacks']} distinct): outcomes {adv['outcomes']}; answered with facts: "
+            f"{adv.get('answered_with_facts', {}).get('count', 'n/a')} {adv.get('answered_with_facts', {}).get('by_category', '')}; "
+            f"judgement questions without the fixed sentence: {adv.get('judgement_without_the_fixed_sentence', 'n/a')}. {_successes(adv)}"
+        )
+        out.append("")
+    return out
+
+
 def render_markdown(result: dict[str, Any]) -> str:
-    sample, th, ret = result["sample"], result["thresholds"], result["retrieval_only"]
+    sample, th = result["sample"], result["thresholds"]
     parts = [
         DOC_BEGIN,
         f"Generated by `veedor evaluate qa` (seed {result['seed']}, 2000 bootstrap resamples; intervals are 95 % percentile intervals over questions).",
@@ -96,15 +139,16 @@ def render_markdown(result: dict[str, Any]) -> str:
             tp=sample["processes_tuning_half"], rq=sample["questions_reporting_half"], rp=sample["processes_reporting_half"],
         ),
         "",
-        f"**Chosen on the tuning half**: similarity floor {th['floor']}, k = {th['k']}, model floor {th['model_floor']} "
-        f"(objective: mean of the answerable F1 and the abstention rate = {th['objective']}); the 12 candidates sent to a model contain every "
+        f"**Chosen on the tuning half** (original and development phrasings of those processes; coordinate descent): "
+        f"{ {k: th[k] for k in ('floor', 'k', 'lexical_weight', 'e_lo', 'e_hi', 'oos_margin', 'absent_margin', 'second_gap')} }, model floor {th['model_floor']} "
+        f"(objective: mean over both sets of the answerable F1 and the abstention rate = {th['objective']}); the 12 candidates sent to a model contain every "
         f"expected fact in {100 * th['candidate_recall_tuning_half']:.1f} % of the answerable tuning questions.",
         "",
-        "### Retrieval only (no model): in-vocabulary and unseen phrasing, side by side",
+        "### Retrieval only (no model): three phrasing sets, before and after",
         "",
-        *_phrasing_section(result, ret),
+        *_phrasing_section(result),
         "",
-        f"Attack outcomes (retrieval): {ret['adversarial']['outcomes']}. {_successes(ret['adversarial'])}",
+        *_attack_lines(result),
     ]
     model = result.get("model")
     parts += ["", "### Model mode", ""]
@@ -114,8 +158,8 @@ def render_markdown(result: dict[str, Any]) -> str:
         mm, same = model["model_mode"], model["retrieval_same_questions"]
         parts += [
             f"Model `{model['model']}` over {model['questions']} questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once), "
-            "**measured on the in-vocabulary phrasings only** (not rerun on the unseen set: cost); "
-            "the same questions answered by retrieval only are shown for comparison.",
+            "**measured on the in-vocabulary phrasings only, with the earlier key-phrase retrieval ranking the candidates and gating the model** "
+            "(not rerun since: cost); the same questions answered by retrieval only (also the earlier one) are shown for comparison.",
             "",
             "| Measure | Model | Retrieval only |",
             "|---|---|---|",

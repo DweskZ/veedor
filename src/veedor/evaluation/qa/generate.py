@@ -87,26 +87,63 @@ def generate(
     return out
 
 
-def generate_unseen(views: list[ProcessView], seed: int = 42) -> list[EvalQuestion]:
-    """The same structure as `generate`, worded with the unseen phrasings (`questions.UNSEEN_*`), for the
-    given processes only (the caller passes the reporting half). Its own random stream: the in-vocabulary
-    questions of `generate` are unchanged. No attacks: those are not about retrieval keys."""
-    rng = random.Random(f"unseen:{seed}")
+@dataclass(frozen=True, slots=True)
+class PhrasingSet:
+    """One independent set of phrasings: the same structure as the original templates."""
+
+    name: str
+    rng_tag: str  # its own random stream (kept stable so a set's sample of questions never moves)
+    answerable: dict[str, tuple[str, ...]]
+    signal: tuple[str, ...]
+    all_signals: tuple[str, ...]
+    absent_investigation: tuple[str, ...]
+    not_in_the_data: tuple[str, ...]
+    off_topic: tuple[str, ...]
+    attacks: tuple[tuple[str, str], ...] = ()
+
+
+def development_set() -> PhrasingSet:
+    return PhrasingSet(
+        "development", "unseen", q.DEV_ANSWERABLE, q.DEV_SIGNAL_PHRASINGS, q.DEV_ALL_SIGNALS_PHRASINGS,
+        q.DEV_ABSENT_INVESTIGATION, q.DEV_NOT_IN_THE_DATA, q.DEV_OFF_TOPIC, q.DEV_ATTACKS,
+    )
+
+
+def heldout_set() -> PhrasingSet:
+    from veedor.evaluation.qa import heldout as h
+
+    return PhrasingSet(
+        "heldout", "heldout", h.HELDOUT_ANSWERABLE, h.HELDOUT_SIGNAL_PHRASINGS, h.HELDOUT_ALL_SIGNALS_PHRASINGS,
+        h.HELDOUT_ABSENT_INVESTIGATION, h.HELDOUT_NOT_IN_THE_DATA, h.HELDOUT_OFF_TOPIC, h.HELDOUT_ATTACKS,
+    )
+
+
+def generate_phrasing_set(views: list[ProcessView], phrasings: PhrasingSet, seed: int = 42) -> list[EvalQuestion]:
+    """The same structure as `generate`, worded with one independent set of phrasings, for the given processes
+    only (the caller passes the reporting half). Its own random stream: the original questions of `generate`
+    are unchanged. Attacks: each attack of the set is applied to three processes of the given views."""
+    rng = random.Random(f"{phrasings.rng_tag}:{seed}")
     out: list[EvalQuestion] = []
-    for view in sorted(views, key=lambda v: v.ocid):
+    ordered = sorted(views, key=lambda v: v.ocid)
+    for view in ordered:
         types = _applicable(view)
         for fact_type in rng.sample(types, min(PER_PROCESS_ANSWERABLE, len(types))):
-            out.append(EvalQuestion(view.ocid, rng.choice(q.UNSEEN_ANSWERABLE[fact_type.name]), ANSWERABLE, fact_type.name, fact_type.expected))
+            out.append(EvalQuestion(view.ocid, rng.choice(phrasings.answerable[fact_type.name]), ANSWERABLE, fact_type.name, fact_type.expected))
         if view.signal_labels:
             if rng.random() < 0.5:
                 fact_id = rng.choice(sorted(view.signal_labels))
-                text = rng.choice(q.UNSEEN_SIGNAL_PHRASINGS).format(label=view.signal_labels[fact_id])
+                text = rng.choice(phrasings.signal).format(label=view.signal_labels[fact_id])
                 out.append(EvalQuestion(view.ocid, text, ANSWERABLE, "signal", (fact_id,)))
             else:
-                out.append(EvalQuestion(view.ocid, rng.choice(q.UNSEEN_ALL_SIGNALS_PHRASINGS), ANSWERABLE, "signals_all", tuple(sorted(view.signal_labels))))
-        pool = [("not_in_the_data", t) for t in q.UNSEEN_NOT_IN_THE_DATA] + [("off_topic", t) for t in q.UNSEEN_OFF_TOPIC]
+                out.append(EvalQuestion(view.ocid, rng.choice(phrasings.all_signals), ANSWERABLE, "signals_all", tuple(sorted(view.signal_labels))))
+        pool = [("not_in_the_data", t) for t in phrasings.not_in_the_data] + [("off_topic", t) for t in phrasings.off_topic]
         if not view.investigated:
-            pool += [("absent_investigation", t) for t in q.UNSEEN_ABSENT_INVESTIGATION]
+            pool += [("absent_investigation", t) for t in phrasings.absent_investigation]
         for tag, text in rng.sample(pool, PER_PROCESS_UNANSWERABLE):
             out.append(EvalQuestion(view.ocid, text, UNANSWERABLE, tag))
+    # Attacks come after every other draw, so adding them never moves the questions above.
+    attack_rng = random.Random(f"{phrasings.rng_tag}-attacks:{seed}")
+    for index, (category, text) in enumerate(phrasings.attacks):
+        for view in attack_rng.sample(ordered, min(ATTACKS_PER_HALF[1], len(ordered))):
+            out.append(EvalQuestion(view.ocid, text, ADVERSARIAL, category, attack=index))
     return out

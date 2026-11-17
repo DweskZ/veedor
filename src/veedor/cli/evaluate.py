@@ -92,6 +92,14 @@ def run_qa(
     model: Annotated[str | None, typer.Option(help="Model name, when VEEDOR_LLM_MODEL is not set.")] = None,
     out_dir: Annotated[Path, typer.Option(help="Directory for eval/qa.json.")] = EVAL_DIR,
     doc: Annotated[Path, typer.Option(help="Markdown file with the generated QA block.")] = DOC_PATH,
+    heldout: Annotated[
+        bool,
+        typer.Option(
+            "--heldout/--no-heldout",
+            help="Also evaluate the held-out phrasings. Each run that does is counted in eval/qa.json "
+            "(`heldout_runs`); use --no-heldout while developing.",
+        ),
+    ] = True,
 ) -> None:
     """Question answering: retrieval-only over >= 300 processes, model mode over ~150 questions."""
     from veedor.evaluation.qa import render, runner
@@ -101,18 +109,27 @@ def run_qa(
         settings = settings.model_copy(update={"llm_model": model})
     if with_model and not settings.model_configured:
         typer.echo("No model is configured (provider, model name and key): running retrieval only.", err=True)
+    previous = out_dir / "qa.json"
+    runs_before = int(orjson.loads(previous.read_bytes()).get("heldout_runs", 0)) if previous.is_file() else 0
     try:
-        result = runner.run_evaluation(settings, with_model=with_model, n=n, progress=typer.echo)
+        result = runner.run_evaluation(
+            settings,
+            with_model=with_model,
+            n=n,
+            heldout=heldout,
+            heldout_runs_before=runs_before,
+            progress=typer.echo,
+        )
     except (FileNotFoundError, ValueError) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
-    previous = out_dir / "qa.json"
     if not with_model and previous.is_file():
         # Model mode is not rerun (cost): keep its stored numbers, marked as measured on the original
         # (in-vocabulary) phrasings and the sample of that run.
         old = _read_json(previous).get("model")
         if old and old.get("status") == "ran":
             old["measured_on"] = "in_vocabulary_phrasings"
+            old["measured_with"] = "the earlier key-phrase retrieval; not rerun with the intent retrieval"
             old["carried_over"] = True
             result["model"] = old
     _write_json(out_dir / "qa.json", result)
