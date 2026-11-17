@@ -95,6 +95,14 @@ class GlossaryStore:
         self._stamp: tuple[int, int] | None = None
         self._items: list[dict[str, Any]] = []
 
+    def fingerprint(self) -> str:
+        """Identity of the file on disk (modification time and size); used for HTTP validators."""
+        try:
+            info = self._path.stat()
+        except OSError:
+            return "missing"
+        return f"{info.st_mtime_ns}:{info.st_size}"
+
     def items(self) -> list[dict[str, Any]]:
         try:
             info = self._path.stat()

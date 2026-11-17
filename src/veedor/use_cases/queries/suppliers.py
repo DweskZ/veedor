@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from veedor.domain.masking import NATURAL_PERSON, kind_from_ruc
+from veedor.use_cases.queries._cache import VersionedCache
 from veedor.use_cases.queries.ports import LakePort, NotFoundError, Row
 
 RECENT_LIMIT = 10
@@ -19,7 +20,15 @@ def _rows(lake: LakePort, table: str, sql: str, ruc: str, limit: int | None = No
     return lake.fetch(sql, params, tables=(table,))
 
 
+_CACHE = VersionedCache(max_entries=512)
+
+
 def get_supplier(lake: LakePort, ruc: str) -> dict[str, Any]:
+    """Supplier profile, memoised per data build (several parquet scans per call). Callers only read."""
+    return _CACHE.get_or_compute(ruc, lake.data_version(), lambda: _build_supplier(lake, ruc))
+
+
+def _build_supplier(lake: LakePort, ruc: str) -> dict[str, Any]:
     if kind_from_ruc(ruc) == NATURAL_PERSON:
         # Same answer as for an unknown RUC: no confirmation that a natural person exists in the data.
         raise NotFoundError("supplier", ruc)

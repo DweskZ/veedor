@@ -22,6 +22,20 @@ SECURITY_HEADERS = {
 _DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
 
 
+def _merge_vary(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, bytes]]:
+    """One `Vary` header without repeated tokens (CORS and the cache middleware both name `Origin`)."""
+    values = [v.decode("latin-1") for k, v in headers if k.lower() == b"vary"]
+    if len(values) < 2 and not any("," in v for v in values):
+        return headers
+    tokens: dict[str, str] = {}
+    for value in values:
+        for token in value.split(","):
+            if token.strip():
+                tokens.setdefault(token.strip().lower(), token.strip())
+    rest = [(k, v) for k, v in headers if k.lower() != b"vary"]
+    return [*rest, (b"vary", ", ".join(tokens.values()).encode("latin-1"))]
+
+
 class SecurityHeadersMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -35,10 +49,14 @@ class SecurityHeadersMiddleware:
         async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = message.setdefault("headers", [])
+                present = {key.lower() for key, _ in headers}
                 for name, value in SECURITY_HEADERS.items():
                     if is_docs and name in {"Content-Security-Policy", "Cache-Control"}:
                         continue
+                    if name.lower().encode() in present:  # e.g. Cache-Control set by HttpCacheMiddleware
+                        continue
                     headers.append((name.lower().encode(), value.encode()))
+                message["headers"] = _merge_vary(headers)
             await send(message)
 
         await self.app(scope, receive, send_with_headers)

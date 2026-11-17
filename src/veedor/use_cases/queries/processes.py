@@ -13,6 +13,7 @@ from veedor.domain.masking import (
     safe_free_text,
 )
 from veedor.domain.regions import SIN_REGION
+from veedor.use_cases.queries._cache import VersionedCache
 from veedor.use_cases.queries.catalogue import signal_kind, signal_label
 from veedor.use_cases.queries.ports import LakePort, NotFoundError, Row
 from veedor.use_cases.queries.region_stats import region_raw_values
@@ -159,7 +160,15 @@ def list_processes(
     return {"items": rows, "page": page, "page_size": page_size, "total": total}
 
 
+_DETAIL_CACHE = VersionedCache(max_entries=512)
+
+
 def get_process(lake: LakePort, ocid: str) -> dict[str, Any]:
+    """Process detail, memoised per data build (the parquet scans cost about 50 ms; callers only read)."""
+    return _DETAIL_CACHE.get_or_compute(ocid, lake.data_version(), lambda: _build_process(lake, ocid))
+
+
+def _build_process(lake: LakePort, ocid: str) -> dict[str, Any]:
     score = lake.fetch("SELECT * FROM process_scores WHERE ocid = ?", [ocid], tables=("process_scores",))
     facts = _one(lake, "processes", "SELECT * FROM processes WHERE ocid = ?", ocid)
     if not score and facts is None:

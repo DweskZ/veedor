@@ -226,3 +226,16 @@ Still slow, and why:
   on a local disk does not pay it.
 - At concurrency 32 on 4 CPUs the queue, not the query, dominates the tail.
 - The dossier route is rate limited (30 per minute per IP per process), so load runs see some 429.
+
+## Caching
+
+The API answers cacheable `GET` routes with a weak `ETag` and a `Cache-Control` chosen per route class, and answers `If-None-Match` with `304` before running the route (classes, validator and `Vary` are in `docs/SECURITY.md`, "HTTP caching headers"). Inside the process, every aggregate is memoised per data build (`VersionedCache`); each worker fills the aggregate caches in a background thread when it starts, so the first visitor does not pay about 200 ms for `/stats/by-year` and 170 ms for `/stats/by-region`.
+
+There is no Redis or other cache service, deliberately:
+
+- The data changes only when the lake is rebuilt (monthly). The data build signature is the cache key, so an in-process cache is never stale and needs no invalidation protocol.
+- One small server runs two workers. Each worker's aggregate cache is rebuilt in about 0.4 s in total; there is nothing to share that is worth a network hop and a service to operate and secure.
+- The only state that must be shared between workers or restarts (the per-client and daily ask counters) already lives in PostgreSQL (`VEEDOR_ASK_USAGE_SHARED`).
+- Caddy runs without plugins; browsers do the per-user caching.
+
+A shared cache becomes worth it when: several API replicas make the per-process warm-up cost or memory matter; the data changes continuously instead of monthly; the rate limiters of the read routes must be shared (they are per process today); or a CDN is put in front, in which case the same headers apply and the CDN should be configured to honour `Vary: Origin`.

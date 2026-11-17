@@ -11,6 +11,11 @@
 # what neither sends: HSTS (HTTPS only) and it removes the Server header. Do not add the others here:
 # Caddy's `header` would append a duplicate.
 #
+# HTTP caching: the API sets ETag, Cache-Control and Vary: Origin per route class (docs/SECURITY.md).
+# Caddy has no cache module here and does not touch them: `reverse_proxy` forwards them and `encode`
+# only compresses the body (the API's ETags are weak, so a compressed copy stays interchangeable).
+# Do not add `header -ETag` or a Cache-Control override here.
+#
 # Not possible without a plugin: request rate limiting (third-party module caddy-ratelimit; needs a
 # custom Caddy build). Read endpoints are not rate limited by the API either (docs/SECURITY.md).
 

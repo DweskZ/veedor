@@ -131,6 +131,7 @@ def main() -> int:
     )
 
     check_stage3_endpoints(ocid)
+    check_conditional_requests(ocid)
     check_quotes_and_provenance(ocid)
     check_ask(ocid)
 
@@ -138,6 +139,49 @@ def main() -> int:
         code, body = request(f"{WEB}{path}")
         check(f"web {path[:48]}", code == 200 and b"Veedor" in body, f"http {code}, {len(body)} bytes")
     return finish()
+
+
+def raw_get(path: str, headers: dict[str, str] | None = None) -> tuple[int, dict[str, str], bytes]:
+    """GET returning the status, lower-cased headers and body (a 304 is a status here, not an error)."""
+    req = urllib.request.Request(f"{API}{path}", headers=headers or {})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as response:
+            return response.status, {k.lower(): v for k, v in response.headers.items()}, response.read()
+    except urllib.error.HTTPError as error:
+        return error.code, {k.lower(): v for k, v in error.headers.items()}, error.read()
+
+
+def check_conditional_requests(ocid: str) -> None:
+    """HTTP caching: one route per class gets a validator and answers 304 to it; the rest stay no-store."""
+    encoded = urllib.parse.quote(ocid, safe="")
+    classes = (
+        ("/stats/by-year", "public, max-age=300, stale-while-revalidate=86400"),
+        (f"/processes/{encoded}/context", "public, max-age=60"),
+        ("/processes?page_size=5", "public, max-age=30"),
+    )
+    for path, expected in classes:
+        status, headers, _ = raw_get(path)
+        etag = headers.get("etag", "")
+        status_304, headers_304, body_304 = raw_get(path, {"If-None-Match": etag})
+        check(
+            f"api conditional request {path[:40]}",
+            status == 200
+            and etag.startswith('W/"')
+            and headers.get("cache-control") == expected
+            and status_304 == 304
+            and body_304 == b""
+            and headers_304.get("etag") == etag
+            and headers_304.get("x-content-type-options") == "nosniff"
+            and "origin" in headers_304.get("vary", "").lower(),
+            f"{expected}; 304={status_304}",
+        )
+    for path in ("/processes/random?with_signals=true", "/health", "/meta"):
+        status, headers, _ = raw_get(path, {"If-None-Match": "*"})
+        check(
+            f"api {path.split('?')[0]} stays no-store",
+            status == 200 and headers.get("cache-control") == "no-store" and "etag" not in headers,
+            f"http {status}",
+        )
 
 
 def check_stage3_endpoints(ocid: str) -> None:

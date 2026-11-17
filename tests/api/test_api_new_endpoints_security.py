@@ -116,7 +116,8 @@ def test_new_routes_carry_the_hardening_headers(stats_client: TestClient) -> Non
     ):
         response = stats_client.get(API + path)
         assert response.status_code == 200, path
-        assert response.headers["cache-control"] == "no-store"
+        # Caching policy is asserted in test_api_http_cache.py; here only that one is always set.
+        assert response.headers["cache-control"].startswith(("no-store", "public, max-age="))
         assert response.headers["x-content-type-options"] == "nosniff"
         assert "default-src 'none'" in response.headers["content-security-policy"]
 

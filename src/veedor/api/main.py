@@ -7,11 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from veedor.api.errors import register_error_handlers
+from veedor.api.http_cache import HttpCacheMiddleware
 from veedor.api.meta import VERSION
 from veedor.api.security import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from veedor.api.v1 import router as v1_router
 from veedor.api.v1.investigations import router as investigations_router
 from veedor.api.v1.similar import router as similar_router
+from veedor.api.warmup import warm_caches_on_start
 from veedor.core.settings import get_settings
 from veedor.infrastructure.telemetry import instrument_app, setup_telemetry
 
@@ -55,7 +57,7 @@ DOCS_HTML = f"""<!doctype html>
 </body></html>"""
 
 
-def create_app() -> FastAPI:
+def create_app(*, warm_up: bool = False) -> FastAPI:
     docs_enabled = get_settings().docs_enabled
     app = FastAPI(
         title="Veedor API",
@@ -66,9 +68,11 @@ def create_app() -> FastAPI:
         redoc_url=None,
         openapi_url="/openapi.json" if docs_enabled else None,
         redirect_slashes=False,  # a redirect would build its Location from the Host header
+        lifespan=warm_caches_on_start if warm_up else None,
     )
     if docs_enabled:
         app.add_api_route("/docs", lambda: HTMLResponse(DOCS_HTML), include_in_schema=False)
+    app.add_middleware(HttpCacheMiddleware)  # innermost: CORS and the security headers wrap its output
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_settings().cors_origins,
@@ -87,4 +91,4 @@ def create_app() -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(warm_up=True)

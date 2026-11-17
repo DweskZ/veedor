@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from veedor.domain.masking import NATURAL_PERSON, kind_from_ruc
+from veedor.use_cases.queries._cache import VersionedCache
 from veedor.use_cases.queries.catalogue import signal_label
 from veedor.use_cases.queries.ports import LakePort, NotFoundError
 
@@ -12,7 +13,15 @@ TOP_SUPPLIERS = 10
 _TABLES = ("process_scores",)
 
 
+_CACHE = VersionedCache(max_entries=512)
+
+
 def get_buyer(lake: LakePort, ruc: str) -> dict[str, Any]:
+    """Buyer summary, memoised per data build (three aggregates over process_scores). Callers only read."""
+    return _CACHE.get_or_compute(ruc, lake.data_version(), lambda: _build_buyer(lake, ruc))
+
+
+def _build_buyer(lake: LakePort, ruc: str) -> dict[str, Any]:
     if kind_from_ruc(ruc) == NATURAL_PERSON:
         raise NotFoundError("buyer", ruc)  # same answer as an unknown buyer
     summary = lake.fetch(
