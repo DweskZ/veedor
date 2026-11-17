@@ -3,10 +3,10 @@ import { PageFrame } from "@/components/PageFrame";
 import { cache } from "react";
 import { getProcesses, getRegions, getSignalIndex, getStats } from "@/lib/api";
 import { fmtDate, fmtInt, fmtPct, NA } from "@/lib/format";
-import { SPECIALISTS } from "@/lib/investigation";
+import { SPECIALISTS, SPECIALIST_ORDER } from "@/lib/investigation";
 import type { Stats } from "@/lib/types";
 import { Art } from "@/components/Art";
-import { EvaluationBlock, EvaluationLink } from "@/components/Evaluation";
+import { EvaluationBlock } from "@/components/Evaluation";
 import { RandomProcessButton } from "@/components/RandomProcessButton";
 import { RegionExplorer } from "@/components/RegionExplorer";
 import { Term } from "@/components/Term";
@@ -21,11 +21,11 @@ export default function Home() {
       <Hero />
       <WhatItIs />
       <HowToRead />
-      <section className="sec sec--ice" aria-labelledby="numeros-h">
+      <section className="sec sec--ice sec--compact" aria-labelledby="numeros-h">
         <div className="wrap">
           <header className="sec__head reveal">
             <p className="eyebrow">Los datos, hasta hoy</p>
-            <h2 className="h2" id="numeros-h">
+            <h2 className="h2 h2--sm" id="numeros-h">
               Lo que Veedor <em>ha leído.</em>
             </h2>
           </header>
@@ -33,11 +33,11 @@ export default function Home() {
           <Charts />
         </div>
       </section>
-      <section className="sec sec--ice" aria-labelledby="mapa-h" style={{ paddingTop: 0 }}>
+      <section className="sec sec--ice sec--compact" aria-labelledby="mapa-h" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <header className="sec__head reveal">
             <p className="eyebrow">Mapa</p>
-            <h2 className="h2" id="mapa-h">
+            <h2 className="h2 h2--sm" id="mapa-h">
               Señales <em>por provincia.</em>
             </h2>
             <p className="lead">Por provincia, qué parte de los procesos competitivos tiene alguna señal. Pasa el cursor o toca una provincia para ver las cifras.</p>
@@ -47,11 +47,11 @@ export default function Home() {
       </section>
       <Agents />
       <Evaluation />
-      <section className="sec sec--ice" aria-labelledby="top-h">
+      <section className="sec sec--ice sec--compact" aria-labelledby="top-h">
         <div className="wrap">
           <header className="sec__head reveal">
             <p className="eyebrow">Para empezar</p>
-            <h2 className="h2" id="top-h">
+            <h2 className="h2 h2--sm" id="top-h">
               Los procesos con <em>mayor puntaje.</em>
             </h2>
             <p className="lead">
@@ -97,7 +97,7 @@ function Hero() {
             <a href="#como" className="btn btn--line">
               Cómo funciona
             </a>
-            <RandomProcessButton className="btn btn--line" label="Proceso al azar" />
+            <RandomProcessButton className="link hero__rnd" label="Proceso al azar" />
           </div>
         </div>
         <div className="stage">
@@ -110,20 +110,22 @@ function Hero() {
 
 function WhatItIs() {
   return (
-    <section className="sec sec--ice" aria-labelledby="que-h" style={{ paddingTop: "clamp(24px, 4vw, 48px)" }}>
+    <section className="sec sec--ice sec--compact" aria-labelledby="que-h" style={{ paddingTop: 0 }}>
       <div className="wrap">
         <header className="sec__head reveal">
           <p className="eyebrow">En pocas palabras</p>
-          <h2 className="h2" id="que-h">
+          <h2 className="h2 h2--sm" id="que-h">
             Qué es y qué <em>no es.</em>
           </h2>
         </header>
         <div className="is-grid">
           <article className="card is is--yes reveal">
-            <span className="is__mark" aria-hidden="true">
-              ✓
-            </span>
-            <h3>Qué es</h3>
+            <div className="is__head">
+              <span className="is__mark" aria-hidden="true">
+                ✓
+              </span>
+              <h3>Qué es</h3>
+            </div>
             <p>Una forma de leer cómo compra el Estado, con los datos abiertos de contratación pública del SERCOP.</p>
             <ul className="ticks">
               <li>Cada proceso recibe un <Term t="puntaje">puntaje</Term> de 0 a 100, a partir de reglas públicas.</li>
@@ -132,10 +134,12 @@ function WhatItIs() {
             </ul>
           </article>
           <article className="card is is--no reveal" style={{ "--d": "0.1s" } as React.CSSProperties}>
-            <span className="is__mark" aria-hidden="true">
-              ✕
-            </span>
-            <h3>Qué no es</h3>
+            <div className="is__head">
+              <span className="is__mark" aria-hidden="true">
+                ✕
+              </span>
+              <h3>Qué no es</h3>
+            </div>
             <p>Una acusación. Ni una conclusión sobre nadie.</p>
             <ul className="ticks">
               <li>Una señal marca algo atípico que merece una segunda mirada; casi siempre tiene explicaciones normales.</li>
@@ -154,11 +158,11 @@ function WhatItIs() {
 
 function HowToRead() {
   return (
-    <section className="sec sec--ink" id="como" aria-labelledby="como-h">
+    <section className="sec sec--ink sec--compact" id="como" aria-labelledby="como-h">
       <div className="wrap">
         <header className="sec__head reveal">
           <p className="eyebrow">Cómo funciona</p>
-          <h2 className="h2" id="como-h">
+          <h2 className="h2 h2--sm" id="como-h">
             Cómo usar Veedor <em>en tres pasos</em>.
           </h2>
         </header>
@@ -235,17 +239,17 @@ function HowToRead() {
 }
 
 function Agents() {
-  const names = (["company", "tax_registry", "history", "audit"] as const).map((id) => SPECIALISTS[id].name);
+  const names = SPECIALIST_ORDER.map((id) => SPECIALISTS[id].name);
   return (
-    <section className="sec sec--ink" aria-labelledby="ag-h">
+    <section className="sec sec--ink sec--compact" aria-labelledby="ag-h">
       <div className="wrap agents__grid">
         <div className="reveal">
           <p className="eyebrow">Investiga con agentes</p>
-          <h2 className="h2" id="ag-h">
-            Un supervisor. <em>Cuatro</em> especialistas.
+          <h2 className="h2 h2--sm" id="ag-h">
+            Un supervisor. <em>Cinco</em> especialistas.
           </h2>
           <p className="lead">
-            Cuando un proceso lo merece, un supervisor manda a cuatro especialistas a consultar fuentes oficiales, solo para leer. Todo lo
+            Cuando un proceso lo merece, un supervisor manda a cinco especialistas a consultar fuentes oficiales, solo para leer. Todo lo
             que encuentran pasa por un verificador: cada cifra tiene que existir en los datos.
           </p>
           <div className="actions">
@@ -255,8 +259,8 @@ function Agents() {
           </div>
         </div>
         <div className="agents__panel reveal" style={{ "--d": "0.1s" } as React.CSSProperties}>
-          <Art name="investigacion" sizes="(min-width: 900px) 40vw, 90vw" alt="Dibujo isométrico de una oficina con una mesa central y cuatro puestos de trabajo distintos, sin personas: los cuatro especialistas." />
-          <div className="mini" role="img" aria-label="Un supervisor envía a cuatro especialistas a consultar fuentes oficiales.">
+          <Art name="investigacion" sizes="(min-width: 900px) 40vw, 90vw" />
+          <div className="mini" role="img" aria-label={`Un supervisor envía a cinco especialistas a consultar fuentes oficiales: ${names.join(", ")}.`}>
             <div className="mini__sup" aria-hidden="true">Supervisor</div>
             <div className="mini__line" aria-hidden="true" />
             <div className="mini__row" aria-hidden="true">
@@ -277,13 +281,10 @@ function Agents() {
 
 function Evaluation() {
   return (
-    <section className="sec sec--tc" aria-labelledby="ev-h">
+    <section className="sec sec--tc sec--compact" aria-labelledby="ev-h">
       <div className="wrap">
         <p className="eyebrow">Qué tan bien funciona</p>
         <EvaluationBlock />
-        <div className="actions">
-          <EvaluationLink className="btn btn--ink" />
-        </div>
       </div>
     </section>
   );
@@ -359,7 +360,7 @@ async function Charts() {
   const none = stats.processes_total != null ? stats.processes_total - withSignals : null;
   const buckets = signalBuckets(stats);
   return (
-    <div className="grid2" style={{ marginTop: "clamp(48px, 7vw, 80px)" }}>
+    <div className="grid2 stats-charts">
       <section aria-labelledby="dist" className="card">
         <h3 className="h3" id="dist">
           Cuántos procesos hay por puntaje
@@ -395,7 +396,7 @@ async function Charts() {
 }
 
 async function TopProcesses() {
-  const result = await Promise.all([getProcesses({ sort: "-risk_score", page_size: "10" }), getSignalIndex()]).then(
+  const result = await Promise.all([getProcesses({ sort: "-risk_score", page_size: "8" }), getSignalIndex()]).then(
     (v) => ({ ok: true as const, v }),
     (e: unknown) => ({ ok: false as const, e }),
   );

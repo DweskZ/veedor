@@ -4,7 +4,7 @@ export type ArtName = "hero" | "datos" | "investigacion" | "verificacion" | "vac
 export const ART_ALT: Record<ArtName, string> = {
   hero: "Dibujo isométrico de una plaza pública con un edificio municipal, una obra con grúa y un camión de reparto: lo que compra el Estado.",
   datos: "Dibujo isométrico de un archivo con estantes de carpetas y cajas: los datos abiertos de contratación.",
-  investigacion: "Dibujo isométrico de una oficina con una mesa central y cuatro puestos de trabajo distintos, sin personas: los cuatro especialistas.",
+  investigacion: "Dibujo isométrico de una oficina con una mesa central y varios puestos de trabajo, sin personas: los especialistas que consultan las fuentes.",
   verificacion: "Dibujo isométrico de una oficina de registro público con un mostrador, un sello y filas de archivadores: la fuente oficial.",
   vacio: "Dibujo isométrico de un terreno vacío con una cerca y un letrero en blanco.",
 };

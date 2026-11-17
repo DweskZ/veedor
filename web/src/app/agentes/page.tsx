@@ -69,6 +69,13 @@ const AGENTS: { name: string; plain: string; tools: string; can: string; cannot:
     cannot: "Descartar informes: lee 3 archivos de 200 filas como máximo. Lo habitual es «no se pudo establecer». Una coincidencia ambigua nunca cuenta.",
   },
   {
+    name: SPECIALISTS.enquiries.name,
+    plain: "Describe cómo fue la etapa de preguntas de los oferentes.",
+    tools: "process_texts, una consulta local de solo lectura. Hasta 1 consulta.",
+    can: "Contar las preguntas registradas, cuántas tienen respuesta publicada, los días entre pregunta y respuesta, las que llegaron en los 3 días previos al cierre de ofertas y las que tratan de plazos, especificaciones, precio o requisitos. Solo entrega números y fechas, nunca el texto.",
+    cannot: "Mostrar el texto de una pregunta ni de una respuesta, ni juzgar si fue buena. «Respondida» cuenta solo respuestas con texto publicado, así que es un mínimo. Se aplica solo si el proceso registró al menos una pregunta.",
+  },
+  {
     name: "Redactor y verificador",
     plain: "Escribe el resumen y comprueba cada cifra.",
     tools: "Plantilla determinista; el verificador es una función pura.",
@@ -243,10 +250,10 @@ export default function AgentsPage() {
         eyebrow="Investiga con agentes"
         title={
           <>
-            Un supervisor. <em>Cuatro</em> especialistas.
+            Un supervisor. <em>Cinco</em> especialistas.
           </>
         }
-        lead="Cuando un proceso lo merece, un supervisor manda a cuatro especialistas a consultar fuentes oficiales, solo para leer. Lo que encuentran pasa por el mismo redactor y verificador del expediente. Las investigaciones se hacen desde la línea de comandos y quedan guardadas: esta web solo muestra las guardadas y nunca inicia una."
+        lead="Cuando un proceso lo merece, un supervisor manda a cinco especialistas a consultar fuentes oficiales, solo para leer. Lo que encuentran pasa por el mismo redactor y verificador del expediente. Las investigaciones se hacen desde la línea de comandos y quedan guardadas: esta web solo muestra las guardadas y nunca inicia una."
       >
         <div className="actions">
           <Link href="/metodologia" className="btn btn--line btn--sm">

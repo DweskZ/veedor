@@ -23,7 +23,14 @@ export const SPECIALISTS: Record<string, { name: string; objective: string }> = 
     name: "Informes de control",
     objective: "Informes aprobados de la Contraloría cuya entidad auditada coincide con la entidad contratante.",
   },
+  enquiries: {
+    name: "Etapa de preguntas y respuestas",
+    objective: "Cómo fue la etapa de preguntas y respuestas: cuántas preguntas hubo, cuántas tuvieron respuesta, cuánto tardó y cuántas llegaron cerca del cierre.",
+  },
 };
+
+/** The five specialists in the order of docs/AGENTS.md (the fixed layout of the diagrams and lists). */
+export const SPECIALIST_ORDER = ["company", "tax_registry", "history", "audit", "enquiries"] as const;
 
 export const SOURCES: Record<string, string> = {
   get_compania_info: "Superintendencia de Compañías · registro de la compañía",
@@ -33,12 +40,17 @@ export const SOURCES: Record<string, string> = {
   list_catalogo: "Contraloría General del Estado · catálogo de informes",
   get_contraloria_informe: "Contraloría General del Estado · informes aprobados",
   get_sri_ruc_info: "SRI · consulta en línea del RUC",
+  process_texts: "SERCOP · preguntas y respuestas del proceso (solo recuentos y fechas)",
 };
 
 export const DISPATCH_REASONS: Record<string, string> = {
   company_size_signal: "señal de tamaño de la compañía frente al contrato",
   buyer_concentration_signal: "señal de concentración de adjudicaciones",
   baseline_check: "verificación básica",
+  recurring_cobidders_signal: "señal de oferentes que coinciden",
+  supplier_not_active_signal: "señal de proveedor no activo en el SRI",
+  ghost_listing_signal: "señal de listado del SRI",
+  repeated_awards_signal: "señal de adjudicaciones repetidas",
   single_bidder_signal: "señal de oferente único",
   tender_window_signal: "señal de plazo de ofertas",
   low_saving_signal: "señal de ahorro bajo",
@@ -97,6 +109,11 @@ export const FACT_LABELS: Record<string, string> = {
   "investigation.audit.count": "Informes de control encontrados",
   "investigation.audit.reports": "Detalle de informes de control",
   "investigation.audit.unavailable": "Informes de control: no se pudo establecer",
+  "investigation.enquiries.unavailable": "Etapa de preguntas: sin datos",
+  "investigation.enquiries.count": "Preguntas y respuestas del proceso",
+  "investigation.enquiries.timing": "Días entre pregunta y respuesta",
+  "investigation.enquiries.late": "Preguntas cerca del cierre de ofertas",
+  "investigation.enquiries.topics": "Preguntas por tema",
 };
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);

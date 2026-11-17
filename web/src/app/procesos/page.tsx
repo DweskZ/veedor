@@ -62,6 +62,7 @@ function ExplorerPage({ children }: { children: React.ReactNode }) {
   return (
     <PageShell>
       <PageHeader
+        compact
         eyebrow="Explorador"
         title={
           <>
@@ -70,8 +71,7 @@ function ExplorerPage({ children }: { children: React.ReactNode }) {
         }
         lead={
           <>
-            Cada fila es una compra del Estado con su <Term t="puntaje">puntaje</Term> de riesgo. Filtra lo que te interese: la dirección de la página guarda tus filtros, así puedes
-            compartir lo que ves.
+            Cada fila es una compra del Estado con su <Term t="puntaje">puntaje</Term> de riesgo. La dirección de la página guarda tus filtros.
           </>
         }
       />
@@ -227,7 +227,7 @@ async function Results({ q, signals, regionLabel }: { q: ProcessQuery; signals: 
   const pages = Math.max(1, Math.ceil(page.total / page.page_size));
   return (
     <>
-      <div style={{ marginBottom: 18, marginTop: 28 }}>
+      <div className="results__head">
         <p className="results__count" role="status" aria-live="polite">
           {page.total === 1 ? "Hay 1 proceso" : `Hay ${fmtInt(page.total)} procesos`}
           {hasFilters ? " con estos filtros" : ""}.
@@ -235,9 +235,7 @@ async function Results({ q, signals, regionLabel }: { q: ProcessQuery; signals: 
         <p className="results__sub">
           Página {fmtInt(page.page)} de {fmtInt(pages)} · {SORTS.find(([v]) => v === sort)?.[1] ?? "Orden personalizado"}.
         </p>
-        <div style={{ marginTop: 14 }}>
-          <RiskLegend />
-        </div>
+        <RiskLegend />
       </div>
       <ProcessTable
         rows={page.items}

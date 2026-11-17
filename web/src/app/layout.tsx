@@ -6,6 +6,7 @@ import { ScrollReveal } from "@/components/ScrollReveal";
 import "./globals.css";
 import "./features.css";
 import "./data.css";
+import "./refine.css";
 import { ALLOW_INDEXING } from "@/lib/site";
 
 // Plus Jakarta Sans, the Ruray typeface, self-hosted (no request to Google).

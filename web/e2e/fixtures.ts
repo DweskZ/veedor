@@ -31,7 +31,7 @@ export async function allPages(page: Page) {
  */
 export const test = base.extend<{ health: string[] }>({
   health: [
-    async ({ page }, use) => {
+    async ({ page, javaScriptEnabled }, use) => {
       const issues: string[] = [];
       // The API only lists the stack's own web origin for CORS; when the suite runs against another port (for example a
       // local production build on :3100) add the header so the browser lets the page read the API. Nothing else is altered.
@@ -58,6 +58,8 @@ export const test = base.extend<{ health: string[] }>({
         const why = r.failure()?.errorText ?? "";
         // Navigations and RSC prefetches aborted by a later navigation are not defects.
         if (/abort|cancel/i.test(why)) return;
+        // Without JavaScript the browser itself refuses to load scripts: that is the point of such a test, not a defect.
+        if (!javaScriptEnabled && r.resourceType() === "script") return;
         issues.push(`requestfailed: ${r.method()} ${r.url()} ${why}`);
       });
       page.on("response", (r) => {

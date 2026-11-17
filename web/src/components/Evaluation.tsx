@@ -47,25 +47,44 @@ export function EvaluationText() {
   );
 }
 
-/** The home-page block: question, what was tried, what happened and what it means, in plain words. Figures come from the snapshot. */
+/** The home-page block: headline, one key figure, short sentences on a light card, the link. Figures come from the snapshot. */
 export function EvaluationBlock() {
   const f = backtestFigures();
   return (
-    <>
-      <h2 className="h2" id="ev-h">
-        ¿El puntaje predice algo? Lo probamos{f?.includesHalf ? <>, <em>y no.</em></> : <em>.</em>}
-      </h2>
-      {f && f.includesHalf ? (
-        <p className="eval__text" style={{ marginTop: 28 }}>
-          Tomamos {f.positives} empresas señaladas por el SRI y miramos si Veedor les ponía puntajes más altos que a las otras {f.unlabelled} empresas ganadoras. No lo hizo: acertó
-          igual que el azar. Por eso un puntaje alto no significa que haya algo malo: solo te dice dónde mirar primero.
-        </p>
-      ) : (
-        <p className="eval__text" style={{ marginTop: 28 }}>
-          Un puntaje alto no significa que haya algo malo: solo te dice dónde mirar primero. Los detalles de la prueba están en la metodología.
-        </p>
-      )}
-    </>
+    <div className="eval">
+      <div>
+        <h2 className="eval__h" id="ev-h">
+          ¿El puntaje predice algo? Lo probamos{f?.includesHalf ? <>, <em>y no.</em></> : <em>.</em>}
+        </h2>
+        {f && f.includesHalf ? (
+          <p className="eval__figure">
+            <span className="eval__num">
+              {f.positives}
+              <small>frente a</small>
+              {f.unlabelled}
+            </span>
+            <span className="eval__cap" style={{ display: "block" }}>
+              empresas señaladas por el SRI frente a otras empresas ganadoras: el puntaje las ordenó igual que el azar.
+            </span>
+          </p>
+        ) : null}
+      </div>
+      <div className="eval__card">
+        {f && f.includesHalf ? (
+          <>
+            <p>
+              Miramos si Veedor les ponía puntajes más altos a las {f.positives} empresas señaladas por el SRI que a las otras {f.unlabelled} empresas ganadoras. No lo hizo: acertó igual que el azar.
+            </p>
+            <p>Por eso un puntaje alto no significa que haya algo malo: solo te dice dónde mirar primero.</p>
+          </>
+        ) : (
+          <p>Un puntaje alto no significa que haya algo malo: solo te dice dónde mirar primero. Los detalles de la prueba están en la metodología.</p>
+        )}
+        <div className="actions">
+          <EvaluationLink className="btn btn--ink btn--sm" />
+        </div>
+      </div>
+    </div>
   );
 }
 

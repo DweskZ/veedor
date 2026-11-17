@@ -124,6 +124,17 @@ export function ExplorerShell({ values, years, methods, signals, regions, sorts,
           apply();
         }}
       >
+        <div className="filters__grid filters__grid--main">
+          <label className="field field--search">
+            <span className="field__label">Buscar</span>
+            <input name="q" type="search" defaultValue={values.q} placeholder="Código o nombre de la entidad" className="control" />
+          </label>
+          <Select name="year" label="Año" value={values.year} options={years} all="Todos los años" />
+          {regions.length ? <Select name="region" label="Provincia de la entidad" value={values.region} options={regions} all="Todo el país" /> : null}
+          <Select name="signal" label="Tipo de señal" value={values.signal} options={signals} all="Cualquier señal" />
+          <Select name="sort" label="Ordenar por" value={values.sort} options={sorts} />
+        </div>
+
         <div className="qchips" role="group" aria-label="Filtros rápidos">
           <span className="qchips__t">Empieza por:</span>
           {chips.map((c) => (
@@ -139,29 +150,19 @@ export function ExplorerShell({ values, years, methods, signals, regions, sorts,
           </span>
         </div>
 
-        <div className="filters__grid">
-          <label className="field field--search">
-            <span className="field__label">Buscar</span>
-            <input name="q" type="search" defaultValue={values.q} placeholder="Escribe aquí" className="control" />
-            <span className="field__help">Código del proceso o nombre de la entidad</span>
-          </label>
-          <Select name="year" label="Año" value={values.year} options={years} all="Todos los años" />
-          <Select name="method" label="Método de contratación" value={values.method} options={methods} all="Todos los métodos" />
-          {regions.length ? <Select name="region" label="Provincia de la entidad" value={values.region} options={regions} all="Todo el país" /> : null}
-          <Select name="signal" label="Tipo de señal" value={values.signal} options={signals} all="Cualquier señal" />
-          <label className="field">
-            <span className="field__label">Puntaje mínimo</span>
-            <input name="min_score" type="number" min={0} max={100} inputMode="numeric" defaultValue={values.min_score} placeholder="0" className="control" />
-            <span className="field__help">De 0 a 100</span>
-          </label>
-          <Select name="sort" label="Ordenar por" value={values.sort} options={sorts} />
-        </div>
+        <details className="filters__more" open={Boolean(values.method || values.min_score)}>
+          <summary>Más filtros: método de contratación y puntaje mínimo</summary>
+          <div className="filters__grid">
+            <Select name="method" label="Método de contratación" value={values.method} options={methods} all="Todos los métodos" />
+            <label className="field">
+              <span className="field__label">Puntaje mínimo (de 0 a 100)</span>
+              <input name="min_score" type="number" min={0} max={100} inputMode="numeric" defaultValue={values.min_score} placeholder="0" className="control" />
+            </label>
+          </div>
+        </details>
         <input type="hidden" name="min_amount" defaultValue={values.min_amount} />
         <input type="hidden" name="max_amount" defaultValue={values.max_amount} />
         <div className="filters__foot">
-          <p className="small muted" style={{ margin: 0 }}>
-            Los resultados se actualizan al cambiar un filtro.
-          </p>
           <div className="filters__btns">
             <button type="submit" className="btn btn--tc btn--sm nojs-only">
               Aplicar filtros

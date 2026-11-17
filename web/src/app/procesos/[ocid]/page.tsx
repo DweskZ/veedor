@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ApiError, getContext, getDossier as fetchDossier, getInvestigation, getMeta, getProcess, getProvenance, getQuotes, getReviews, getSignals } from "@/lib/api";
 import { citationFor, sourceById, type Provenance } from "@/lib/provenance";
-import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
+import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtNum, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessFacts, SignalDef } from "@/lib/types";
 import { SignalCard } from "@/components/SignalCard";
 import { DossierIndex, DossierSectionView } from "@/components/DossierSections";
@@ -16,9 +16,9 @@ import { SameBuyerToggle } from "@/components/SameBuyerToggle";
 import { SimilarBody } from "@/components/SimilarProcesses";
 import { canLinkBuyer, canLinkSupplier, isOcid } from "@/lib/validate";
 import { REVIEW_LABELS } from "@/lib/reviews";
-import { Card, EmptyState, ErrorState, Name, Num, partyName, RiskScore, Section } from "@/components/ui";
+import { Card, EmptyState, ErrorState, Name, Num, partyName, RiskScore, Section, TabPanel } from "@/components/ui";
 import { displayName } from "@/lib/names";
-import { SectionNav, type NavItem } from "@/components/SectionNav";
+import { ProcessTabs, type TabItem } from "@/components/ProcessTabs";
 import { ProvenanceProvider, SourceMarker, SourcesToggle } from "@/components/Provenance";
 import { QuotesBlock } from "@/components/Quotes";
 import { AskSection } from "@/components/AskProcess";
@@ -113,16 +113,18 @@ async function Dossier({
     hasObject: Boolean(f.description || f.main_cpc_description),
   });
   const quotesShown = apiMeta.quotes_enabled === true && quotes !== null;
-  const nav: NavItem[] = [
+  const nSig = riskSignals.length;
+  const tabs: TabItem[] = [
+    { id: "resumen", label: "Resumen" },
     { id: "hechos", label: "Datos" },
-    { id: "senales", label: "Señales", also: ["comparacion", ...(contextSignals.length ? ["contexto"] : [])] },
+    { id: "senales", label: "Señales", badge: nSig ? String(nSig) : undefined },
     ...(quotesShown ? [{ id: "citas", label: "Citas" }] : []),
     ...(askEnabled ? [{ id: "preguntar", label: "Preguntar" }] : []),
     { id: "investigacion", label: "Investigación" },
     { id: "similares", label: "Parecidos" },
     { id: "texto", label: "Expediente" },
-    { id: "verificar", label: "Verificar", also: ["revision"] },
-    { id: "fuentes", label: "Fuentes" },
+    { id: "verificar", label: "Verificar" },
+    ...(dossierText.fuentes ? [{ id: "fuentes", label: "Fuentes" }] : []),
   ];
   const winnerNode =
     w && (w.ruc || w.name) ? (w.kind === "natural_person" || !w.name ? partyName(w.name, w.kind) : <Name value={w.name} />) : null;
@@ -162,9 +164,20 @@ async function Dossier({
         </div>
       </header>
 
-      <div className="wrap">
-        <section className="summary" aria-label="Lo esencial de este proceso">
-          <div className="summary__cell summary__cell--who">
+      <ProcessTabs items={tabs}>
+        <TabPanel id="resumen">
+          <Section title="Resumen" id="resumen" note="Lo esencial de este proceso en un vistazo. Cada pestaña de arriba amplía una parte.">
+            <section className="summary" aria-label="Lo esencial de este proceso">
+          <div className="summary__cell summary__cell--what">
+              <p className="summary__q">Qué se compró</p>
+              <p className="summary__a summary__a--text">{meta || (f.description ? <Name value={f.description} /> : "Sin descripción publicada")}</p>
+              {meta && f.description ? (
+                <p className="summary__sub">
+                  <Name value={f.description} />
+                </p>
+              ) : null}
+            </div>
+            <div className="summary__cell summary__cell--who">
             <p className="summary__q">Quién compró</p>
             <p className="summary__a">
               {canLinkBuyer(f.buyer_ruc) ? (
@@ -224,14 +237,47 @@ async function Dossier({
             )}
           </div>
         </section>
-      </div>
+            <div className="rsum">
+              <h3 className="h4">Señales de riesgo</h3>
+              {riskSignals.length === 0 ? (
+                <p className="rsum__none">Ninguna regla marcó este proceso. Eso no significa que esté libre de problemas.</p>
+              ) : (
+                <ul className="rsig">
+                  {riskSignals.map((s) => (
+                    <li key={s.code}>
+                      <a href={`#sig-${s.code}`} className="rsig__name">
+                        {s.label_es ?? defByCode.get(s.code)?.label_es ?? s.code}
+                      </a>
+                      <span className="rsig__val">
+                        observado <b>{fmtNum(s.value)}</b> · umbral <b>{fmtNum(s.threshold)}</b>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {contextSignals.length ? (
+                <p className="rsum__ctx">
+                  Además, {contextSignals.length === 1 ? "1 dato de contexto" : `${fmtInt(contextSignals.length)} datos de contexto`} del proveedor que no suma{contextSignals.length === 1 ? "" : "n"} puntos:{" "}
+                  {contextSignals.map((s, i) => (
+                    <span key={s.code}>
+                      {i ? ", " : ""}
+                      <a href={`#sig-${s.code}`} className="inline-link">{s.label_es ?? defByCode.get(s.code)?.label_es ?? s.code}</a>
+                    </span>
+                  ))}
+                  .
+                </p>
+              ) : null}
+              <p className="rsum__go">
+                <a href="#senales" className="link">Cada señal, con su explicación <span aria-hidden="true">→</span></a>
+                <a href="#hechos" className="link">Todos los datos del proceso <span aria-hidden="true">→</span></a>
+                <a href="#verificar" className="link">Cómo verificarlo en la fuente <span aria-hidden="true">→</span></a>
+              </p>
+            </div>
+          </Section>
+        </TabPanel>
 
-      <SectionNav items={nav} />
-
-      <div className="wrap">
-        <div className="doc">
-          <div className="doc__main">
-            <Section
+        <TabPanel id="hechos">
+          <Section
               title="Los datos del proceso"
               id="hechos"
               note="Estos son los datos tal como los publica el SERCOP. Compáralos con el registro original."
@@ -311,11 +357,13 @@ async function Dossier({
                 </Fact>
               </dl>
             </Section>
+        </TabPanel>
 
-            <Section
+        <TabPanel id="senales">
+          <Section
               title="Señales de riesgo"
               id="senales"
-              note="Una señal es un patrón atípico, no una conclusión. Cada tarjeta responde tres preguntas: qué se observó, por qué puede importar y cómo puede ser normal."
+              note="Una señal es un patrón atípico, no una conclusión. Cada tarjeta dice qué se observó, por qué puede importar y cómo puede ser normal. En las barras, la barra es lo observado y la marca vertical es el umbral de la regla."
               aside={<p className="tag">{riskSignals.length === 1 ? "1 señal" : `${fmtInt(riskSignals.length)} señales`}</p>}
             >
               {riskSignals.length === 0 ? (
@@ -331,12 +379,10 @@ async function Dossier({
                 </div>
               )}
             </Section>
-
-            <Section title="Cómo se compara" id="comparacion" note="Para cada dato que se puede comparar, dónde queda este proceso entre los parecidos.">
+          <Section title="Cómo se compara" id="comparacion" note="Para cada dato que se puede comparar, dónde queda este proceso entre los parecidos.">
               {comparison}
             </Section>
-
-            {contextSignals.length ? (
+          {contextSignals.length ? (
               <Section title="Contexto del proveedor" id="contexto" note="Estos datos describen el registro del proveedor en relación con el proceso. Son solo contexto: no suman puntos.">
                 <div className="sigs sigs--2">
                   {contextSignals.map((s) => (
@@ -345,8 +391,10 @@ async function Dossier({
                 </div>
               </Section>
             ) : null}
+        </TabPanel>
 
-            {quotesShown ? (
+        {quotesShown ? (
+          <TabPanel id="citas">
               <Section
                 title="Citas de la fuente"
                 id="citas"
@@ -354,15 +402,23 @@ async function Dossier({
               >
                 <QuotesBlock quotes={quotes} />
               </Section>
-            ) : null}
+            </TabPanel>
+        ) : null}
 
-            {askEnabled ? <AskSection ocid={ocid} suggestions={suggestions} quotesEnabled={apiMeta.quotes_enabled === true} /> : null}
+        {askEnabled ? (
+          <TabPanel id="preguntar">
+            <AskSection ocid={ocid} suggestions={suggestions} quotesEnabled={apiMeta.quotes_enabled === true} />
+          </TabPanel>
+        ) : null}
 
-            <Section title="Investigación con agentes" id="investigacion">
+        <TabPanel id="investigacion">
+          <Section title="Investigación con agentes" id="investigacion">
               {investigation}
             </Section>
+        </TabPanel>
 
-            <Section
+        <TabPanel id="similares">
+          <Section
               title="Procesos parecidos"
               id="similares"
               aside={<SameBuyerToggle checked={sameBuyer} />}
@@ -370,10 +426,12 @@ async function Dossier({
             >
               {similar}
             </Section>
+        </TabPanel>
 
-            {dossierText.texto}
+        <TabPanel id="texto">{dossierText.texto}</TabPanel>
 
-            <Section title="Cómo verificar" id="verificar" note="Veedor no es la última palabra. Estos pasos te llevan a la fuente oficial.">
+        <TabPanel id="verificar">
+          <Section title="Cómo verificar" id="verificar" note="Veedor no es la última palabra. Estos pasos te llevan a la fuente oficial.">
               <Card>
                 <ol className="stack">
                   {[
@@ -397,15 +455,14 @@ async function Dossier({
                 </p>
               </Card>
             </Section>
-
-            <Section title="Revisión humana" id="revision">
+          <Section title="Revisión humana" id="revision">
               {reviewsBlock}
             </Section>
-            {dossierText.fuentes}
-            <div className="page-end" />
-          </div>
-        </div>
-      </div>
+        </TabPanel>
+
+        {dossierText.fuentes ? <TabPanel id="fuentes">{dossierText.fuentes}</TabPanel> : null}
+        <div className="page-end" />
+      </ProcessTabs>
       <BackToTop />
       </PageShell>
     </ProvenanceProvider>

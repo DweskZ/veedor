@@ -2,7 +2,9 @@ import Link from "next/link";
 import { fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessSummary } from "@/lib/types";
 import { canLinkBuyer, canLinkSupplier } from "@/lib/validate";
-import { Name, Num, partyName, RiskScore, SignalChip } from "./ui";
+import { shortLabel } from "@/lib/signal-copy";
+import { SignalChips } from "./SignalChips";
+import { Name, Num, partyName, RiskScore } from "./ui";
 
 export interface SortConfig {
   current: string;
@@ -43,13 +45,15 @@ function Winner({ r, withRuc = true }: { r: ProcessSummary; withRuc?: boolean })
   if (!r.winner_name && !r.winner_kind) return <span className="muted">Sin adjudicatario</span>;
   return (
     <>
-      {canLinkSupplier(r.winner_ruc, r.winner_kind) ? (
-        <Link href={`/proveedores/${r.winner_ruc}`} className="cell-link">
+      <span className="clamp2" title={r.winner_kind === "natural_person" ? undefined : (r.winner_name ?? undefined)}>
+        {canLinkSupplier(r.winner_ruc, r.winner_kind) ? (
+          <Link href={`/proveedores/${r.winner_ruc}`} className="cell-link">
+            <WinnerName r={r} />
+          </Link>
+        ) : (
           <WinnerName r={r} />
-        </Link>
-      ) : (
-        <WinnerName r={r} />
-      )}
+        )}
+      </span>
       {withRuc && r.winner_ruc ? (
         <div className="cell-sub">
           <Num>{r.winner_ruc}</Num>
@@ -60,14 +64,10 @@ function Winner({ r, withRuc = true }: { r: ProcessSummary; withRuc?: boolean })
 }
 
 function Signals({ r, labels, context }: { r: ProcessSummary; labels: Record<string, string>; context: string[] }) {
-  return r.signal_codes.length ? (
-    <div className="chips">
-      {r.signal_codes.map((c) => (
-        <SignalChip key={c} code={c} labels={labels} quiet={context.includes(c)} />
-      ))}
-    </div>
-  ) : (
-    <span className="muted">Ninguna</span>
+  return (
+    <SignalChips
+      items={r.signal_codes.map((c) => ({ code: c, text: shortLabel(c, labels), full: labels[c] ?? c, quiet: context.includes(c) }))}
+    />
   );
 }
 
@@ -123,9 +123,9 @@ export function ProcessTable({
                     <Link href={`/procesos/${encodeURIComponent(r.ocid)}`} className="code">
                       {shortCode(r.ocid)}
                     </Link>
-                    <div className="cell-sub">
+                    {r.year ? <span className="cell-sub cell-sub--inline"> · {r.year}</span> : null}
+                    <div className="cell-sub clamp2" title={r.buyer_name ?? undefined}>
                       <Buyer r={r} />
-                      {r.year ? ` · ${r.year}` : ""}
                     </div>
                   </td>
                   <td>

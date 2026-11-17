@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { RISK_LEVELS, riskLevel } from "@/lib/risk";
 import { fmtNum } from "@/lib/format";
@@ -11,6 +10,7 @@ export function PageHeader({
   title,
   lead,
   small = false,
+  compact = false,
   children,
 }: {
   eyebrow?: string;
@@ -18,10 +18,12 @@ export function PageHeader({
   lead?: ReactNode;
   /** Smaller title, for long entity or company names. */
   small?: boolean;
+  /** Tighter header for tool pages (the explorer), so the results start above the fold. */
+  compact?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <header className="phead">
+    <header className={`phead ${compact ? "phead--compact" : ""}`}>
       <div className="wrap">
         <div className="phead__circle" aria-hidden="true" />
         <div className="phead__text">
@@ -60,6 +62,15 @@ export function Section({
       {note ? <p className="blk__note">{note}</p> : null}
       {children}
     </section>
+  );
+}
+
+/** One panel of the process tabs (see ProcessTabs). Always in the HTML; the script hides the inactive ones. */
+export function TabPanel({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <div data-panel={id} id={`panel-${id}`} className="tabpanel">
+      {children}
+    </div>
   );
 }
 
@@ -168,18 +179,6 @@ export function RiskLegend({ large = false }: { large?: boolean }) {
   );
 }
 
-export function SignalChip({ code, labels, quiet = false }: { code: string; labels: Record<string, string>; quiet?: boolean }) {
-  return (
-    <Link
-      href={`/procesos?signal=${encodeURIComponent(code)}`}
-      title={`Ver más procesos con esta señal${quiet ? " (solo contexto, no suma puntos)" : ""}`}
-      className={`chip ${quiet ? "chip--quiet" : ""}`}
-    >
-      {labels[code] ?? code}
-    </Link>
-  );
-}
-
 /** Natural persons arrive masked from the API; this only guards the display. */
 export function partyName(name: string | null, kind: PartyKind | null): string {
   if (kind === "natural_person") return "Persona natural";
@@ -227,7 +226,7 @@ export function BarList({
             </span>
           </div>
           <div className="bars__track" aria-hidden="true">
-            <div className={`bars__fill ${highlightTop && i === 0 ? "bars__fill--tc" : ""}`} style={{ width: `${Math.max(1, (it.value / max) * 100)}%` }} />
+            <div className={`bars__fill ${highlightTop && i === 0 ? "bars__fill--tc" : ""}`} style={{ width: `${it.value > 0 && it.value / max >= 0.005 ? Math.max(1.5, (it.value / max) * 100) : 0}%` }} />
           </div>
         </li>
       ))}

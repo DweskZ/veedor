@@ -63,3 +63,26 @@ export const FALLBACK_COPY: SignalCopy = {
   why: "La regla marcó un patrón atípico respecto a procesos comparables.",
   normal: "Un patrón atípico puede tener explicaciones legítimas: la revisión humana lo decide.",
 };
+
+/**
+ * Short names for tables, where the full label from the API would take three lines. The API sends only the long
+ * `label_es`, so these are written here: neutral, same meaning, never more specific than the rule. The full label stays
+ * available as the tooltip and to screen readers (see SignalChips).
+ */
+export const SHORT_LABEL: Record<string, string> = {
+  SINGLE_BIDDER: "Oferente único",
+  SHORT_TENDER_WINDOW: "Plazo corto",
+  LOW_SAVING: "Ahorro bajo",
+  NEW_SUPPLIER: "Proveedor reciente",
+  SUPPLIER_NOT_ACTIVE: "No activo en el SRI",
+  GHOST_COMPANY_LIST: "En el listado del SRI",
+  GHOST_COMPANY_LISTED_LATER: "Listado del SRI posterior",
+  BUYER_CONCENTRATION: "Concentración en un proveedor",
+  REPEATED_DIRECT_AWARDS: "Directas repetidas",
+  RECURRING_COBIDDERS: "Mismos oferentes",
+  CONTRACT_VS_COMPANY_SIZE: "Contrato grande para la empresa",
+  CONTRACT_VS_COMPANY_SIZE_SAME_YEAR: "Contrato grande, mismo año",
+};
+
+/** Short label for a signal code; falls back to the API label (or the code) for a signal this table does not know. */
+export const shortLabel = (code: string, labels: Record<string, string>): string => SHORT_LABEL[code] ?? labels[code] ?? code;

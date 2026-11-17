@@ -1,0 +1,535 @@
+/* Stage 6 refinements: clearer data screens on top of the Ruray base (see docs/BRAND.md, "Departures for a data product").
+   Loaded after data.css. Palette, typeface and line art are unchanged. */
+
+/* ---------- Section rhythm: the giant headline is for the hero and the key sections only ---------- */
+.sec--compact {
+  padding-block: clamp(36px, 5vw, 64px);
+}
+.sec--compact .sec__head {
+  margin-bottom: clamp(20px, 3vw, 32px);
+}
+.h2--sm {
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.sec__head .eyebrow {
+  margin-bottom: 10px;
+}
+.sec__head .lead {
+  margin-top: 12px;
+  font-size: clamp(1rem, 1.6vw, 1.1875rem);
+}
+.hero {
+  padding-block: clamp(20px, 3vw, 40px) clamp(32px, 5vw, 56px);
+}
+@media (min-width: 900px) {
+  .display {
+    font-size: clamp(4.5rem, 7vw, 6.25rem);
+  }
+}
+.hero .actions {
+  align-items: center;
+}
+.hero__rnd {
+  font-weight: 800;
+  min-height: 44px;
+}
+
+/* ---------- What it is / is not: compact ---------- */
+.is {
+  gap: 8px;
+}
+.is__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.is__head h3 {
+  font-size: clamp(1.4rem, 2.4vw, 1.75rem);
+}
+.is__mark {
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+}
+.is p,
+.ticks > li {
+  font-size: 1rem;
+}
+
+/* ---------- Steps ---------- */
+.step__media {
+  min-height: 0;
+  height: 210px;
+}
+.step__media img {
+  max-height: 190px;
+  width: auto;
+  max-width: 100%;
+}
+.step__media .mock {
+  margin-bottom: 12px;
+  transform-origin: bottom;
+}
+
+/* ---------- Figures ---------- */
+.figs--4 {
+  gap: 16px;
+}
+.figs--4 .fig {
+  background: var(--white);
+  border: 3px solid var(--ink);
+  border-radius: 24px;
+  padding: 16px 18px;
+  justify-content: flex-start;
+}
+.figs--4 .fig dd.fig__hint {
+  margin-top: 2px;
+}
+.fig dt {
+  margin-top: 6px;
+  font-size: 0.9375rem;
+}
+.fig {
+  border-top-width: 3px;
+}
+.stats-charts {
+  margin-top: clamp(20px, 3vw, 32px);
+}
+
+/* ---------- Evaluation block (key section) ---------- */
+.eval {
+  display: grid;
+  gap: clamp(20px, 3vw, 40px);
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .eval {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  }
+}
+.eval__h {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  font-size: clamp(2rem, 4.4vw, 3.25rem);
+}
+.eval__h em {
+  font-style: normal;
+  color: var(--ink);
+}
+.eval__figure {
+  margin-top: 20px;
+}
+/* Large, bold text only: white on terracotta is about 3.9:1, which passes for large text. */
+.eval__num {
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  font-size: clamp(3rem, 7vw, 5rem);
+  font-variant-numeric: tabular-nums;
+}
+.eval__num small {
+  font-size: 0.4em;
+  letter-spacing: -0.02em;
+  margin-inline: 0.2em;
+}
+.eval__cap {
+  margin-top: 10px;
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  max-width: 26em;
+}
+/* Body-size sentences sit on a light card, in ink. */
+.eval__card {
+  background: var(--white);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 28px;
+  padding: clamp(20px, 2.6vw, 30px);
+  display: grid;
+  gap: 12px;
+}
+.eval__card p {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+.eval__card .actions {
+  margin-top: 6px;
+}
+
+/* ---------- Agents block ---------- */
+.agents__panel .mini__row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 560px) {
+  .agents__panel .mini__row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.agents__panel img {
+  max-height: 260px;
+  width: auto;
+  margin-inline: auto;
+  display: block;
+}
+.mini__spec {
+  font-size: 0.8125rem;
+  padding: 8px 6px;
+}
+
+/* ---------- Signal chips in tables: compact wrapping row ---------- */
+.chips--row {
+  gap: 6px;
+  align-items: center;
+}
+.chips--row .chip {
+  min-height: 28px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.chips__rest {
+  display: contents;
+}
+.chips__more {
+  font: 800 0.8125rem/1 var(--font-sans);
+  color: var(--ink);
+  background: none;
+  border: 0;
+  min-height: 28px;
+  padding: 0 6px;
+  text-decoration: underline;
+  text-decoration-color: var(--tc);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.js .chips--row:not(.is-open) .chips__rest {
+  display: none;
+}
+.tbl--proc tbody td,
+.tbl--proc tbody th {
+  padding-block: 10px;
+  vertical-align: top;
+}
+.tbl--proc .cell-sub {
+  line-height: 1.3;
+}
+.risk__label {
+  white-space: nowrap;
+}
+
+/* ---------- Explorer: compact filters ---------- */
+.phead--compact .h1--page {
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+}
+.filters {
+  padding: 14px 16px;
+  border-radius: 24px;
+}
+.filters .qchips {
+  margin-bottom: 12px;
+}
+.filters__grid {
+  gap: 10px 12px;
+}
+@media (min-width: 1060px) {
+  .filters__grid--main {
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) minmax(0, 1.2fr);
+  }
+}
+.filters .field__label {
+  font-size: 0.8125rem;
+  margin-bottom: 3px;
+}
+.filters .control {
+  min-height: 44px;
+  border-width: 2px;
+  font-size: 0.9375rem;
+}
+.filters__more {
+  margin-top: 10px;
+}
+.filters__more > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--tc);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.filters__more .filters__grid {
+  margin-top: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+.filters__foot {
+  margin-top: 10px;
+  padding-top: 0;
+  border-top: 0;
+}
+.results__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 24px;
+  margin-block: 18px 12px;
+}
+.results__count {
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+}
+.results__sub {
+  margin: 0;
+}
+
+/* ---------- Process page: tabs ---------- */
+.js .ptabs:not(.ptabs--ready) [data-panel]:not([data-panel="resumen"]) {
+  display: none;
+}
+.tabpanel[hidden] {
+  display: none;
+}
+.tabpanel [id] {
+  scroll-margin-top: calc(var(--header, 76px) + 72px);
+}
+.pnav a[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--ice);
+}
+.pnav__n {
+  margin-left: 8px;
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--tc);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
+}
+.tabpanel > .blk:first-child {
+  margin-top: clamp(20px, 3vw, 32px);
+}
+.blk {
+  margin-top: clamp(28px, 4vw, 44px);
+}
+.rsum {
+  margin-top: 24px;
+}
+.rsig {
+  display: grid;
+  gap: 0;
+  margin-top: 10px;
+  background: var(--white);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.rsig li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 16px;
+  padding: 12px 18px;
+}
+.rsig li + li {
+  border-top: 2px solid var(--ice-deep);
+}
+.rsig__name {
+  font-weight: 800;
+  text-decoration-color: var(--tc);
+  text-underline-offset: 3px;
+}
+.rsig__val {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.rsig__val b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.rsum__none,
+.rsum__ctx {
+  margin-top: 10px;
+  font-weight: 600;
+}
+.rsum__go {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+
+/* ---------- Signal cards: equal height, secondary text in the disclosure ---------- */
+@media (min-width: 1000px) {
+  .sigs--2 {
+    align-items: stretch;
+  }
+}
+.sig {
+  display: flex;
+  flex-direction: column;
+}
+.sig__head {
+  padding-bottom: 4px;
+}
+.sig__vals {
+  margin-top: 8px;
+}
+.sig__vals dd {
+  font-size: 1.25rem;
+}
+.sig__qa {
+  margin-top: 8px;
+  padding: 10px clamp(18px, 2.4vw, 26px) 14px;
+  display: grid;
+  gap: 8px;
+  flex: 1;
+}
+.sig__qa p {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.sig__qa b {
+  font-weight: 800;
+}
+.sig details {
+  margin-top: auto;
+}
+.sig summary {
+  min-height: 44px;
+}
+.sig__rule {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* ---------- Map: readout and the highest / lowest lists ---------- */
+.map__readout {
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  background: var(--white);
+  padding: 10px 14px;
+  min-height: 4.5rem;
+  margin-top: 10px;
+}
+.map__readout b {
+  font-weight: 800;
+}
+.map__ranks {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 520px) {
+  .map__ranks {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.map__ranks h4 {
+  font-size: 0.9375rem;
+  margin-bottom: 4px;
+}
+.map__ranks ol {
+  display: grid;
+  gap: 2px;
+}
+.map__ranks li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.9375rem;
+  border-bottom: 2px solid var(--ice-deep);
+  padding: 3px 0;
+}
+.map__ranks li b {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Phones: tables as cards stay; keep long words from widening the page ---------- */
+@media (max-width: 760px) {
+  .pcard dd,
+  .summary__a {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Process table column widths: the signals column gets room for two chips on a row. */
+@media (min-width: 1100px) {
+  .tbl--proc th:nth-child(1) { width: 8.5rem; }
+  .tbl--proc th:nth-child(4) { width: 8.5rem; }
+  .tbl--proc th:nth-child(5) { width: 6.5rem; }
+  .tbl--proc th:nth-child(6) { width: 24rem; }
+}
+.risk { gap: 8px; }
+.clamp2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.cell-sub--inline {
+  display: inline;
+}
+.map__p--top {
+  stroke: #fff;
+  stroke-width: 1.6;
+}
+.map__ring--o {
+  stroke: var(--tc);
+}
+.phead--compact {
+  padding-block: clamp(16px, 2.4vw, 28px) clamp(14px, 2vw, 22px);
+}
+.phead--compact .eyebrow {
+  margin-bottom: 6px;
+}
+.phead--compact .lead {
+  margin-top: 8px;
+}
+.phead--compact .phead__circle {
+  width: 260px;
+  top: -140px;
+}
+.filters .qchips {
+  margin: 10px 0 0;
+}
+@media (min-width: 1060px) {
+  .filters__grid--main .field--search {
+    grid-column: auto;
+  }
+}
+.filters .qchip {
+  min-height: 36px;
+  padding: 0 12px;
+  border-width: 2px;
+  font-size: 0.875rem;
+}
+.filters .qchips {
+  padding-bottom: 0;
+  border-bottom: 0;
+  gap: 6px;
+}
+.filters .qchips .btn--sm {
+  min-height: 36px;
+  border-width: 2px;
+}
+.filters__more {
+  display: inline-block;
+}
+.filters__more[open] {
+  display: block;
+}
+@media (max-width: 639px) {
+  .filters .filters__more { order: 2; }
+  .filters .qchips { order: 3; }
+  .filters .filters__foot { order: 4; }
+}

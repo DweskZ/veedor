@@ -39,6 +39,8 @@ test("process page renders a dossier", async ({ page }) => {
   const res = await page.goto(`/procesos/${encodeURIComponent(ocid)}`);
   expect(res?.status()).toBe(200);
   await expect(page.locator("h1")).toBeVisible();
+  // The identifier is among the facts, which live in the "Datos" tab (the page opens on the summary).
+  await page.getByRole("tab", { name: /^Datos/ }).click();
   await expect(page.getByText(ocid).first()).toBeVisible();
 });
 

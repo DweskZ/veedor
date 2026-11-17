@@ -46,7 +46,7 @@ function Defs() {
       <defs>
         <pattern id={HATCH} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <rect width="7" height="7" fill={CLASS_FILL[TOP]} />
-          <rect width="1.7" height="7" fill="#1a1f36" />
+          <rect width="2.6" height="7" fill="#d9480f" />
         </pattern>
       </defs>
     </svg>
@@ -138,6 +138,15 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
       return r && v != null ? [{ k, v, label: r.region_label }] : [];
     }).sort((a, b) => b.v - a.v);
     return list.length ? { top: list[0], low: list[list.length - 1] } : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [byKey, metric]);
+
+  const ranks = useMemo(() => {
+    const list = KEYS.flatMap((k) => {
+      const { r, v } = info(k);
+      return r && v != null ? [{ k, v, label: r.region_label, small: isSmall(r) }] : [];
+    }).sort((x, y) => y.v - x.v);
+    return { top: list.slice(0, 5), low: list.slice(-5).reverse() };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [byKey, metric]);
 
@@ -261,7 +270,7 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
                     <path
                       d={p.d}
                       fill={fill}
-                      className={`map__p ${r && isSmall(r) ? "map__p--small" : ""} ${active === k ? "map__p--on" : ""}`}
+                      className={`map__p ${cls === TOP ? "map__p--top" : ""} ${r && isSmall(r) ? "map__p--small" : ""} ${active === k ? "map__p--on" : ""}`}
                     />
                   </Link>
                 );
@@ -272,24 +281,6 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
                   <path d={GEO.provinces[active].d} className="map__ring map__ring--i" aria-hidden="true" />
                 </>
               ) : null}
-              {compact ? null : (
-                <g className="map__labels" aria-hidden="true">
-                  {KEYS.map((k) => {
-                    const p = GEO.provinces[k];
-                    const w = p.short.length * 5.7 + 10;
-                    const small = byKey.get(k) && isSmall(byKey.get(k)!);
-                    return (
-                      <g key={k} transform={`translate(${p.lx} ${p.ly})`}>
-                        <rect x={-w / 2} y="-7.5" width={w} height="15" rx="7.5" />
-                        <text y="3.6" textAnchor="middle">
-                          {p.short}
-                          {small ? "*" : ""}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
-              )}
             </svg>
             {a && active ? (
               <div className="map__tip" ref={tip} aria-hidden="true">
@@ -314,6 +305,16 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
               </div>
             ) : null}
           </div>
+          <p className="map__readout small" aria-hidden="true">
+            {a && active && a.r && a.v != null ? (
+              <>
+                <b>{label(active)}</b>: {fmtP(a.v)} de {fmtInt(a.r.competitive_processes)} procesos competitivos {METRICS[metric].short}. Nacional: {fmtP(nat)}.
+                {isSmall(a.r) ? " Muestra pequeña." : ""}
+              </>
+            ) : (
+              "Pasa el cursor, o toca una provincia, para ver su nombre y su porcentaje."
+            )}
+          </p>
         </div>
 
         <div className="map__side">
@@ -339,9 +340,36 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
               </li>
             ))}
           </ul>
+          {compact ? null : (
           <p className="small muted">
-            Cinco grupos con el mismo número de provincias (quintiles). Son una forma de agruparlas, no umbrales: siempre hay un grupo con el
-            porcentaje más alto, aunque las diferencias sean pequeñas. Ese grupo lleva rayas para que se distinga sin color.
+            De más claro a más oscuro: cinco grupos con el mismo número de provincias (quintiles). Son una forma de agruparlas, no umbrales:
+            siempre hay un grupo más alto, aunque las diferencias sean pequeñas. Ese grupo lleva rayas terracota para que se distinga sin color.
+          </p>
+          )}
+          <div className="map__ranks">
+            <div>
+              <h4>Las cinco con mayor porcentaje</h4>
+              <ol>
+                {ranks.top.map((x) => (
+                  <li key={x.k}>
+                    <span>{x.label}{x.small ? " *" : ""}</span> <b>{fmtP(x.v)}</b>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div>
+              <h4>Las cinco con menor porcentaje</h4>
+              <ol>
+                {ranks.low.map((x) => (
+                  <li key={x.k}>
+                    <span>{x.label}{x.small ? " *" : ""}</span> <b>{fmtP(x.v)}</b>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+          <p className="small muted">
+            Porcentaje de procesos competitivos {METRICS[metric].short}, por provincia de la entidad. Más señales no significa más problemas.
           </p>
           {small ? (
             <p className="small muted">
@@ -355,10 +383,12 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
               {fmtP(best.top.v)}.
             </p>
           ) : null}
+          {compact ? null : (
           <p className="small muted">
             Se cuentan solo los <b>procesos competitivos</b> (subasta inversa, menor cuantía, cotización y licitación). Las compras por catálogo y las directas
             no entran.
           </p>
+          )}
         </div>
       </div>
 

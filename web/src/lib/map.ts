@@ -73,9 +73,13 @@ export function classRangeLabel(cuts: number[], k: number): string {
   return cuts[k - 1] === cuts[k] ? `${shown(cuts[k - 1])}` : `${shown(cuts[k - 1])} a menos de ${shown(cuts[k])}`;
 }
 
-/** Fills: ice-to-ink sequential, terracotta only for the top class (which also gets a hatch). */
-export const CLASS_FILL = ["#ffffff", "#cadbfb", "#8fa6db", "#1a1f36", "#d9480f"];
-export const CLASS_NAME = ["Porcentaje más bajo", "Bajo", "Medio", "Alto", "Porcentaje más alto"];
+/**
+ * Fills run in order from the lightest to the darkest: white, ice, two blues, and ink for the top class. The top class also carries
+ * terracotta stripes, so it is the strongest on the map and still distinguishable without colour (shape cue). The last value is the
+ * base colour of the striped pattern.
+ */
+export const CLASS_FILL = ["#ffffff", "#cadbfb", "#8fa6db", "#4d62a6", "#1a1f36"];
+export const CLASS_NAME = ["Más bajo", "Bajo", "Medio", "Alto", "Más alto"];
 
 /** What the map counts for each metric, in one plain sentence. */
 export const METRIC_DEFINITION: Record<Metric, string> = {

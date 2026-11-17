@@ -13,7 +13,6 @@ function Comparison({ value, threshold }: { value: number; threshold: number }) 
         <div className="meter__fill" style={{ width: pos(value) }} />
         <div className="meter__mark" style={{ left: pos(threshold) }} />
       </div>
-      <p className="meter__cap">Barra: lo observado. Marca vertical: el umbral de la regla.</p>
     </div>
   );
 }
@@ -26,54 +25,64 @@ export function SignalCard({ signal, def, quiet = false }: { signal: FiredSignal
   const evidence = Object.entries(signal.evidence);
   const copy = SIGNAL_COPY[signal.code] ?? FALLBACK_COPY;
   const label = signal.label_es ?? def?.label_es ?? signal.code;
+  const hasDetails = evidence.length > 0 || Boolean(def?.threshold_rule_es);
   return (
     <article id={`sig-${signal.code}`} className={`sig ${quiet ? "sig--quiet" : ""}`}>
       <header className="sig__head">
         {quiet ? <p className="tag">Solo contexto · no suma puntos</p> : null}
         <h3 className="h3">{label}</h3>
-        <p className="sig__code">{signal.code}</p>
+        <dl className="sig__vals">
+          <div>
+            <dt>Valor observado</dt>
+            <dd>
+              {fmtNum(signal.value)}
+              <SourceMarker keys={[`signal.${signal.code}`]} />
+            </dd>
+          </div>
+          <div>
+            <dt>Umbral de la regla</dt>
+            <dd>{fmtNum(signal.threshold)}</dd>
+          </div>
+        </dl>
+        {signal.value != null && signal.threshold != null ? <Comparison value={signal.value} threshold={signal.threshold} /> : null}
       </header>
       <div className="sig__qa">
-        <div className="sig__q">
-          <h4>Qué se observó</h4>
-          {def?.description_es ? <p>{def.description_es}</p> : null}
-          <dl className="sig__vals">
-            <div>
-              <dt>Valor observado</dt>
-              <dd>{fmtNum(signal.value)}<SourceMarker keys={[`signal.${signal.code}`]} /></dd>
-            </div>
-            <div>
-              <dt>Umbral de la regla</dt>
-              <dd>{fmtNum(signal.threshold)}</dd>
-            </div>
-          </dl>
-          {def?.threshold_rule_es ? <p className="muted small" style={{ marginTop: 8 }}>Regla: {def.threshold_rule_es}</p> : null}
-          {signal.value != null && signal.threshold != null ? <Comparison value={signal.value} threshold={signal.threshold} /> : null}
-        </div>
-        <div className="sig__q">
-          <h4>Por qué puede importar</h4>
-          <p>{copy.why}</p>
-        </div>
-        <div className="sig__q">
-          <h4>Cómo puede ser perfectamente normal</h4>
-          <p>{copy.normal}</p>
-        </div>
+        {def?.description_es ? (
+          <p>
+            <b>Qué se observó.</b> {def.description_es}
+          </p>
+        ) : null}
+        <p>
+          <b>Por qué puede importar.</b> {copy.why}
+        </p>
+        <p>
+          <b>Cómo puede ser perfectamente normal.</b> {copy.normal}
+        </p>
       </div>
-      {evidence.length ? (
+      {hasDetails ? (
         <details>
-          <summary>Datos que se usaron ({evidence.length})</summary>
+          <summary>
+            Regla y datos usados{evidence.length ? ` (${evidence.length})` : ""}
+          </summary>
           <div className="ev-wrap">
-            <table className="ev">
-              <caption className="sr-only">Evidencia de la señal {label}</caption>
-              <tbody>
-                {evidence.map(([k, v]) => (
-                  <tr key={k}>
-                    <th scope="row">{evidenceLabel(k)}</th>
-                    <td>{fmtEvidence(k, v)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {def?.threshold_rule_es ? (
+              <p className="sig__rule">
+                <b>Regla.</b> {def.threshold_rule_es}
+              </p>
+            ) : null}
+            {evidence.length ? (
+              <table className="ev">
+                <caption className="sr-only">Evidencia de la señal {label}</caption>
+                <tbody>
+                  {evidence.map(([k, v]) => (
+                    <tr key={k}>
+                      <th scope="row">{evidenceLabel(k)}</th>
+                      <td>{fmtEvidence(k, v)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : null}
           </div>
         </details>
       ) : null}
