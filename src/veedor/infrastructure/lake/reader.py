@@ -49,6 +49,7 @@ MART_TABLES = (
     "process_quote_stats",
     "person_name_tokens",
     "quote_lexicon",
+    "threshold_context",
 )
 
 

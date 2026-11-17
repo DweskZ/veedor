@@ -78,3 +78,17 @@ def top(
             f"{row['risk_score']:5.1f}  {row['ocid']}  {row['year']}  {row['method']}  "
             f"{row['buyer_name']} -> {winner}  USD {amount}  [{', '.join(row['signal_codes'])}]"
         )
+
+
+@app.command("thresholds")
+def thresholds() -> None:
+    """Build the threshold_context mart (verified thresholds, band counts, bunching). Context only."""
+    from veedor.infrastructure.lake.threshold_context import build_threshold_context
+
+    settings = get_settings()
+    try:
+        target = build_threshold_context(settings.lake_dir, settings.marts_dir)
+    except FileNotFoundError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(f"Wrote {target}")

@@ -24,8 +24,9 @@ from veedor.schemas.common import ErrorResponse, Page
 from veedor.schemas.context import ProcessContext
 from veedor.schemas.dossier import DossierOut
 from veedor.schemas.processes import ProcessDetail, ProcessSummary
+from veedor.schemas.thresholds import ProcessThreshold
 from veedor.use_cases.queries import dossier as dossier_use_case
-from veedor.use_cases.queries import process_context, random_process
+from veedor.use_cases.queries import process_context, random_process, thresholds
 from veedor.use_cases.queries import processes as use_case
 from veedor.use_cases.queries.processes import DEFAULT_SORT, ProcessFilters
 
@@ -114,6 +115,19 @@ def get_process_context(ocid: OcidPath, lake: Lake) -> dict:
     proceso en cada una (valor y percentil). Los datos que el procedimiento no publica son nulos con
     su motivo. No contiene interpretaciones ni datos personales."""
     return process_context.get_process_context(lake, ocid)
+
+
+@router.get(
+    "/{ocid}/threshold",
+    response_model=ProcessThreshold,
+    responses={**NOT_FOUND, **UNAVAILABLE},
+    summary="Umbral de contratación aplicable y distancia del presupuesto",
+)
+def get_process_threshold(ocid: OcidPath, lake: Lake) -> dict:
+    """Umbral verificado inmediatamente superior al presupuesto del proceso para su año y categoría, la
+    distancia porcentual y la bandera neutra `just_below` (a 2 % o menos bajo el umbral). Los campos son
+    nulos si no aplica o el año no está verificado. Es contexto, no una señal de riesgo."""
+    return thresholds.get_process_threshold(lake, ocid)
 
 
 @router.get(

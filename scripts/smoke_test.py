@@ -200,6 +200,28 @@ def check_stage3_endpoints(ocid: str) -> None:
         status == 200 and context.get("ocid") == ocid and context.get("comparable_processes", 0) >= 1,
         f"{context.get('method')} {context.get('year')}, {context.get('comparable_processes')} comparable",
     )
+    status, thresholds = get_json("/stats/thresholds")
+    items = thresholds.get("items", [])
+    check(
+        "api /stats/thresholds",
+        status == 200
+        and len(items) > 0
+        and all(i.get("source_url", "").startswith("https://") for i in items)
+        and 2025 not in {i.get("year") for i in items}
+        and bool(thresholds.get("notes")),
+        f"{len(items)} year-thresholds",
+    )
+    status, threshold = get_json(f"/processes/{ocid}/threshold")
+    check(
+        "api /processes/{ocid}/threshold",
+        status == 200
+        and threshold.get("ocid") == ocid
+        and isinstance(threshold.get("applicable"), bool)
+        and (threshold["applicable"] or threshold.get("just_below") is None),
+        f"applicable={threshold.get('applicable')} just_below={threshold.get('just_below')}",
+    )
+    status, _ = get_json("/processes/ocds-5wno2w-%27%20OR%201%3D1%20--/threshold")
+    check("api threshold rejects an injection payload", status in (404, 422), f"http {status}")
     status, glossary = get_json("/glossary")
     terms = glossary.get("items", [])
     check(

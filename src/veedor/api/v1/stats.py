@@ -5,7 +5,8 @@ from fastapi import APIRouter
 from veedor.api.deps import Lake
 from veedor.api.v1._responses import UNAVAILABLE
 from veedor.schemas.stats import RegionStats, Stats, YearStats
-from veedor.use_cases.queries import region_stats, year_stats
+from veedor.schemas.thresholds import ThresholdStats
+from veedor.use_cases.queries import region_stats, thresholds, year_stats
 from veedor.use_cases.queries import stats as use_case
 
 router = APIRouter(tags=["resumen"])
@@ -43,3 +44,16 @@ def get_stats_by_year(lake: Lake) -> dict:
     procedimiento con nombre estable en todo el periodo), porcentaje de procesos competitivos con
     señal y participación de cada grupo de métodos en el monto adjudicado. Incluye aclaraciones."""
     return year_stats.get_year_stats(lake)
+
+
+@router.get(
+    "/stats/thresholds",
+    response_model=ThresholdStats,
+    responses=UNAVAILABLE,
+    summary="Umbrales de contratación verificados y concentración de presupuestos justo debajo",
+)
+def get_stats_thresholds(lake: Lake) -> dict:
+    """Por año y umbral: valor, fuente oficial, conteos en las bandas de 5 % bajo y sobre el umbral y la
+    estimación de concentración con su intervalo. Es contexto, no una señal de riesgo ni parte de un puntaje;
+    describe la distribución de presupuestos y no indica el motivo ni conducta de ninguna entidad."""
+    return thresholds.get_threshold_stats(lake)
