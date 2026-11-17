@@ -185,10 +185,10 @@ function Results() {
     tiles.push(
       <Metric
         key="auc"
-        label="Resultado nulo: AUC del puntaje frente al listado del SRI"
+        label="Resultado no concluyente: AUC del puntaje frente al listado del SRI"
         value={dec3.format(backtest.auc.estimate)}
         range={`IC 95 %: ${dec3.format(backtest.auc.low)} a ${dec3.format(backtest.auc.high)}`}
-        note={`${isNum(backtest.n_positives) && isNum(backtest.n_unlabelled) ? `${fmtInt(backtest.n_positives)} empresas listadas frente a ${fmtInt(backtest.n_unlabelled)} no listadas. ` : ""}${includesHalf ? "El intervalo incluye 0,5, el nivel del azar: la evidencia no muestra que el puntaje distinga a las empresas del listado. " : ""}`}
+        note={`${isNum(backtest.n_positives) && isNum(backtest.n_unlabelled) ? `${fmtInt(backtest.n_positives)} empresas listadas frente a ${fmtInt(backtest.n_unlabelled)} no listadas. ` : ""}${includesHalf ? "El intervalo incluye 0,5, el nivel del azar, y con tan pocos casos la prueba solo habría detectado una diferencia muy grande: no es concluyente ni a favor ni en contra. " : ""}`}
         source="eval/backtest.json · docs/EVALUATION.md"
       />,
     );

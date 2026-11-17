@@ -1,4 +1,4 @@
-import type { MethodMix, Position, ProcessContext, RegionStats, YearRow, YearStats } from "./types";
+import type { MethodMix, Position, ProcessContext, ProcessThreshold, RegionStats, ThresholdStats, YearRow, YearStats } from "./types";
 
 type Rec = Record<string, unknown>;
 const isRec = (v: unknown): v is Rec => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -103,5 +103,64 @@ export function normalizeContext(raw: unknown): ProcessContext {
     tenderers,
     ratio: spread(raw.award_budget_ratio),
     window: spread(raw.tender_window_days),
+  };
+}
+
+const strList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((n): n is string => typeof n === "string" && n.length > 0) : []);
+
+export function normalizeThresholds(raw: unknown): ThresholdStats {
+  if (!isRec(raw) || !Array.isArray(raw.items)) throw new Error("bad shape");
+  const items = raw.items.filter(isRec).flatMap((r) => {
+    const year = num(r.year);
+    const usd = num(r.threshold_usd);
+    const code = str(r.threshold_code);
+    if (year == null || usd == null || !code) return [];
+    return [
+      {
+        year,
+        category: str(r.category) ?? "",
+        code,
+        procedure_below: str(r.procedure_below),
+        procedure_above: str(r.procedure_above),
+        usd,
+        source_url: str(r.source_url),
+        n_band_below: num(r.n_band_below),
+        n_band_above: num(r.n_band_above),
+        bunching_status: isRec(r.bunching) ? str(r.bunching.status) : null,
+        caveats: strList(r.caveats),
+      },
+    ];
+  });
+  const excluded: Record<string, string> = {};
+  if (isRec(raw.excluded_years)) for (const [k, v] of Object.entries(raw.excluded_years)) if (typeof v === "string") excluded[k] = v;
+  return { items, band_pct: num(raw.band_pct), excluded_years: excluded, notes: strList(raw.notes), data_built_at: str(raw.data_built_at) };
+}
+
+export function normalizeProcessThreshold(raw: unknown): ProcessThreshold {
+  if (!isRec(raw)) throw new Error("bad shape");
+  const t = isRec(raw.threshold) ? raw.threshold : null;
+  const usd = t ? num(t.threshold_usd) : null;
+  return {
+    ocid: str(raw.ocid) ?? "",
+    year: num(raw.year),
+    budget: num(raw.budget),
+    applicable: raw.applicable === true && t != null && usd != null,
+    reason: str(raw.reason),
+    threshold:
+      t && usd != null
+        ? {
+            code: str(t.code) ?? "",
+            category: str(t.category),
+            usd,
+            procedure_below: str(t.procedure_below),
+            procedure_above: str(t.procedure_above),
+            source_url: str(t.source_url),
+            verification: str(t.verification),
+          }
+        : null,
+    distance_pct: num(raw.distance_to_threshold_pct),
+    just_below: raw.just_below === true,
+    band_pct: num(raw.band_pct),
+    notes: strList(raw.notes),
   };
 }

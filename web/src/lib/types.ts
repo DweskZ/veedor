@@ -420,3 +420,52 @@ export interface ProcessContext {
   ratio: { median: number; q1: number | null; q3: number | null; position: Position } | null;
   window: { median: number; q1: number | null; q3: number | null; position: Position } | null;
 }
+
+/** The threshold that applies to one process (`GET /processes/{ocid}/threshold`), normalised. */
+export interface ProcessThreshold {
+  ocid: string;
+  year: number | null;
+  budget: number | null;
+  applicable: boolean;
+  /** Why no threshold applies (plain Spanish, from the API). */
+  reason: string | null;
+  threshold: {
+    code: string;
+    category: string | null;
+    usd: number;
+    procedure_below: string | null;
+    procedure_above: string | null;
+    source_url: string | null;
+    verification: string | null;
+  } | null;
+  /** Percentage points of the threshold by which the budget sits below it (positive = below). */
+  distance_pct: number | null;
+  just_below: boolean;
+  /** Width of the "just below" band, in % of the threshold. */
+  band_pct: number | null;
+  notes: string[];
+}
+
+/** One year and category row of `GET /stats/thresholds`. */
+export interface ThresholdRow {
+  year: number;
+  category: string;
+  code: string;
+  procedure_below: string | null;
+  procedure_above: string | null;
+  usd: number;
+  source_url: string | null;
+  n_band_below: number | null;
+  n_band_above: number | null;
+  bunching_status: string | null;
+  caveats: string[];
+}
+
+export interface ThresholdStats {
+  items: ThresholdRow[];
+  band_pct: number | null;
+  /** year -> reason the year is not analysed. */
+  excluded_years: Record<string, string>;
+  notes: string[];
+  data_built_at: string | null;
+}

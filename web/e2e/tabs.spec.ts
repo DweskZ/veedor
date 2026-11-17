@@ -55,8 +55,8 @@ test.describe("process page tabs (with JavaScript)", () => {
     await expect(page.locator(`[id="${id}"]`)).toBeInViewport();
 
     // Following a link inside the page changes the panel too (hashchange).
-    await page.evaluate(() => (location.hash = "#fuentes"));
-    await expect.poll(() => visiblePanels(page)).toEqual(["fuentes"]);
+    await page.evaluate(() => (location.hash = "#hechos"));
+    await expect.poll(() => visiblePanels(page)).toEqual(["hechos"]);
   });
 });
 

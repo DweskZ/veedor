@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test src/lib/*.test.ts",
     "sync:eval": "node scripts/sync-eval.mjs",
+    "sync:validation": "node scripts/sync-validation.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

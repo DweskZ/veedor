@@ -125,3 +125,11 @@ export const fmtCategory = (value: string | null | undefined) =>
 const STATUS_LABELS: Record<string, string> = { complete: "Finalizado", active: "En curso" };
 export const fmtStatus = (value: string | null | undefined) =>
   value == null ? null : (STATUS_LABELS[value] ?? value);
+
+const one = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+/** One decimal, Spanish separators (71,8). */
+export const fmtOne = (n: number | null | undefined) => (n == null ? NA : one.format(n));
+
+const THRESHOLD_CATEGORY: Record<string, string> = { goods_services: "bienes y servicios", works: "obras", consultancy: "consultoría" };
+/** Procedure category of a threshold, in plain Spanish. */
+export const fmtThresholdCategory = (c: string | null | undefined) => (c == null ? null : (THRESHOLD_CATEGORY[c] ?? c));

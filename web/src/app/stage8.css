@@ -1,0 +1,209 @@
+/* Third pass: validation story (home block, /metodologia), procedure thresholds (process page, /tendencias). Loaded after stage7.css. */
+
+/* ---------- Home: the two tests ---------- */
+.eval {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 960px) {
+  .eval {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.eval__h {
+  max-width: 18em;
+}
+.eval__cards {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 28px);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 820px) {
+  .eval__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.eval__card .tag {
+  color: var(--muted);
+}
+.eval__verdict {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  color: var(--ink);
+}
+.eval__card .eval__big {
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-variant-numeric: tabular-nums;
+  color: var(--tc);
+}
+.eval__card .eval__big small {
+  font-size: 0.4em;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.eval__note {
+  background: var(--white);
+}
+.eval__note p {
+  max-width: 62em;
+}
+
+/* ---------- Methodology: validation section ---------- */
+.vsec > * + * {
+  margin-top: 20px;
+}
+.vtbl th[scope="row"] {
+  min-width: 11rem;
+}
+.vtbl td,
+.vtbl th {
+  vertical-align: top;
+}
+.vtbl .cell-sub {
+  display: block;
+}
+.forest {
+  margin: 18px 0 0;
+  max-width: 560px;
+}
+.forest__cap {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.forest__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--white);
+}
+.forest__key {
+  margin-top: 6px;
+}
+
+/* ---------- Process page: threshold context ---------- */
+.thr {
+  margin-top: 24px;
+  max-width: 56rem;
+  background: var(--white);
+  border: 2px solid var(--ice-deep);
+  border-radius: 22px;
+  padding: clamp(16px, 2.2vw, 22px);
+  display: grid;
+  gap: 10px;
+}
+.thr__txt {
+  line-height: 1.5;
+}
+.thr__jb {
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 10px 14px;
+  border-left: 5px solid var(--tc);
+  background: var(--ice);
+  border-radius: 0 12px 12px 0;
+}
+.thr__notes {
+  display: grid;
+  gap: 4px;
+}
+.thr__src {
+  font-size: 0.9375rem;
+}
+.thr__none {
+  margin-top: 20px;
+  max-width: 56rem;
+}
+.thr__scale {
+  position: relative;
+  height: 58px;
+  margin: 4px 8px 6px;
+}
+.thr__track,
+.thr__fill {
+  position: absolute;
+  left: 0;
+  top: 22px;
+  height: 10px;
+  border-radius: 999px;
+}
+.thr__track {
+  right: 0;
+  background: var(--ice-deep);
+}
+.thr__fill {
+  background: var(--ink);
+}
+.thr__mk {
+  position: absolute;
+  top: 14px;
+  width: 4px;
+  height: 26px;
+  margin-left: -2px;
+  background: var(--ink);
+  border-radius: 2px;
+}
+.thr__mk--b {
+  width: 16px;
+  height: 16px;
+  top: 19px;
+  margin-left: -8px;
+  border-radius: 50%;
+  background: var(--tc);
+  border: 3px solid var(--ink);
+}
+.thr__lb {
+  position: absolute;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.thr__lb--b {
+  top: 0;
+}
+.thr__lb--t {
+  top: 40px;
+}
+.thr__lb--end {
+  transform: translateX(-90%);
+}
+.thr__lb--start {
+  transform: translateX(-10%);
+}
+
+/* ---------- Trends: thresholds ---------- */
+.thrs {
+  margin-top: clamp(24px, 4vw, 40px);
+}
+.thrs__tbl th,
+.thrs__tbl td {
+  vertical-align: top;
+  white-space: nowrap;
+}
+.thrs__tbl .cell-sub {
+  display: block;
+}
+.thrs__plain {
+  margin-top: 22px;
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+}
+.thrs__notes {
+  margin-top: 16px;
+  max-width: 56rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .thr__fill {
+    transition: none;
+  }
+}
+.tbl thead .cell-sub {
+  color: var(--ice-deep);
+}

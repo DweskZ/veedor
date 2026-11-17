@@ -1,5 +1,5 @@
 import { normalizeInvestigation } from "./investigation";
-import { normalizeContext, normalizeRegions, normalizeYears } from "./normalize";
+import { normalizeContext, normalizeProcessThreshold, normalizeRegions, normalizeThresholds, normalizeYears } from "./normalize";
 import * as mocks from "./mocks";
 import { normalizeProvenance, normalizeQuotes, type Provenance, type Quotes } from "./provenance";
 import type {
@@ -8,6 +8,8 @@ import type {
   Investigation,
   Paginated,
   ProcessContext,
+  ProcessThreshold,
+  ThresholdStats,
   RegionStats,
   YearStats,
   ProcessDetail,
@@ -191,6 +193,23 @@ export async function getQuotes(ocid: string): Promise<Quotes | null> {
   if (USE_MOCKS) return mocks.quotes(ocid);
   try {
     return normalizeQuotes(await request<unknown>(`/processes/${enc(ocid)}/quotes`));
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return null;
+    throw e;
+  }
+}
+
+/** Procedure-amount thresholds by year and category, with the counts just below and above. Throws ApiError (the section then says "no disponible"). */
+export const getThresholds = async (): Promise<ThresholdStats> => {
+  if (USE_MOCKS) throw new ApiError("No se encontró el recurso solicitado.", 404);
+  return normalizeThresholds(await request<unknown>("/stats/thresholds"));
+};
+
+/** The threshold that applies to one process, or null when the API does not offer it (404) or has nothing for it. Other failures throw. */
+export async function getProcessThreshold(ocid: string): Promise<ProcessThreshold | null> {
+  if (USE_MOCKS) return null;
+  try {
+    return normalizeProcessThreshold(await request<unknown>(`/processes/${enc(ocid)}/threshold`));
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return null;
     throw e;

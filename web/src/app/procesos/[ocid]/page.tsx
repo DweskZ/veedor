@@ -3,7 +3,7 @@ import { PageShell } from "@/components/PageFrame";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ApiError, getContext, getDossier as fetchDossier, getInvestigation, getMeta, getProcess, getProvenance, getQuotes, getReviews, getSignals } from "@/lib/api";
+import { ApiError, getContext, getDossier as fetchDossier, getInvestigation, getMeta, getProcess, getProcessThreshold, getProvenance, getQuotes, getReviews, getSignals } from "@/lib/api";
 import { citationFor, sourceById, type Provenance } from "@/lib/provenance";
 import { fmtCategory, fmtDate, fmtDateTime, fmtInt, fmtNum, fmtStatus, fmtUsd, NA, shortCode } from "@/lib/format";
 import type { ProcessFacts, SignalDef } from "@/lib/types";
@@ -21,6 +21,7 @@ import { displayName } from "@/lib/names";
 import { ProcessTabs, type TabItem } from "@/components/ProcessTabs";
 import { ProvenanceProvider, SourceMarker, SourcesToggle } from "@/components/Provenance";
 import { QuotesBlock } from "@/components/Quotes";
+import { ThresholdCard, ThresholdFact } from "@/components/ThresholdNote";
 import { AskSection } from "@/components/AskProcess";
 import { suggestQuestions } from "@/lib/ask";
 import { CopyButton } from "@/components/CopyButton";
@@ -97,7 +98,7 @@ async function Dossier({
   // streamed after the footer, which is the wrong reading order without JavaScript (see PageFrame).
   const provPromise = getProvenance(ocid).catch(() => null);
   const metaPromise = getMeta();
-  const [prov, quotes, apiMeta, comparison, investigation, similar, reviewsBlock, dossierText] = await Promise.all([
+  const [prov, quotes, apiMeta, comparison, investigation, similar, reviewsBlock, dossierText, threshold] = await Promise.all([
     provPromise,
     // Quotes are requested only when the API says they are on; a missing flag, a 404 or any failure hides the section silently.
     metaPromise.then((m) => (m.quotes_enabled === true ? getQuotes(ocid).catch(() => null) : null)),
@@ -107,6 +108,8 @@ async function Dossier({
     SimilarBody({ ocid, sameBuyer }),
     Reviews({ ocid }),
     provPromise.then((p) => DossierText({ ocid, prov: p })),
+    // Context only: a failure or a missing route hides the block silently.
+    getProcessThreshold(ocid).catch(() => null),
   ]);
   // The question box exists only when the API says the route is on (absent or unknown counts as off).
   const askEnabled = apiMeta.ask_enabled === true;
@@ -268,6 +271,7 @@ async function Dossier({
                 <a href="#verificar" className="link">Cómo verificarlo en la fuente <span aria-hidden="true">→</span></a>
               </p>
             </div>
+            <ThresholdCard t={threshold} />
           </Section>
         </TabPanel>
 
@@ -325,6 +329,7 @@ async function Dossier({
                 <Fact label={<>Monto <Term t="adjudicación">adjudicado</Term></>} keys={["facts.award_total"]}>
                   <Num>{fmtUsd(f.award_total)}</Num>
                 </Fact>
+                <ThresholdFact t={threshold} />
                 <Fact label={<>Empresas que ofertaron (<Term t="oferente">oferentes</Term>)</>} keys={["tenderers.name", "tenderers.ruc"]}>
                   {detail.tenderers.length ? <TendererList tenderers={detail.tenderers} /> : NA}
                 </Fact>

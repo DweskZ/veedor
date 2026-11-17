@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageFrame } from "@/components/PageFrame";
 import { getYears } from "@/lib/api";
 import { TrendCharts } from "@/components/TrendCharts";
+import { ThresholdTrends } from "@/components/ThresholdTrends";
 import { Term } from "@/components/Term";
 import { ErrorState, PageHeader } from "@/components/ui";
 
@@ -25,13 +26,14 @@ export default function TrendsPage() {
         }
         lead={
           <>
-            Tres gráficos para ver cómo compra el Estado año a año. Muestran cambios, no causas. Las advertencias que valen para todos están aquí abajo, una sola vez; las de un gráfico, a su lado. Un{" "}
+            Tres gráficos para ver cómo compra el Estado año a año, y una sección sobre los montos que cambian el procedimiento. Muestran cambios, no causas. Las advertencias que valen para todos están aquí abajo, una sola vez; las de un gráfico, a su lado. Un{" "}
             <Term t="oferente">oferente</Term> es quien presenta una oferta.
           </>
         }
       />
       <div className="wrap">
         <TrendsBody />
+        <ThresholdTrends />
         <div className="page-end" />
       </div>
     </PageFrame>

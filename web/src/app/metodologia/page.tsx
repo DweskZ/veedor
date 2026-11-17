@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PageFrame } from "@/components/PageFrame";
 import { getSignals } from "@/lib/api";
 import { RISK_LEVELS } from "@/lib/risk";
-import { EvaluationText } from "@/components/Evaluation";
+import { ValidationSection } from "@/components/Validation";
 import { Term } from "@/components/Term";
 import { Card, ErrorState, Num, PageHeader, RiskLegend, Section } from "@/components/ui";
 
@@ -13,6 +13,7 @@ const LIMITS = [
   "No cubre las contrataciones de emergencia ni las compras por catálogo electrónico: los datos disponibles de esos procesos no permiten calcular las señales.",
   "El estado de un proveedor en el SRI es el de hoy, no el que tenía cuando se le adjudicó.",
   "Los umbrales estadísticos se calculan sobre los propios datos (por método y año). Los pesos del puntaje son decisiones de criterio que todavía falta calibrar.",
+  "Las pruebas del puntaje (arriba) describen el conjunto de los datos; no dicen nada de un proceso en particular ni prueban que alguien haya hecho algo indebido.",
   "Los datos abiertos pueden traer errores u omisiones de origen. Veedor no los corrige: si un campo falta, se muestra como no disponible.",
   "A las personas naturales no se las nombra: se muestran como «Persona natural», con el RUC tapado.",
 ];
@@ -64,12 +65,12 @@ export default function MethodologyPage() {
           </Card>
         </Section>
 
-        <Section title="¿El puntaje predice algo?" id="evaluacion" note="La prueba que le hicimos al puntaje, con sus números y qué significa cada uno.">
-          <Card>
-            <div className="prose">
-              <EvaluationText />
-            </div>
-          </Card>
+        <Section
+          title="Validación: ¿el puntaje dice algo?"
+          id="evaluacion"
+          note="Dos pruebas con resultados distintos, con sus cifras exactas, lo que pudieron y no pudieron detectar, y lo que no significan."
+        >
+          <ValidationSection />
         </Section>
 
         <Section title="Catálogo de señales" id="senales" note="Todas las reglas, con su umbral y su alcance.">

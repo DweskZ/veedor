@@ -8,6 +8,7 @@ import "./features.css";
 import "./data.css";
 import "./refine.css";
 import "./stage7.css";
+import "./stage8.css";
 import { ALLOW_INDEXING } from "@/lib/site";
 
 // Plus Jakarta Sans, the Ruray typeface, self-hosted (no request to Google).
