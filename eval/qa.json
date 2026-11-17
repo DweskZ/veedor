@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-17T03:34:28+00:00",
+  "generated_at": "2026-11-17T03:42:07+00:00",
   "seed": 42,
   "sample": {
     "processes": 626,
@@ -551,7 +551,7 @@
   "heldout_sha256": "cf941a16d03c84a00b0379e2113ad2367dd2aba1cfdc49dd8ac52a3369dd0cb9",
   "heldout_evaluated": true,
   "heldout_runs": 3,
-  "intent_index_build_ms": 638.0,
+  "intent_index_build_ms": 901.0,
   "retrieval_only": {
     "questions": 2585,
     "answerable": {
@@ -731,9 +731,9 @@
       }
     },
     "latency_ms": {
-      "mean": 0.8724050563931235,
-      "p50": 0.8358749910257757,
-      "p95": 1.7356669995933771
+      "mean": 0.8854720456889565,
+      "p50": 0.848041963763535,
+      "p95": 1.7794580198824406
     },
     "mode_counts": {
       "retrieval": 2573
@@ -919,9 +919,9 @@
       }
     },
     "latency_ms": {
-      "mean": 0.8576295125695986,
-      "p50": 0.8987920009531081,
-      "p95": 1.630583021324128
+      "mean": 0.8690743840552475,
+      "p50": 0.9065420017577708,
+      "p95": 1.6468330286443233
     },
     "mode_counts": {
       "retrieval": 2456
@@ -1582,9 +1582,9 @@
         }
       },
       "latency_ms": {
-        "mean": 0.6329248247017842,
-        "p50": 0.675374991260469,
-        "p95": 1.2618749751709402
+        "mean": 0.6194345781406679,
+        "p50": 0.6672500167042017,
+        "p95": 1.2084589689038694
       },
       "mode_counts": {
         "retrieval": 2573
@@ -1770,9 +1770,9 @@
         }
       },
       "latency_ms": {
-        "mean": 0.3454184517698933,
-        "p50": 0.21962501341477036,
-        "p95": 0.9699579677544534
+        "mean": 0.3521891684515602,
+        "p50": 0.22474996512755752,
+        "p95": 0.990249973256141
       },
       "mode_counts": {
         "retrieval": 2456
@@ -2574,6 +2574,7 @@
   ],
   "model": {
     "status": "ran",
+    "measured_on": "in_vocabulary_phrasings",
     "model": "gpt-5.4-mini",
     "questions": 172,
     "model_mode": {
@@ -2581,34 +2582,34 @@
       "answerable": {
         "recall": {
           "n": 60,
-          "mean": 0.8583333333333333,
+          "mean": 0.875,
           "ci95": [
-            0.7583333333333333,
-            0.9416666666666667
+            0.7833333333333333,
+            0.95
           ]
         },
         "precision": {
           "n": 60,
-          "mean": 0.7747222222222222,
+          "mean": 0.7469444444444444,
           "ci95": [
-            0.6780208333333334,
-            0.8705555555555555
+            0.6538541666666666,
+            0.8366805555555554
           ]
         },
         "hit_rate": {
           "n": 60,
-          "mean": 0.8666666666666667,
+          "mean": 0.8833333333333333,
           "ci95": [
-            0.7666666666666667,
+            0.7833333333333333,
             0.95
           ]
         },
         "abstained_wrongly": {
           "n": 60,
-          "mean": 0.11666666666666667,
+          "mean": 0.1,
           "ci95": [
-            0.05,
-            0.2
+            0.03333333333333333,
+            0.18333333333333332
           ]
         },
         "recall_by_fact_type": {
@@ -2634,7 +2635,7 @@
           },
           "cpc": {
             "n": 6,
-            "recall": 1.0
+            "recall": 0.8333333333333334
           },
           "entity": {
             "n": 6,
@@ -2678,7 +2679,7 @@
           },
           "winner": {
             "n": 4,
-            "recall": 0.5
+            "recall": 1.0
           }
         }
       },
@@ -2690,8 +2691,13 @@
             1.0,
             1.0
           ]
+        },
+        "answered_with_a_fact": {
+          "count": 0,
+          "of": 40
         }
       },
+      "blocked_by_the_screen": {},
       "adversarial": {
         "questions": 72,
         "distinct_attacks": 72,
@@ -2708,17 +2714,24 @@
           "reveal": 6
         },
         "outcomes": {
-          "instruction": 28,
-          "judgement": 21,
-          "no_evidence": 8,
+          "instruction": 29,
+          "judgement": 22,
+          "no_evidence": 6,
           "person": 11,
           "rejected_422": 4
-        }
+        },
+        "answered_with_facts": {
+          "count": 0,
+          "by_category": {}
+        },
+        "judgement_without_the_fixed_sentence": 0,
+        "judgement_questions": 12,
+        "by_expected_reason": {}
       },
       "grounding": {
-        "answers_checked": 53,
+        "answers_checked": 54,
         "pass_rate": {
-          "n": 53,
+          "n": 54,
           "mean": 1.0,
           "ci95": [
             1.0,
@@ -2727,18 +2740,18 @@
         }
       },
       "latency_ms": {
-        "mean": 379.8702172799642,
-        "p50": 0.2574580139480531,
-        "p95": 1097.8587919962592
+        "mean": 358.3932420354591,
+        "p50": 1.3860000181011856,
+        "p95": 1008.3450420061126
       },
       "mode_counts": {
-        "model": 68,
-        "retrieval": 100
+        "model": 72,
+        "retrieval": 96
       },
       "model": {
-        "calls": 68,
-        "prompt_tokens_per_call": 990.6617647058823,
-        "completion_tokens_per_call": 30.220588235294116,
+        "calls": 72,
+        "prompt_tokens_per_call": 965.4027777777778,
+        "completion_tokens_per_call": 30.444444444444443,
         "discarded_ids": 0
       }
     },
@@ -2747,40 +2760,40 @@
       "answerable": {
         "recall": {
           "n": 60,
-          "mean": 0.8666666666666667,
+          "mean": 0.95,
           "ci95": [
-            0.7833333333333333,
-            0.9416666666666667
+            0.8833333333333333,
+            1.0
           ]
         },
         "precision": {
           "n": 60,
-          "mean": 0.8833333333333333,
+          "mean": 0.9444444444444444,
           "ci95": [
-            0.8,
-            0.95
+            0.8777777777777779,
+            0.9944444444444444
           ]
         },
         "hit_rate": {
           "n": 60,
-          "mean": 0.8833333333333333,
+          "mean": 0.95,
           "ci95": [
-            0.8,
-            0.95
+            0.8833333333333333,
+            1.0
           ]
         },
         "abstained_wrongly": {
           "n": 60,
-          "mean": 0.03333333333333333,
+          "mean": 0.0,
           "ci95": [
             0.0,
-            0.08333333333333333
+            0.0
           ]
         },
         "recall_by_fact_type": {
           "amounts": {
             "n": 6,
-            "recall": 0.6666666666666666
+            "recall": 1.0
           },
           "award_dates": {
             "n": 1,
@@ -2796,7 +2809,7 @@
           },
           "context_tenderers": {
             "n": 5,
-            "recall": 1.0
+            "recall": 0.4
           },
           "cpc": {
             "n": 6,
@@ -2812,11 +2825,11 @@
           },
           "history": {
             "n": 2,
-            "recall": 0.5
+            "recall": 1.0
           },
           "object": {
             "n": 7,
-            "recall": 0.7142857142857143
+            "recall": 1.0
           },
           "procedure": {
             "n": 1,
@@ -2836,7 +2849,7 @@
           },
           "signals_all": {
             "n": 3,
-            "recall": 0.6666666666666666
+            "recall": 1.0
           },
           "tenderers": {
             "n": 4,
@@ -2844,20 +2857,25 @@
           },
           "winner": {
             "n": 4,
-            "recall": 0.5
+            "recall": 1.0
           }
         }
       },
       "unanswerable": {
         "abstention_rate": {
           "n": 40,
-          "mean": 0.9,
+          "mean": 0.975,
           "ci95": [
-            0.8,
-            0.975
+            0.925,
+            1.0
           ]
+        },
+        "answered_with_a_fact": {
+          "count": 1,
+          "of": 40
         }
       },
+      "blocked_by_the_screen": {},
       "adversarial": {
         "questions": 72,
         "distinct_attacks": 72,
@@ -2874,17 +2892,24 @@
           "reveal": 6
         },
         "outcomes": {
-          "instruction": 28,
-          "judgement": 21,
-          "no_evidence": 8,
+          "instruction": 29,
+          "judgement": 22,
+          "no_evidence": 6,
           "person": 11,
           "rejected_422": 4
-        }
+        },
+        "answered_with_facts": {
+          "count": 0,
+          "by_category": {}
+        },
+        "judgement_without_the_fixed_sentence": 0,
+        "judgement_questions": 12,
+        "by_expected_reason": {}
       },
       "grounding": {
-        "answers_checked": 62,
+        "answers_checked": 61,
         "pass_rate": {
-          "n": 62,
+          "n": 61,
           "mean": 1.0,
           "ci95": [
             1.0,
@@ -2893,18 +2918,15 @@
         }
       },
       "latency_ms": {
-        "mean": 0.614410118053689,
-        "p50": 0.17154100351035595,
-        "p95": 1.2355420039966702
+        "mean": 0.7833151994841606,
+        "p50": 0.4605829599313438,
+        "p95": 1.543082995340228
       },
       "mode_counts": {
         "retrieval": 168
       },
       "model": null
-    },
-    "measured_on": "in_vocabulary_phrasings",
-    "carried_over": true,
-    "measured_with": "the earlier key-phrase retrieval; not rerun with the intent retrieval"
+    }
   },
-  "wall_seconds": 88.6
+  "wall_seconds": 151.3
 }

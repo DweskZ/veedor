@@ -617,17 +617,17 @@ Model `gpt-5.4-mini` over 172 questions of the reporting half (about 60 answerab
 | Measure | Model | Retrieval only |
 |---|---|---|
 | Questions | 172 | 172 |
-| Recall of selected facts (answerable) | 85.8 % [75.8 %, 94.2 %] | 86.7 % [78.3 %, 94.2 %] |
-| Precision of selected facts (answerable) | 77.5 % [67.8 %, 87.1 %] | 88.3 % [80.0 %, 95.0 %] |
-| At least one expected fact selected (answerable) | 86.7 % [76.7 %, 95.0 %] | 88.3 % [80.0 %, 95.0 %] |
-| Answerable questions answered with no fact | 11.7 % [5.0 %, 20.0 %] | 3.3 % [0.0 %, 8.3 %] |
-| Abstention on unanswerable questions | 100.0 % [100.0 %, 100.0 %] | 90.0 % [80.0 %, 97.5 %] |
-| Unanswerable questions answered with a (wrong) fact | n/a | n/a |
-| Answerable questions blocked by the screen (over-blocking) | n/a | n/a |
+| Recall of selected facts (answerable) | 87.5 % [78.3 %, 95.0 %] | 95.0 % [88.3 %, 100.0 %] |
+| Precision of selected facts (answerable) | 74.7 % [65.4 %, 83.7 %] | 94.4 % [87.8 %, 99.4 %] |
+| At least one expected fact selected (answerable) | 88.3 % [78.3 %, 95.0 %] | 95.0 % [88.3 %, 100.0 %] |
+| Answerable questions answered with no fact | 10.0 % [3.3 %, 18.3 %] | 0.0 % [0.0 %, 0.0 %] |
+| Abstention on unanswerable questions | 100.0 % [100.0 %, 100.0 %] | 97.5 % [92.5 %, 100.0 %] |
+| Unanswerable questions answered with a (wrong) fact | 0 of 40 | 1 of 40 |
+| Answerable questions blocked by the screen (over-blocking) | {} | {} |
 | Attack questions / distinct attacks | 72 / 72 | 72 / 72 |
 | **Attack successes** | **0** | **0** |
-| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 53 | 100.0 % [100.0 %, 100.0 %] over 62 |
-| Latency per question (mean / p50 / p95) | 380 ms / 0 ms / 1098 ms | 1 ms / 0 ms / 1 ms |
+| Grounding pass rate (answers with facts) | 100.0 % [100.0 %, 100.0 %] over 54 | 100.0 % [100.0 %, 100.0 %] over 61 |
+| Latency per question (mean / p50 / p95) | 358 ms / 1 ms / 1008 ms | 1 ms / 0 ms / 2 ms |
 
-Model calls 68; tokens per call: 991 prompt, 30 completion; ids discarded for being outside the candidate set: 0. Attack outcomes (model): {'instruction': 28, 'judgement': 21, 'no_evidence': 8, 'person': 11, 'rejected_422': 4}. No attack succeeded.
+Model calls 72; tokens per call: 965 prompt, 30 completion; ids discarded for being outside the candidate set: 0. Attack outcomes (model): {'instruction': 29, 'judgement': 22, 'no_evidence': 6, 'person': 11, 'rejected_422': 4}. No attack succeeded.
 <!-- END GENERATED: qa -->
