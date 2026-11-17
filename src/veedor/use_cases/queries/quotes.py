@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from veedor.domain.quotes.lexicon import Lexicon
 from veedor.domain.quotes.screen import PERSONAL, check_passage
 from veedor.domain.signals import SIGNALS_BY_CODE
 from veedor.use_cases.queries._cache import VersionedCache
@@ -19,6 +20,7 @@ from veedor.use_cases.queries.processes import name_context, process_exists
 QUOTES_TABLE = "process_quotes"
 STATS_TABLE = "process_quote_stats"
 VOCABULARY_TABLE = "person_name_tokens"
+LEXICON_TABLE = "quote_lexicon"
 
 _QUOTES_SQL = (
     "SELECT rank, kind, text, date, author_kind, source_field, related_signal, similarity, truncated, "
@@ -30,10 +32,11 @@ _STATS_SQL = (
 )
 _CACHE = VersionedCache(max_entries=2_048)
 _VOCABULARY = VersionedCache(max_entries=2)
+_LEXICON = VersionedCache(max_entries=2)
 
 
 def get_process_quotes(lake: LakePort, ocid: str) -> dict[str, Any]:
-    missing = [t for t in (QUOTES_TABLE, STATS_TABLE) if not lake.has_table(t)]
+    missing = [t for t in (QUOTES_TABLE, STATS_TABLE, LEXICON_TABLE) if not lake.has_table(t)]
     if missing:
         raise LakeUnavailableError(missing)
     if not process_exists(lake, ocid):
@@ -55,6 +58,20 @@ def _vocabulary(lake: LakePort) -> frozenset[str]:
     return _VOCABULARY.get_or_compute("vocabulary", lake.data_version(), load)
 
 
+def _lexicon(lake: LakePort) -> Lexicon:
+    """Institutional and ordinary words of the build, read once per data build. Required: the deny-by-default
+    screen cannot run without it, and a mart without it is refused (503), never served unscreened."""
+
+    def load() -> Lexicon:
+        rows = lake.fetch("SELECT token, form FROM quote_lexicon", [], tables=(LEXICON_TABLE,))
+        return Lexicon(
+            capitalised=frozenset(r["token"] for r in rows if r["form"] == "capitalised"),
+            lowercase=frozenset(r["token"] for r in rows if r["form"] == "lowercase"),
+        )
+
+    return _LEXICON.get_or_compute("lexicon", lake.data_version(), load)
+
+
 def _compute(lake: LakePort, ocid: str) -> dict[str, Any]:
     rows = lake.fetch(_QUOTES_SQL, [ocid], tables=(QUOTES_TABLE,))
     stats = lake.fetch(_STATS_SQL, [ocid], tables=(STATS_TABLE,))
@@ -66,9 +83,10 @@ def _compute(lake: LakePort, ocid: str) -> dict[str, Any]:
     }
     persons, protected = name_context(lake, ocid) if rows else ([], [])
     vocabulary = _vocabulary(lake) if rows else frozenset()
+    lexicon = _lexicon(lake) if rows else Lexicon()
     items: list[dict[str, Any]] = []
     for row in rows:
-        item = _checked_item(row, persons, protected, vocabulary, omitted)
+        item = _checked_item(row, persons, protected, vocabulary, lexicon, omitted)
         if item is not None:
             items.append(item)
     return {
@@ -88,10 +106,15 @@ def _checked_item(
     persons: list[str],
     protected: list[str],
     vocabulary: frozenset[str],
+    lexicon: Lexicon,
     omitted: dict[str, int],
 ) -> dict[str, Any] | None:
     verdict = check_passage(
-        row["text"], person_names=persons, protected_names=protected, name_vocabulary=vocabulary
+        row["text"],
+        person_names=persons,
+        protected_names=protected,
+        name_vocabulary=vocabulary,
+        lexicon=lexicon,
     )
     if not verdict.eligible:
         _count(omitted, verdict.category)
@@ -102,7 +125,11 @@ def _checked_item(
     pair = None
     if row.get("pair_text"):
         pair_verdict = check_passage(
-            row["pair_text"], person_names=persons, protected_names=protected, name_vocabulary=vocabulary
+            row["pair_text"],
+            person_names=persons,
+            protected_names=protected,
+            name_vocabulary=vocabulary,
+            lexicon=lexicon,
         )
         if pair_verdict.eligible:
             pair = {

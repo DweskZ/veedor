@@ -32,8 +32,19 @@ class Settings(BaseSettings):
     ask_daily_budget: int = Field(default=300, ge=0, le=1_000_000)  # model calls per UTC day, all workers
     ask_rate_per_minute: int = Field(default=4, ge=1, le=600)  # requests per client IP per worker
     ask_rate_per_hour: int = Field(default=30, ge=1, le=100_000)
+    # With True the daily budget and the per-client counters live in the PostgreSQL database (table
+    # `ask_usage`, migration 0003) and are shared by every worker and kept across restarts; the in-memory
+    # counters remain as the fallback when the database is unreachable. Off by default (the API then needs
+    # no database).
+    ask_usage_shared: bool = False
     ask_max_output_tokens: int = Field(default=160, ge=16, le=1_000)
     ask_timeout_seconds: float = Field(default=15.0, gt=0, le=120)
+
+    # Quotes from the process's own published text (`GET /processes/{ocid}/quotes`, and the quotes attached to
+    # an answer of `/ask`). Off by default: with the flag off the route is a 404 and no answer has a quote.
+    # The screens are heuristics with a measured, non-zero residual (docs/QUOTES.md), so publishing them is a
+    # decision of the operator, not a default.
+    quotes_enabled: bool = False
 
     cors_origins: list[str] = ["http://localhost:3000"]
 

@@ -26,6 +26,7 @@ from veedor.evaluation.qa.generate import (
     EvalQuestion,
     ProcessView,
     generate,
+    generate_unseen,
     view_of,
 )
 from veedor.evaluation.qa.metrics import Outcome, ProcessText, summarise
@@ -222,6 +223,10 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
     thresholds = replace(DEFAULT_THRESHOLDS, floor=tuning["floor"], k=tuning["k"], model_floor=tuning["model_floor"])
     progress(f"chosen on the tuning half: floor {thresholds.floor}, k {thresholds.k}, model floor {thresholds.model_floor}")
     retrieval = summarise(run_questions(make_service(contexts, embedder, thresholds, None), report_half), texts, model=False)
+    # Unseen phrasings on the same unseen (reporting-half) processes; thresholds are NOT retuned.
+    report_views = [v for v in views_of(contexts, investigated) if split_of(v.ocid) == "report"]
+    unseen_questions = generate_unseen(report_views, seed)
+    unseen = summarise(run_questions(make_service(contexts, embedder, thresholds, None), unseen_questions), texts, model=False)
     result: dict[str, Any] = {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "seed": seed,
@@ -235,11 +240,14 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
             "questions_tuning_half": len(tune_half),
             "questions_reporting_half": len(report_half),
             "distinct_attacks": len({q.attack for q in questions if q.kind == ADVERSARIAL}),
+            "questions_unseen_phrasing": len(unseen_questions),
+            "questions_unseen_phrasing_by_kind": dict(Counter(q.kind for q in unseen_questions)),
         },
         "thresholds": {k: tuning[k] for k in ("floor", "k", "model_floor", "objective", "candidate_recall_tuning_half")}
         | {"candidates": thresholds.candidates, "quote_floor": thresholds.quote_floor, "max_quotes": thresholds.max_quotes},
         "tuning_grid": tuning["grid"],
-        "retrieval_only": retrieval,
+        "retrieval_only": retrieval,  # in-vocabulary phrasings (the original set), reporting-half processes
+        "retrieval_only_unseen_phrasing": unseen,  # independently worded set, same reporting-half processes
         "model": None,
     }
     if with_model:
@@ -252,6 +260,7 @@ def run_evaluation(settings: Settings, *, with_model: bool, n: int = 600, seed: 
             model_outcomes = run_questions(make_service(contexts, embedder, thresholds, ModelSelector(model)), sub)
             result["model"] = {
                 "status": "ran",
+                "measured_on": "in_vocabulary_phrasings",  # not rerun on the unseen set (cost)
                 "model": model.model_name,
                 "questions": len(sub),
                 "model_mode": summarise(model_outcomes, texts, model=True),

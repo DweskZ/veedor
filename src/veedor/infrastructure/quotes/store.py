@@ -8,9 +8,12 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from veedor.domain.quotes.lexicon import Lexicon
+
 QUOTES_TABLE = "process_quotes"
 STATS_TABLE = "process_quote_stats"
 VOCABULARY_TABLE = "person_name_tokens"
+LEXICON_TABLE = "quote_lexicon"
 
 QUOTES_SCHEMA = pa.schema(
     [
@@ -44,13 +47,15 @@ STATS_SCHEMA = pa.schema(
 
 
 VOCABULARY_SCHEMA = pa.schema([("token", pa.string())])
+LEXICON_SCHEMA = pa.schema([("token", pa.string()), ("form", pa.string())])  # form: capitalised | lowercase
 
 
 class ParquetQuoteSink:
     def __init__(self, marts_dir: Path) -> None:
         marts_dir.mkdir(parents=True, exist_ok=True)
         self._final = {
-            name: marts_dir / f"{name}.parquet" for name in (QUOTES_TABLE, STATS_TABLE, VOCABULARY_TABLE)
+            name: marts_dir / f"{name}.parquet"
+            for name in (QUOTES_TABLE, STATS_TABLE, VOCABULARY_TABLE, LEXICON_TABLE)
         }
         self._tmp = {name: path.with_suffix(".parquet.tmp") for name, path in self._final.items()}
         self._writers = {
@@ -67,6 +72,14 @@ class ParquetQuoteSink:
             compression="zstd",
         )
 
+    def write_lexicon(self, lexicon: Lexicon) -> None:
+        """Institutional and ordinary words used by the deny-by-default screen (no person names)."""
+        rows = [{"token": t, "form": "capitalised"} for t in sorted(lexicon.capitalised)]
+        rows += [{"token": t, "form": "lowercase"} for t in sorted(lexicon.lowercase)]
+        pq.write_table(
+            pa.Table.from_pylist(rows, schema=LEXICON_SCHEMA), self._tmp[LEXICON_TABLE], compression="zstd"
+        )
+
     def write(self, quotes: list[dict[str, Any]], stats: list[dict[str, Any]]) -> None:
         for name, rows, schema in (
             (QUOTES_TABLE, quotes, QUOTES_SCHEMA),
@@ -81,9 +94,11 @@ class ParquetQuoteSink:
             writer.close()
             self._tmp[name].replace(self._final[name])
         self._tmp[VOCABULARY_TABLE].replace(self._final[VOCABULARY_TABLE])
+        self._tmp[LEXICON_TABLE].replace(self._final[LEXICON_TABLE])
 
     def abort(self) -> None:
         for name, writer in self._writers.items():
             writer.close()
             self._tmp[name].unlink(missing_ok=True)
         self._tmp[VOCABULARY_TABLE].unlink(missing_ok=True)
+        self._tmp[LEXICON_TABLE].unlink(missing_ok=True)

@@ -16,7 +16,7 @@ In Ecuador a *veedor* is a citizen overseer: someone who watches a public proces
 - **It reports indicators, never accusations.** A fired indicator means a field is atypical under a stated rule. It does not mean anything improper happened. Single bidders, for example, are common in some procurement methods for ordinary reasons.
 - **It is not a detector.** The evaluation below finds no evidence that the score singles out the one external list available. The agents add context for a human reader; they do not change the score.
 - **Out of scope:** emergency procurement (absent from the open data) and catalogue purchases (no bidder data) are outside the competition analysis. Bidder and tender-window indicators never fire for them.
-- Natural persons are masked in the API and the UI. Every dossier is a draft for human review.
+- Natural persons are masked in the API and the UI. Every dossier is a draft for human review. **Verbatim quotes from the text of a process are disabled by default** (`VEEDOR_QUOTES_ENABLED=false`): an independent review found persons named in them, the earlier estimate ("about 2 in 110,000") is withdrawn, and the measured residual is in [docs/QUOTES.md](docs/QUOTES.md): of 150 passages drawn uniformly at random from the final mart that I read, none named a person (95 % upper bound 2.0 %; 0 of 300 over two random rounds, 1.0 %), a sample read by one reader, not a guarantee.
 
 ## A real example
 
@@ -135,6 +135,23 @@ The rules were changed for correctness reasons found by review, and the project 
 - **Naive readings mislead.** Across all processes `SINGLE_BIDDER` has a ratio of 2.29 (interval 0.00 to 5.94) between listed and other companies; among non-catalogue processes it is 0.24 (0.00 to 0.46). Part of any all-process gap is method mix.
 
 **What this means.** The indicators are descriptive transparency measures that point to atypical features of a process for a human to look at. They are not validated predictors of wrongdoing, and no labelled set of proven problem contracts exists in the open data to test that. A high score is not an accusation.
+
+### Question answering: two sets of numbers, and where it is weak
+
+`POST /processes/{ocid}/ask` is off by default. Its retrieval-only mode (no model) was measured on 310 unseen processes
+(`eval/qa.json`, `docs/EVALUATION.md`) with two question sets, because the first one overstated it (review 5): the
+original phrasings share words with the retrieval key phrases (29 of 73 answerable templates were verbatim keys).
+
+| Retrieval only, unseen processes | In-vocabulary phrasing (n = 1,439 answerable) | Unseen phrasing (independent wording, n = 1,439 answerable) |
+|---|---|---|
+| Recall of the expected facts | 83.7 % (81.8 to 85.5) | **14.2 %** (12.4 to 16.1) |
+| Answerable questions answered with no fact | 3.2 % | 75.7 % |
+| Abstention on unanswerable questions (n = 930) | 79.7 % (77.2 to 82.4) | 88.0 % (85.9 to 90.0), because it says nothing to most questions |
+
+**Weak categories, stated next to any headline number:** `signals_all` (24 % in-vocabulary, 0 % unseen), `ghost` (42 %, 0 %),
+`registry_company` (54 %, 0 %), `history` (50 %, 12 %), `pair_others` (n = 2: 0 %, 0 %) and, with unseen phrasing, also `winner`, `object`, `amounts`,
+`procedure` and `registry_sri` (83 to 100 % in-vocabulary, 0 % unseen). The system was **not retuned** to the new set. Model mode (`gpt-5.4-mini`) was measured
+on the in-vocabulary phrasings only, over n = 172 questions; it was not rerun on unseen phrasings.
 
 ## Multi-agent investigation
 
@@ -318,14 +335,15 @@ Full threat model and findings: [docs/SECURITY.md](docs/SECURITY.md) and, for th
 - **DuckDB lockdown.** The API reuses one in-memory database per worker, locked down once: views over known Parquet files only, `allowed_directories` restricted, external access disabled, configuration locked, one `SELECT`/`WITH` statement per call (because the database outlives a request). Review 4 ran 65 attacks through this reader and found them refused or harmless.
 - **Masking of natural persons.** A RUC whose third digit is 0 to 5 is a natural person: the name becomes "Persona natural" and the RUC keeps four digits. A party with no usable RUC is masked unless its name carries a legal-entity marker (default is to mask). Free-text descriptions are withheld when they contain personal identifiers, including 10-digit cédulas. Supplier pages of natural persons return the same 404 as an unknown RUC. Masking is applied in the response models.
 - **Agents and tools.** Read-only, allow-listed tools; arguments built by code; results parsed into typed fields; no registry lookup for natural persons; legal-representative names never declared, stored, logged or sent to a model; stored records are scanned for natural-person identifiers (values and keys, normalised) and withheld when one is found; every call has a timeout and a recorded outcome.
+- **Quotes are off by default.** Stored quotes (verbatim text written by bidders and entities) are served only with `VEEDOR_QUOTES_ENABLED=true`. The screens were rebuilt as deny by default (a passage is shown only if nothing in it could be a person) after review 5 found persons in the earlier mart; a release gate (`scripts/check_quotes_privacy.py`) fails the bundle build when any stored passage matches the reviewer's rules or the project's own, and the bundle ships no quotes without `--with-quotes`. The residual was measured by reading samples, with a stated bound, not proven: of 150 passages drawn uniformly at random from the final mart that I read, none named a person (95 % upper bound 2.0 %; 0 of 300 over two random rounds, 1.0 %), a sample read by one reader, not a guarantee. Never described as free of personal data.
 - **Telemetry carries no personal data by construction** (attribute allow-list, see above).
 - **Limits, stated plainly.** Name masking in free text is heuristic: a name that is neither a known party of the process nor preceded by an honorific can still appear in a description shown by the process detail page. Dossiers do not quote descriptions. **The data directory and the Parquet files contain unmasked personal data (names, RUCs, cédulas) and must never be published or shared as-is.** Masking exists only at the API boundary. Investigation facts about legal status and capital are snapshots of today's registries, labelled as such.
-- **Reviews are disabled by default.** Writing a review requires `VEEDOR_REVIEWS_ENABLED=true` and a bearer token. The token is one shared secret, not a per-user identity. There is still no user authentication, so do not expose the API to the internet. The rate limiter is per process.
+- **Reviews are disabled by default.** Writing a review requires `VEEDOR_REVIEWS_ENABLED=true` and a bearer token. The token is one shared secret, not a per-user identity. There is still no user authentication, so do not expose the API to the internet. The review and dossier rate limiters are per worker and in memory (reset on restart). The `/ask` budget and per-client counters are shared in PostgreSQL in compose (`VEEDOR_ASK_USAGE_SHARED`), per worker otherwise; see [docs/SECURITY.md](docs/SECURITY.md).
 - **Ports** (web 3000, api 8000, PostgreSQL 5433, Grafana 3001, OTLP 4318, Prometheus 9090, Tempo 3200) are bound to `127.0.0.1`. The Grafana password in compose is a local-development default.
 
 ## Independent reviews
 
-Four independent, adversarial, read-only reviews were run on 2026-11-16, each by a reviewer who started without knowledge of the codebase and was asked to break the project's claims. Full record, including what remains open: [docs/REVIEWS.md](docs/REVIEWS.md).
+Five independent, adversarial, read-only reviews were run on 2026-11-16, each by a reviewer who started without knowledge of the codebase and was asked to break the project's claims. Full record, including what remains open: [docs/REVIEWS.md](docs/REVIEWS.md).
 
 | Review | When | Result |
 |---|---|---|
@@ -333,8 +351,9 @@ Four independent, adversarial, read-only reviews were run on 2026-11-16, each by
 | 2 | After those fixes | Confirmed the high-severity fixes; a privacy sweep of 1,640 processes (3,280 responses) found 0 leaked names, 0 unmasked natural-person RUCs, 0 valid cédulas. Found over-masking, transient 500s, a weaker review wording filter, and that 35 of 82 fresh evasions passed the word list. |
 | 3 | Stage 2: agents, vectors, telemetry | Re-derived the facts of six processes from primary sources (all matched); a hostile fake tool server leaked nothing; budgets held. Broke it: a privacy-scan crash (7 of 80 offline runs, 1 of 15 live) and the API returning 404 for every stored investigation in compose; plus fiscal-year, out-of-range-value and snapshot-labelling defects. |
 | 4 | Re-test of the stage 2 fixes | The crash was gone (13 of 13 live and 320 offline investigations completed); 65 attacks on the shared database reader refused; 200 requests at concurrency 8 gave p95 0.64 s. Found the privacy scan narrowed too far (no cédula, no formatted RUC), an unchecked report-number field, and a Contraloría list that silently omitted 3 of 9 reports. |
+| 5 | Before publication | Concluded the project was **not fit to publish**. Found natural persons named in the stored quotes (62 passages by 7 simple regular expressions, about 120 by reading, 54 quoting vehicle plates) although the project had claimed about 2 in 110,000; 785 passages of accusation-like third-party text beside risk signals; question-answering evaluation partly measuring the retrieval keys (29 of 73 templates were verbatim keys); 891 identifiers returning 422; per-worker rate limits. Fixes and measurements: [docs/REVIEWS.md](docs/REVIEWS.md). Quotes are now off by default. |
 
-Reviews 3 and 4 tested the agent graph with a scripted fake model; no model behaviour was reviewed adversarially with a real model. **The final round of fixes after review 4 was verified by the project's own tests and runs (21 attack forms caught; 400 offline investigations with no false alarm), not by a further independent review.** The same is true of the fixes after review 2.
+Reviews 3 and 4 tested the agent graph with a scripted fake model; no model behaviour was reviewed adversarially with a real model. **The final round of fixes after review 5 (and those after reviews 2 and 4) was verified by the project's own tests, measurements and a manual reading of samples, not by a further independent review.**
 
 ## Quickstart
 
@@ -409,11 +428,11 @@ uv run ruff check src tests scripts
 uv run python scripts/smoke_test.py
 ```
 
-Results of the last run (2026-11-16, local stack up): **1226 passed** in 13.64 s; ruff **all checks passed**; smoke test **15/15 checks passed**, including a refused anonymous review write, no stored review row, similar processes, a stored investigation served by the API and a 404 for an unknown investigation (nothing is started on demand). Tests use small synthetic fixtures and never need the real data. CI (`.github/workflows/ci.yml`) runs ruff, the migrations against a pgvector service, and pytest.
+Results of the last run (2026-11-16, local stack up, quotes and ask disabled): **2376 passed** in 190 s (including the release gate over the real quotes mart); ruff **all checks passed**; smoke test **36/36 checks passed** (quotes route 404, `/meta` flags present, ask 404).
 
 ## Known limitations
 
-- **Detail pages for some processes cannot be opened.** 891 of 2,251,027 processes (0.04 %) have characters in their identifier that the strict identifier validation rejects.
+- **Detail pages for some processes cannot be opened.** 891 of 2,251,027 processes have identifiers that were typed by hand (spaces, en dashes, commas, `Ñ`, slashes, quotes). The identifier pattern is a strict allow-list that now admits spaces, dashes, commas, colons, parentheses and a few more characters: 806 of the 891 open; the rest (85) contain a slash, a quote, `*`, `|`, `;`, `~`, `!` or invisible characters, which cannot travel safely in a URL path, are listed with `detail_available: false` and cannot be linked.
 - No evidence that the score singles out any external reference list (see the evaluation).
 - Registry facts are current, not historical; the indicators and investigation facts that use them say so.
 - **Live lookups depend on an unofficial MCP server over public sources.** Schemas can change and upstream services fail; failures are recorded and rendered as "no disponible".

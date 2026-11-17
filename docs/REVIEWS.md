@@ -1,6 +1,6 @@
 # Independent reviews
 
-Two adversarial, read-only reviews were run against the code and the running local stack on
+Five adversarial, read-only reviews were run against the code and the running local stack on
 2026-11-16. Each reviewer started without knowledge of the codebase, was told the project's
 claims, and was asked to break them. Reviewers could run tests, call the API, and query the
 data, but could not modify the repository.
@@ -192,6 +192,108 @@ shape derived from real values; the list states "se muestran N de M" and orders 
 reports first. **This last round was verified by the project's own tests and runs, not by a
 fifth independent review.**
 
+## Review 5 — adversarial review before publication
+
+A fifth reviewer, who again started without knowledge of the codebase, swept the stored quotes, the
+question-answering evaluation, the identifier validation, the deployment path and the web build, and
+concluded that **the project was not fit to publish**. As in the earlier reviews, personal names and
+identifiers from the reviewer's reproductions are not repeated here: evidence is given as counts and
+categories. Findings 4, 5, 6, 8a, the deployment parts of 7 and 9, and finding 10 were assigned to the web
+and deployment work; this section records the backend part (findings 1, 2, 3, 7 content check, 8b, 9 and the
+`Retry-After` item).
+
+### Finding 1 (critical): natural persons named in the stored quotes
+
+**Evidence.** All 110,579 stored passages were swept. Seven simple regular expressions found 62 passages
+naming a person; reading found roughly 120 passages in about 110 processes. Categories: legal representatives
+introducing themselves ("Yo, <three or four names>, en mi calidad de..."); sign-offs and signature blocks
+("Atte. <name>"); titles spelled out and followed by a name (engineer, doctor, chemist-pharmacist);
+"representada legalmente por <name>" in award texts; "sr.<SURNAME>" with no space; named technical staff in
+convalidation requests (CVs, certificates, voting-certificate numbers); insurance advisers with credential
+numbers (about 25 passages); two passages naming a patient; "copia de la cédula de <name>"; one partial mobile
+number; 54 passages quoting vehicle plates. The project had claimed "about 2 in 110,000"; that claim is
+withdrawn: it came from the same screens finding nothing, i.e. from measuring what they already knew how to find.
+
+**What changed.** The approach, not another pattern (patterns had failed twice):
+1. **Deny by default** (`domain/quotes/strict.py`, rules D1 to D13 in `docs/QUOTES.md`): a passage is eligible only if it holds no sign-off, first-person identification, title followed by a word, credential, plate,
+   long number, health reference or person-name token (in any case), every capitalised word is institutional
+   vocabulary built from the data (`quote_lexicon`: 7,836 capitalised and 20,024 ordinary words, no hand-written list and no
+   person-name token), and an all-capitals passage contains only known words. Entity names of the process are set aside.
+   The vocabulary of person-name tokens was redefined: the earlier one dropped every token ever typed in lower case
+   more than 2 % of the time, which removed the commonest given names and surnames, because people type them in lower case.
+2. The **release gate** (`scripts/check_quotes_privacy.py`, `domain/quotes/gate.py`): the reviewer's seven rules (reconstructed from
+   the sweep scripts) plus nine of the project's own, and the boundary function re-run with the real protected names. The bundle
+   script runs it first with `--with-quotes` and refuses to build when it fails; without the flag no quotes table is shipped.
+   An optional test runs it over the real mart. The gate rules are also part of the screen, so a mart built by this code cannot fail it.
+3. **Off by default** (`VEEDOR_QUOTES_ENABLED=false`): the route is a 404, `/ask` attaches no quote, `/meta` says
+   `quotes_enabled: false`, compose passes `${VEEDOR_QUOTES_ENABLED:-false}`.
+4. The API boundary applies the same function with the same lexicon; a mart without the lexicon is refused (503).
+
+**Measured after the rebuild.** Gate on the final mart: all seven reviewer rules 0, all own rules 0, boundary refusals 0 (81,568 passages in 54,489 stored quotes); the same seven rules (my reconstruction, broader than the reviewer's 62-hit regular expressions) matched **9,994 passages of the earlier mart**. Quotes stored 54,489 (27,079 paired) against 68,541 (42,038); processes with a quote 30,752 against 36,345, i.e. 35.1 % of flagged processes against 41.5 %. By signal the share of flagged processes with a quote moved: `SINGLE_BIDDER` 41.2 to 34.9 %, `RECURRING_COBIDDERS` 50.4 to 42.9 %, `CONTRACT_VS_COMPANY_SIZE` 52.6 to 44.1 %, `LOW_SAVING` 43.2 to 37.3 %, `BUYER_CONCENTRATION` 37.0 to 31.1 %, `NEW_SUPPLIER` 47.9 to 41.0 %, `SHORT_TENDER_WINDOW` 14.6 to 11.8 %, `REPEATED_DIRECT_AWARDS` 13.0 to 11.3 % (full table in `docs/QUOTES.md`). Reading, rounds and bounds in `docs/QUOTES.md`: round 1 (seed 4101) and round 2 (seed 5202) each read 150 random passages and 150 suspicious ones and found **0 persons** (95 % upper bound 2.0 % per round; 1.0 % pooled over 300). The earlier preview rounds did find things: a passage naming two persons in lower case (the vocabulary was redefined), 528 passages the gate's broader rules caught (merged into the screen), and 2 passages that fail only once cut for display (now screened as shown).
+
+**Remains open.** The bound is from samples read by one reader who knew the rules, of the first 230 to 340 characters of each passage; it is an upper bound, not a guarantee (0 of 300 random passages still allows up to 1.0 %, about 700 passages). A person named in lower case with a rare name that is in no vocabulary and next to no cue, or described without a name, can pass. The reviewer's own 62 regular expressions were not available, only their sweep scripts. Quotes stay off by default; turning them on is the operator's decision.
+
+### Finding 2 (high): accusation-like third-party text beside risk signals
+
+**Evidence.** 785 passages in 672 processes contained accusation or hostile wording that the unsafe screen missed:
+"direccionamiento" in the sense of rigging (about 500), "denunci...", "a dedo", "sucios juegos", "corrup...", "no se
+engañen", "la cía que todos sabemos", "favorec...", "amañ...", "colus...", "arreglado", "fraud...", "ilegal",
+"irregular", "sobrepreci...", "coima", "soborn...", "trampa", "amarrad...", "a la medida", "con nombre y apellido",
+"ganador ya definido", "beneficiar a", "perjudic...".
+
+**What changed.** `domain/quotes/allegation.py`: one accent-, case- and look-alike-insensitive pattern per stem, applied to
+the quotes screen and to the QA screen. "dirección" (address, department) is untouched: only the verb family is matched, as a whole word, and
+tests pin both sides. Seven stems were added after reading a boundary sample (discriminatorio, arbitrario, sospechoso, nepotismo,
+ladrón, "falta de transparencia", abusivo). Counts per stem over all 3,292,395 texts and over the earlier mart are in `docs/QUOTES.md`
+(33,951 texts, 1.03 %, contain at least one stem; 845 of the earlier 110,579 stored passages).
+
+**Measured.** The reviewer's stems, searched independently of the new module (plain substring regular expressions, `amañ` at a word start, "direccional" excluded), find **1,362 passages in 1,140 processes in the earlier mart and 0 true hits in the final one** (the one hit, "sería la medida", is a false match across an accent). The first version of the `direccion` stem matched whole words only and let 8 passages with "direccionar el proceso" through; the independent search found them, the stem was widened and the mart rebuilt. In 100 passages beside `SINGLE_BIDDER` or `RECURRING_COBIDDERS` (and in 150 random passages) none read as an allegation after the fix; a sample of 30 dropped passages: 18 complaints or allegations, 4 quotations of the law, 6 harmless uses, 2 unclear. The screen is blunt on purpose and also drops harmless text (about 400 passages with the boilerplate "no redireccionar").
+
+### Finding 3 (medium): leakage in the question-answering evaluation
+
+**Evidence.** 29 of 73 answerable templates were verbatim retrieval key phrases (`FACT_KEYS_ES`) and 50 of 73 contained or were
+contained in one; the split was by process, not by phrasing.
+
+**What changed.** A second, independently worded set (at least 5 new phrasings per fact type and per unanswerable group; colloquial
+Ecuadorian Spanish, no accents, misspellings, indirect wording) with a test that none equals, contains or is contained in a key phrase and that the content-word
+overlap with the nearest key stays under 0.5; thresholds tuned on one set of phrasings and processes, reported on unseen phrasings and unseen
+processes; the system was not retuned and the keys were not changed. The retrieval keys were in the author's context when the phrasings were written:
+independence is enforced by the test, not by blindness.
+
+**Measured (retrieval only, 310 unseen processes).** Recall of the expected facts: **83.7 %** (81.8 to 85.5) with the original phrasings, **14.2 %** (12.4 to 16.1) with unseen phrasings.
+Answerable questions answered with no fact: 3.2 % and 75.7 %. Abstention on unanswerable questions: 79.7 % and 88.0 %. Weak categories: `signals_all`
+(24 % / 0 %), `ghost` (42 % / 0 %), `registry_company` (54 % / 0 %), `history` (50 % / 12 %), `pair_others` (n = 2), and with unseen phrasing also `winner`, `object`, `amounts`, `procedure`,
+`registry_sri` (0 %). Model mode was not rerun (cost); its numbers are marked as measured on the in-vocabulary set with n = 172.
+**Remains open:** the similarity floor (0.575) was chosen on in-vocabulary phrasings and is probably too high for colloquial wording; a fair
+fix needs a new tuning set of phrasings (it was not done here, so as not to tune on the report set); the model was not tested on unseen phrasings.
+
+### Finding 7 (backend part): the bundle gate matched only names and hashes
+
+**Evidence.** The release gate refused files by path and by hash of the unmasked texts; it did not look at the content of a data table.
+**What changed.** For the quotes table the gate now checks content (finding 1, item 2); the default bundle contains no quotes table at all.
+**Remains open.** The deployment-side release gate (name, hash and path checks of the whole bundle) is in the deploy work; the orchestrator completes this line.
+
+### Finding 8b: 891 processes returned 422
+
+**Evidence.** 891 of 2,251,027 identifiers contain characters the path pattern rejected (spaces, en dashes, commas, `Ñ`, slashes, quotes...).
+**What changed.** The pattern is still a strict allow-list (`domain/ocid.py`), widened to spaces, the dashes `– — ‐ ‒ − －`, commas, colons, parentheses, `+`, `&`, `º`, `°`, `·`, `Ñ`, `Ç`, `Ó`; control characters, format characters (soft hyphen,
+zero-width, bidi override), slashes, backslashes, quotes, `%`, `? # ; * ~ | ! < > { } $`, look-alike letters and digits stay refused (an injection set is in `tests/domain/test_ocid.py`).
+**Measured.** Against the running API: **806 of the 891 earlier 422s now return the process (200, same ocid)**; 85 do not (54 answer 404, the slash splits the path into a route that does not exist; 31 answer 422, they hold quotes, `*`, `|`, `;`, `~`, `!` or an invisible character). List endpoints (`/processes`, similar processes) carry `detail_available: false` for those 85 so a client does not link to them.
+
+### Finding 9 (backend part): rate limits and the ask budget are per worker, in memory
+
+**What changed.** The documents now say exactly what is per worker and what resets on restart (`docs/SECURITY.md`, `docs/CONFIGURATION.md`). The ask daily budget
+and the per-client counters can live in PostgreSQL (`VEEDOR_ASK_USAGE_SHARED`, table `ask_usage`, migration 0003, one atomic `INSERT ... ON CONFLICT DO UPDATE ... WHERE used < limit`;
+the client is stored as a truncated hash; on a database error the in-memory counters apply). Compose sets it. Verified: 16 threads on the real PostgreSQL count exactly 5 of 40 for a limit of 5.
+`/ask` 429 responses carry `Retry-After` and CORS exposes it. **Remains open:** review and dossier limiters are still per worker and in memory; the shared per-client windows are fixed buckets; behind a proxy
+the client IP is the proxy's unless forwarded headers are trusted.
+
+### Findings addressed in web and deployment
+
+| Finding | Status |
+|---|---|
+| 4, 5, 6, 8a, the deployment parts of 7 and 9, and 10 | addressed in web/deploy. Placeholder: the orchestrator completes this row with the web and deploy changes. |
+
 ## Residual limits
 
 - **Name masking in free text is heuristic.** A person who is not a party to the process and is
@@ -202,9 +304,12 @@ fifth independent review.**
 - **The forbidden-word list is not a guarantee.** The guarantee for dossier text is structural:
   code writes every sentence from enumerated facts and phrases.
 - **The verifier checks presence, not meaning**, for any figure that is not bound to a label.
-- **Reviews use one shared token**, and rate limits are per process.
-- **891 of 2,251,027 processes (0.04 %)** have identifiers with characters that the strict
-  validation rejects; they appear in listings but their detail page cannot be opened.
+- **Reviews use one shared token**, and the review and dossier rate limits are per worker process and in memory (the `/ask` budget and limits are shared in PostgreSQL when `VEEDOR_ASK_USAGE_SHARED` is on).
+- **85 of 2,251,027 processes** have identifiers with a slash, a quote, `*`, `|`, `;`, `~`, `!` or an
+  invisible character; the validation still rejects them (806 of the 891 earlier rejections now open).
+  They appear in listings with `detail_available: false` and their page cannot be opened.
+- **Quotes are disabled by default** because their privacy screens have a measured, non-zero residual
+  (`docs/QUOTES.md`); the sample-based bound is not a guarantee.
 - **No model behaviour was reviewed adversarially with a real model.** Reviewers used a scripted
   fake model through the real agent graph.
 - **Investigation facts are snapshots of today's registries.** Legal status and subscribed

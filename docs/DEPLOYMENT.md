@@ -87,6 +87,13 @@ builder read, found in `infrastructure/lake/reader.py` (7 lake tables, 3 marts) 
 `infrastructure/lake/evidence_reader.py`. `data/raw/`, `build_summary.json`, dossiers and traces are
 excluded. Output: `dist/veedor-data-<date>.tar.gz` plus a manifest (file, bytes, sha256, rows).
 
+**The bundle contains no quotes.** The quotes marts (`process_quotes`, `process_quote_stats`, `quote_lexicon`)
+are shipped only with `scripts/build_data_bundle.sh --with-quotes`, which first runs
+`scripts/check_quotes_privacy.py` over the mart and refuses to build (exit 1, nothing written) when any
+passage matches a gate rule or the deny-by-default screen would refuse it today. Quotes are also disabled by
+default at runtime (`VEEDOR_QUOTES_ENABLED=false`); see `docs/QUOTES.md` for why and for the measured residual.
+The table below is the default bundle (without quotes).
+
 Measured on this data:
 
 | File | Bytes | Rows |

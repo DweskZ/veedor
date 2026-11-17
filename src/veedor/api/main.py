@@ -74,6 +74,7 @@ def create_app() -> FastAPI:
         allow_origins=get_settings().cors_origins,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
+        expose_headers=["Retry-After"],  # a browser may read how long to wait after a 429
     )
     app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)

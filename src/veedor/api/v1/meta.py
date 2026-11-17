@@ -14,6 +14,9 @@ class Meta(BaseModel):
     version: str
     reviews_enabled: bool = Field(description="True when reviews can be written (flag on, token set).")
     ask_enabled: bool = Field(default=False, description="True when the question route is switched on.")
+    quotes_enabled: bool = Field(
+        default=False, description="True when verbatim quotes are served (off by default, docs/QUOTES.md)."
+    )
     ask_mode: str | None = Field(
         default=None,
         description="model | retrieval when the route is on (retrieval without a model); null if off.",
@@ -27,5 +30,6 @@ def get_meta(policy: Policy) -> Meta:
     model = settings.model_configured and settings.ask_daily_budget > 0
     mode = ("model" if model else "retrieval") if settings.ask_enabled else None
     return Meta(
-        version=VERSION, reviews_enabled=policy.can_write, ask_enabled=settings.ask_enabled, ask_mode=mode
+        version=VERSION, reviews_enabled=policy.can_write, ask_enabled=settings.ask_enabled,
+        quotes_enabled=settings.quotes_enabled, ask_mode=mode
     )

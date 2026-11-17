@@ -129,6 +129,26 @@ def test_per_ip_rate_limit_answers_429(client, enable):
     assert "Demasiadas" in post(client).json()["error"]["message"]
 
 
+def test_a_429_carries_retry_after_and_cors_exposes_it(client, enable):
+    enable.settings["settings"] = Settings(_env_file=None, ask_enabled=True, ask_rate_per_minute=1)
+    origin = {"Origin": "http://localhost:3000"}
+    assert client.post(f"{API}/processes/{fx.OCID_COMPANY}/ask", json={"question": QUESTION}, headers=origin).status_code == 200
+    blocked = client.post(f"{API}/processes/{fx.OCID_COMPANY}/ask", json={"question": QUESTION}, headers=origin)
+    assert blocked.status_code == 429
+    assert 1 <= int(blocked.headers["retry-after"]) <= 60  # the minute window is the one that is full
+    assert "retry-after" in blocked.headers["access-control-expose-headers"].lower()
+    assert blocked.json()["error"]["code"] == "http_error"
+
+
+def test_retry_after_is_the_longer_wait_when_the_hour_window_is_full(client, enable):
+    enable.settings["settings"] = Settings(
+        _env_file=None, ask_enabled=True, ask_rate_per_minute=100, ask_rate_per_hour=1
+    )
+    assert post(client).status_code == 200
+    blocked = post(client)
+    assert blocked.status_code == 429 and 60 < int(blocked.headers["retry-after"]) <= 3600
+
+
 def test_with_a_model_the_daily_budget_falls_back_to_retrieval_not_to_an_error(client, enable):
     reply = {"answerable": True, "fact_ids": ["process.tenderers"], "reason": "directa"}
     enable([reply] * 4, budget=1)

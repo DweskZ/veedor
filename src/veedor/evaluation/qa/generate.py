@@ -85,3 +85,28 @@ def generate(
             for view in rng.sample(halves[name], min(count, len(halves[name]))):
                 out.append(EvalQuestion(view.ocid, text, ADVERSARIAL, category, attack=index))
     return out
+
+
+def generate_unseen(views: list[ProcessView], seed: int = 42) -> list[EvalQuestion]:
+    """The same structure as `generate`, worded with the unseen phrasings (`questions.UNSEEN_*`), for the
+    given processes only (the caller passes the reporting half). Its own random stream: the in-vocabulary
+    questions of `generate` are unchanged. No attacks: those are not about retrieval keys."""
+    rng = random.Random(f"unseen:{seed}")
+    out: list[EvalQuestion] = []
+    for view in sorted(views, key=lambda v: v.ocid):
+        types = _applicable(view)
+        for fact_type in rng.sample(types, min(PER_PROCESS_ANSWERABLE, len(types))):
+            out.append(EvalQuestion(view.ocid, rng.choice(q.UNSEEN_ANSWERABLE[fact_type.name]), ANSWERABLE, fact_type.name, fact_type.expected))
+        if view.signal_labels:
+            if rng.random() < 0.5:
+                fact_id = rng.choice(sorted(view.signal_labels))
+                text = rng.choice(q.UNSEEN_SIGNAL_PHRASINGS).format(label=view.signal_labels[fact_id])
+                out.append(EvalQuestion(view.ocid, text, ANSWERABLE, "signal", (fact_id,)))
+            else:
+                out.append(EvalQuestion(view.ocid, rng.choice(q.UNSEEN_ALL_SIGNALS_PHRASINGS), ANSWERABLE, "signals_all", tuple(sorted(view.signal_labels))))
+        pool = [("not_in_the_data", t) for t in q.UNSEEN_NOT_IN_THE_DATA] + [("off_topic", t) for t in q.UNSEEN_OFF_TOPIC]
+        if not view.investigated:
+            pool += [("absent_investigation", t) for t in q.UNSEEN_ABSENT_INVESTIGATION]
+        for tag, text in rng.sample(pool, PER_PROCESS_UNANSWERABLE):
+            out.append(EvalQuestion(view.ocid, text, UNANSWERABLE, tag))
+    return out

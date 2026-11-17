@@ -35,6 +35,38 @@ def _mode_rows(summary: dict[str, Any]) -> list[tuple[str, str]]:
     ]
 
 
+def _phrasing_section(result: dict[str, Any], ret: dict[str, Any]) -> list[str]:
+    """Both question sets on the same unseen (reporting-half) processes. The in-vocabulary set shares words
+    with the retrieval keys; the unseen set was worded independently and the system was not tuned on it."""
+    unseen = result.get("retrieval_only_unseen_phrasing")
+    if not unseen:
+        return [_table(_mode_rows(ret))]
+    cols = "| Measure | In-vocabulary phrasing | Unseen phrasing |\n|---|---|---|\n"
+    rows = [(a[0], a[1], b[1]) for a, b in zip(_mode_rows(ret), _mode_rows(unseen), strict=True) if not a[0].startswith(("Attack", "**Attack"))]
+    body = "\n".join(f"| {a} | {b} | {c} |" for a, b, c in rows)
+    types = sorted(set(ret["answerable"]["recall_by_fact_type"]) | set(unseen["answerable"]["recall_by_fact_type"]))
+    by_type = ["| Fact type | In-vocabulary: n / recall | Unseen: n / recall |", "|---|---|---|"]
+    for k in types:
+        cells = []
+        for block in (ret, unseen):
+            v = block["answerable"]["recall_by_fact_type"].get(k)
+            cells.append("-" if v is None else f"{v['n']} / {100 * v['recall']:.1f} %")
+        by_type.append(f"| `{k}` | {cells[0]} | {cells[1]} |")
+    return [
+        "In-vocabulary: the original phrasings (many share words with the retrieval key phrases). Unseen: an independently worded set "
+        "(colloquial, no accents, misspellings, indirect wording; `tests/evaluation/test_qa_unseen_phrasings.py`), on the same reporting-half processes, "
+        "with the thresholds chosen on the tuning half and not retuned.",
+        "",
+        cols + body,
+        "",
+        "Recall by fact type (reporting half):",
+        "",
+        *by_type,
+        "",
+        f"Unseen-phrasing questions: {result['sample'].get('questions_unseen_phrasing', 0):,} {result['sample'].get('questions_unseen_phrasing_by_kind', {})}.",
+    ]
+
+
 def _table(rows: list[tuple[str, str]]) -> str:
     return "\n".join(["| Measure | Value |", "|---|---|", *[f"| {k} | {v} |" for k, v in rows]])
 
@@ -68,15 +100,9 @@ def render_markdown(result: dict[str, Any]) -> str:
         f"(objective: mean of the answerable F1 and the abstention rate = {th['objective']}); the 12 candidates sent to a model contain every "
         f"expected fact in {100 * th['candidate_recall_tuning_half']:.1f} % of the answerable tuning questions.",
         "",
-        "### Retrieval only (no model)",
+        "### Retrieval only (no model): in-vocabulary and unseen phrasing, side by side",
         "",
-        _table(_mode_rows(ret)),
-        "",
-        "Recall by fact type (reporting half):",
-        "",
-        "| Fact type | Questions | Recall |",
-        "|---|---|---|",
-        *[f"| `{k}` | {v['n']} | {100 * v['recall']:.1f} % |" for k, v in ret["answerable"]["recall_by_fact_type"].items()],
+        *_phrasing_section(result, ret),
         "",
         f"Attack outcomes (retrieval): {ret['adversarial']['outcomes']}. {_successes(ret['adversarial'])}",
     ]
@@ -87,7 +113,8 @@ def render_markdown(result: dict[str, Any]) -> str:
     else:
         mm, same = model["model_mode"], model["retrieval_same_questions"]
         parts += [
-            f"Model `{model['model']}` over {model['questions']} questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once); "
+            f"Model `{model['model']}` over {model['questions']} questions of the reporting half (about 60 answerable, 40 unanswerable and each attack once), "
+            "**measured on the in-vocabulary phrasings only** (not rerun on the unseen set: cost); "
             "the same questions answered by retrieval only are shown for comparison.",
             "",
             "| Measure | Model | Retrieval only |",

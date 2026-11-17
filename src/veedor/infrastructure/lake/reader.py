@@ -48,6 +48,7 @@ MART_TABLES = (
     "process_quotes",
     "process_quote_stats",
     "person_name_tokens",
+    "quote_lexicon",
 )
 
 

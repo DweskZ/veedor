@@ -27,6 +27,7 @@ import numpy as np
 
 from veedor.domain.masking import is_masked_party, is_natural_person
 from veedor.domain.quotes.deny import passage_key
+from veedor.domain.quotes.lexicon import Lexicon
 from veedor.domain.quotes.screen import PERSONAL, UNSAFE, Verdict, check_passage
 from veedor.domain.quotes.topics import SIGNAL_TOPICS_ES
 
@@ -83,9 +84,15 @@ class BundleSource(Protocol):
         """Person-name tokens found in the data (see `domain.quotes.names`)."""
         ...
 
+    def lexicon(self) -> Lexicon:
+        """Institutional and ordinary vocabulary found in the data (see `domain.quotes.lexicon`)."""
+        ...
+
 
 class QuoteSink(Protocol):
     def write_vocabulary(self, tokens: Sequence[str]) -> None: ...
+
+    def write_lexicon(self, lexicon: Lexicon) -> None: ...
 
     def write(self, quotes: Sequence[dict[str, Any]], stats: Sequence[dict[str, Any]]) -> None: ...
 
@@ -148,7 +155,11 @@ class Judged:
     verdict: Verdict
 
 
-def judge_texts(bundle: ProcessBundle, name_vocabulary: frozenset[str] = frozenset()) -> list[Judged]:
+def judge_texts(
+    bundle: ProcessBundle,
+    name_vocabulary: frozenset[str] = frozenset(),
+    lexicon: Lexicon | None = None,
+) -> list[Judged]:
     """Eligibility of every text. An answer inherits the exclusion of its question: an exchange whose
     question is withheld is withheld whole (the answer can address or quote the asker)."""
     verdicts: dict[tuple[str, int], Verdict] = {}
@@ -164,7 +175,20 @@ def judge_texts(bundle: ProcessBundle, name_vocabulary: frozenset[str] = frozens
                 protected_names=bundle.protected_names,
                 asker_is_person=row.author_person,
                 name_vocabulary=name_vocabulary,
+                lexicon=lexicon,
             )
+            shown_text = shorten(row.text)[0]
+            if verdict.eligible and shown_text != row.text:
+                # a cut passage is what is stored and shown: it must pass on its own (a cut can change the
+                # share of capitals or open a sentence with an unknown word)
+                verdict = check_passage(
+                    shown_text,
+                    person_names=bundle.person_names,
+                    protected_names=bundle.protected_names,
+                    asker_is_person=row.author_person,
+                    name_vocabulary=name_vocabulary,
+                    lexicon=lexicon,
+                )
         verdicts[(row.kind, row.seq)] = verdict
         judged.append(Judged(row, verdict))
     return judged
@@ -339,6 +363,8 @@ class QuotesReport:
     wall_seconds: float = 0.0
     embedded_texts: int = 0
     name_vocabulary: int = 0
+    lexicon_capitalised: int = 0
+    lexicon_lowercase: int = 0
     floor: float = SIMILARITY_FLOOR
 
     @property
@@ -383,8 +409,12 @@ def build_quotes(
     vocabulary = source.name_vocabulary()
     report.name_vocabulary = len(vocabulary)
     sink.write_vocabulary(sorted(vocabulary))
+    lexicon = source.lexicon()
+    report.lexicon_capitalised = len(lexicon.capitalised)
+    report.lexicon_lowercase = len(lexicon.lowercase)
+    sink.write_lexicon(lexicon)
     for batch in _batches(source, limit, batch_size):
-        judged_by_ocid = {b.ocid: judge_texts(b, vocabulary) for b in batch}
+        judged_by_ocid = {b.ocid: judge_texts(b, vocabulary, lexicon) for b in batch}
         unique = sorted(
             {
                 j.row.text[:EMBED_MAX_CHARS]

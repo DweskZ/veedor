@@ -7,10 +7,10 @@ from typing import Annotated
 
 from fastapi import Path, Query
 
+from veedor.domain.ocid import OCID_PATTERN
 from veedor.domain.regions import REGION_KEYS
 from veedor.domain.signals import SIGNALS_BY_CODE
 
-OCID_PATTERN = r"^ocds-5wno2w-[A-Za-z0-9._\-]{1,120}$"
 RUC_PATTERN = r"^[0-9]{13}$"
 METHOD_PATTERN = r"^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ .,()/\-]{1,120}$"
 SORT_PATTERN = r"^[+-]?[a-z_]{1,30}$"

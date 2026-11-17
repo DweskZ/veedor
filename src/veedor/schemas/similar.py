@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from veedor.domain.masking import PartyFields
+from veedor.domain.ocid import is_openable
 from veedor.schemas.common import MaskedModel
 
 NOTICE_ES = (
@@ -26,6 +27,16 @@ class SimilarProcessOut(MaskedModel):
     method: str | None = None
     award_total: float | None = None
     main_cpc: str | None = None
+    detail_available: bool = Field(
+        True, description="False when the page of this identifier cannot be linked."
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _openable(cls, data: Any) -> Any:
+        if isinstance(data, dict) and isinstance(data.get("ocid"), str):
+            return {**data, "detail_available": is_openable(data["ocid"])}
+        return data
 
 
 class SimilarProcessesOut(BaseModel):

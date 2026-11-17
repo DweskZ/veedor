@@ -4,143 +4,162 @@
   "build": {
     "flagged_processes_with_text": 86936,
     "texts": 716246,
-    "quotes": 68541,
-    "quotes_with_pair": 42038,
-    "near_duplicates_skipped": 1055,
+    "quotes": 54489,
+    "quotes_with_pair": 27079,
+    "near_duplicates_skipped": 583,
     "exclusions_by_reason": {
       "personal:asker_person": 88918,
       "personal:denied_passage": 4,
-      "personal:email": 2435,
-      "personal:honorific": 1017,
-      "personal:identifier": 79,
-      "personal:name_before_title": 27,
-      "personal:name_or_identifier": 5808,
-      "personal:phone": 555,
+      "personal:email": 1705,
+      "personal:gate_r1_title_then_name": 1105,
+      "personal:gate_r2_role_then_name": 13,
+      "personal:gate_r3_honorific_then_capitalised": 2,
+      "personal:gate_r4_sign_off_or_first_person": 579,
+      "personal:gate_r7_identity_document_word": 49,
+      "personal:honorific": 929,
+      "personal:identifier": 66,
+      "personal:name_before_title": 21,
+      "personal:name_or_identifier": 5289,
+      "personal:phone": 519,
       "personal:placeholder": 4,
-      "personal:probable_person_name": 1751,
-      "personal:question_excluded": 70105,
-      "personal:salutation": 1697,
-      "personal:self_or_address_line": 19,
-      "personal:signature": 595,
-      "unsafe:obfuscated_wording": 1527,
-      "unsafe:question_excluded": 8798,
-      "unsafe:unsafe_text": 23349
+      "personal:probable_person_name": 4686,
+      "personal:question_excluded": 118335,
+      "personal:salutation": 1542,
+      "personal:self_or_address_line": 14,
+      "personal:signature": 484,
+      "personal:strict_caps_unknown_word": 11693,
+      "personal:strict_contact": 251,
+      "personal:strict_credential_id": 821,
+      "personal:strict_health_reference": 1990,
+      "personal:strict_labelled_name": 34,
+      "personal:strict_long_number": 7724,
+      "personal:strict_name_token": 17795,
+      "personal:strict_plate": 6526,
+      "personal:strict_self_identification": 3640,
+      "personal:strict_sign_off": 18117,
+      "personal:strict_title_name": 2161,
+      "personal:strict_unknown_capitalised": 30563,
+      "personal:strict_unknown_lowercase_pair": 2058,
+      "unsafe:allegation_wording": 7958,
+      "unsafe:obfuscated_wording": 1394,
+      "unsafe:question_excluded": 12693,
+      "unsafe:unsafe_text": 17951
     },
     "exclusions_by_category": {
-      "personal": 173014,
-      "unsafe": 33674
+      "personal": 327637,
+      "unsafe": 39996
     },
-    "wall_seconds": 252.8,
-    "embed_seconds": 11.3,
-    "processes_per_second": 343.9,
-    "texts_per_second": 2832.9,
+    "wall_seconds": 509.5,
+    "embed_seconds": 5.8,
+    "processes_per_second": 170.6,
+    "texts_per_second": 1405.8,
     "bytes": {
-      "process_quotes": 11295044,
-      "process_quote_stats": 830957
+      "process_quotes": 7033512,
+      "process_quote_stats": 832338
     },
     "stats_rows": 86936,
-    "quote_rows": 68541,
+    "quote_rows": 54489,
     "quote_rows_by_kind": {
-      "award_text": 12800,
-      "enquiry_answer": 5842,
-      "enquiry_question": 49899
+      "award_text": 12117,
+      "enquiry_answer": 3999,
+      "enquiry_question": 38373
     },
     "quote_rows_by_rank": {
-      "1": 36345,
-      "2": 19046,
-      "3": 13150
+      "1": 30752,
+      "2": 14299,
+      "3": 9438
     },
-    "rows_truncated": 4096
+    "rows_truncated": 1261
   },
   "coverage": {
     "all_flagged": {
       "flagged": 87617,
       "with_text": 86936,
-      "with_eligible_text": 85145,
-      "with_quote": 36345,
-      "share_with_quote": 0.4148,
-      "share_with_quote_among_with_text": 0.4181
+      "with_eligible_text": 79463,
+      "with_quote": 30752,
+      "share_with_quote": 0.351,
+      "share_with_quote_among_with_text": 0.3537
     },
     "by_signal": {
       "BUYER_CONCENTRATION": {
         "flagged": 3231,
         "with_text": 3229,
-        "with_eligible_text": 3156,
-        "with_quote": 1196,
-        "share_with_quote": 0.3702,
-        "share_with_quote_among_with_text": 0.3704
+        "with_eligible_text": 2910,
+        "with_quote": 1004,
+        "share_with_quote": 0.3107,
+        "share_with_quote_among_with_text": 0.3109
       },
       "CONTRACT_VS_COMPANY_SIZE": {
         "flagged": 5957,
         "with_text": 5957,
-        "with_eligible_text": 5902,
-        "with_quote": 3136,
-        "share_with_quote": 0.5264,
-        "share_with_quote_among_with_text": 0.5264
+        "with_eligible_text": 5503,
+        "with_quote": 2628,
+        "share_with_quote": 0.4412,
+        "share_with_quote_among_with_text": 0.4412
       },
       "CONTRACT_VS_COMPANY_SIZE_SAME_YEAR": {
         "flagged": 614,
         "with_text": 614,
-        "with_eligible_text": 609,
-        "with_quote": 257,
-        "share_with_quote": 0.4186,
-        "share_with_quote_among_with_text": 0.4186
+        "with_eligible_text": 579,
+        "with_quote": 208,
+        "share_with_quote": 0.3388,
+        "share_with_quote_among_with_text": 0.3388
       },
       "GHOST_COMPANY_LISTED_LATER": {
         "flagged": 44,
         "with_text": 43,
-        "with_eligible_text": 42,
-        "with_quote": 23,
-        "share_with_quote": 0.5227,
-        "share_with_quote_among_with_text": 0.5349
+        "with_eligible_text": 39,
+        "with_quote": 18,
+        "share_with_quote": 0.4091,
+        "share_with_quote_among_with_text": 0.4186
       },
       "LOW_SAVING": {
         "flagged": 4289,
         "with_text": 4285,
-        "with_eligible_text": 4191,
-        "with_quote": 1852,
-        "share_with_quote": 0.4318,
-        "share_with_quote_among_with_text": 0.4322
+        "with_eligible_text": 3931,
+        "with_quote": 1600,
+        "share_with_quote": 0.373,
+        "share_with_quote_among_with_text": 0.3734
       },
       "NEW_SUPPLIER": {
         "flagged": 1307,
         "with_text": 1304,
-        "with_eligible_text": 1278,
-        "with_quote": 626,
-        "share_with_quote": 0.479,
-        "share_with_quote_among_with_text": 0.4801
+        "with_eligible_text": 1156,
+        "with_quote": 536,
+        "share_with_quote": 0.4101,
+        "share_with_quote_among_with_text": 0.411
       },
       "RECURRING_COBIDDERS": {
         "flagged": 11417,
         "with_text": 11415,
-        "with_eligible_text": 11331,
-        "with_quote": 5751,
-        "share_with_quote": 0.5037,
-        "share_with_quote_among_with_text": 0.5038
+        "with_eligible_text": 10801,
+        "with_quote": 4898,
+        "share_with_quote": 0.429,
+        "share_with_quote_among_with_text": 0.4291
       },
       "REPEATED_DIRECT_AWARDS": {
         "flagged": 3361,
         "with_text": 3334,
-        "with_eligible_text": 3254,
-        "with_quote": 438,
-        "share_with_quote": 0.1303,
-        "share_with_quote_among_with_text": 0.1314
+        "with_eligible_text": 2825,
+        "with_quote": 379,
+        "share_with_quote": 0.1128,
+        "share_with_quote_among_with_text": 0.1137
       },
       "SHORT_TENDER_WINDOW": {
         "flagged": 3092,
         "with_text": 3088,
-        "with_eligible_text": 3059,
-        "with_quote": 451,
-        "share_with_quote": 0.1459,
-        "share_with_quote_among_with_text": 0.146
+        "with_eligible_text": 2988,
+        "with_quote": 366,
+        "share_with_quote": 0.1184,
+        "share_with_quote_among_with_text": 0.1185
       },
       "SINGLE_BIDDER": {
         "flagged": 59268,
         "with_text": 58628,
-        "with_eligible_text": 57206,
-        "with_quote": 24444,
-        "share_with_quote": 0.4124,
-        "share_with_quote_among_with_text": 0.4169
+        "with_eligible_text": 53368,
+        "with_quote": 20659,
+        "share_with_quote": 0.3486,
+        "share_with_quote_among_with_text": 0.3524
       },
       "SUPPLIER_NOT_ACTIVE": {
         "flagged": 16,
@@ -154,63 +173,63 @@
   },
   "calibration": {
     "processes": 6000,
-    "eligible_passages": 23426,
+    "eligible_passages": 15475,
     "best_similarity_percentiles": {
-      "5": 0.02,
-      "25": 0.154,
-      "50": 0.306,
-      "75": 0.422,
-      "90": 0.5,
+      "5": 0.011,
+      "25": 0.145,
+      "50": 0.3,
+      "75": 0.42,
+      "90": 0.499,
       "95": 0.539,
-      "99": 0.601
+      "99": 0.602
     },
-    "stem_passage_pairs": 1765,
-    "base_stem_rate": 0.1212,
+    "stem_passage_pairs": 1180,
+    "base_stem_rate": 0.1085,
     "by_floor": {
       "0.1": {
-        "passages": 1220,
-        "stem_rate": 0.1434,
-        "lift": 1.18
+        "passages": 789,
+        "stem_rate": 0.1255,
+        "lift": 1.16
       },
       "0.15": {
-        "passages": 1096,
-        "stem_rate": 0.1515,
-        "lift": 1.25
+        "passages": 725,
+        "stem_rate": 0.1338,
+        "lift": 1.23
       },
       "0.2": {
-        "passages": 926,
-        "stem_rate": 0.1533,
-        "lift": 1.26
+        "passages": 623,
+        "stem_rate": 0.1477,
+        "lift": 1.36
       },
       "0.25": {
-        "passages": 692,
-        "stem_rate": 0.1705,
-        "lift": 1.41
+        "passages": 475,
+        "stem_rate": 0.1768,
+        "lift": 1.63
       },
       "0.3": {
-        "passages": 469,
-        "stem_rate": 0.2132,
-        "lift": 1.76
+        "passages": 334,
+        "stem_rate": 0.2186,
+        "lift": 2.01
       },
       "0.35": {
-        "passages": 234,
-        "stem_rate": 0.3077,
-        "lift": 2.54
+        "passages": 163,
+        "stem_rate": 0.3436,
+        "lift": 3.17
       },
       "0.4": {
-        "passages": 93,
-        "stem_rate": 0.5376,
-        "lift": 4.43
+        "passages": 70,
+        "stem_rate": 0.5714,
+        "lift": 5.27
       },
       "0.45": {
-        "passages": 37,
-        "stem_rate": 0.7297,
-        "lift": 6.02
+        "passages": 31,
+        "stem_rate": 0.7097,
+        "lift": 6.54
       },
       "0.5": {
-        "passages": 12,
-        "stem_rate": 0.8333,
-        "lift": 6.87
+        "passages": 11,
+        "stem_rate": 0.8182,
+        "lift": 7.54
       }
     },
     "rule": "smallest floor on the 0.05 grid whose stem rate is at least twice the base rate"
@@ -219,62 +238,74 @@
     "evaluated_processes_exclude_calibration": true,
     "bootstrap_resamples": 2000,
     "SHORT_TENDER_WINDOW": {
-      "processes": 222,
-      "selected_quote_stem_rate": 0.3874,
+      "processes": 188,
+      "selected_quote_stem_rate": 0.3511,
       "selected_ci95": [
-        0.3243,
-        0.4506
+        0.2819,
+        0.4149
       ],
-      "random_eligible_item_stem_rate": 0.1667,
+      "random_eligible_item_stem_rate": 0.1702,
       "random_ci95": [
-        0.1171,
-        0.2162
+        0.117,
+        0.2234
       ],
-      "difference": 0.2207,
+      "difference": 0.1809,
       "difference_ci95": [
-        0.1532,
-        0.2884
+        0.1223,
+        0.2394
       ]
     },
     "LOW_SAVING": {
-      "processes": 1561,
-      "selected_quote_stem_rate": 0.5208,
+      "processes": 1348,
+      "selected_quote_stem_rate": 0.5215,
       "selected_ci95": [
-        0.4965,
-        0.5458
+        0.4948,
+        0.549
       ],
-      "random_eligible_item_stem_rate": 0.296,
+      "random_eligible_item_stem_rate": 0.3153,
       "random_ci95": [
-        0.2729,
-        0.319
+        0.2901,
+        0.3412
       ],
-      "difference": 0.2249,
+      "difference": 0.2062,
       "difference_ci95": [
-        0.1986,
-        0.2511
+        0.1795,
+        0.2322
       ]
     }
   },
   "privacy_sweep": {
-    "quote_passages_scanned": 110579,
-    "processes_with_quotes": 36345,
-    "processes_with_person_names_searched": 15760,
-    "person_names_searched": 67806,
+    "quote_passages_scanned": 81568,
+    "processes_with_quotes": 30752,
+    "processes_with_person_names_searched": 13358,
+    "person_names_searched": 56448,
     "hits": {
       "identifier_scan": 0,
       "name_search": 0,
-      "email": 1,
+      "email": 0,
       "phone": 0,
       "senor_followed_by_a_name": 0
     },
-    "rarer_name_pair_candidates": 13,
-    "hit_locations": [
-      {
-        "ocid": "ocds-5wno2w-MCO-GADMP-01-2020.-45119",
-        "rank": 2,
-        "part": "text",
-        "check": "email"
-      }
-    ]
+    "gate_rule_hits": {
+      "r1_title_then_name": 0,
+      "r2_role_then_name": 0,
+      "r3_honorific_then_capitalised": 0,
+      "r4_sign_off_or_first_person": 0,
+      "r5_vehicle_plate": 0,
+      "r6_telephone": 0,
+      "r7_identity_document_word": 0,
+      "o1_glued_honorific": 0,
+      "o2_partial_mobile": 0,
+      "o3_email": 0,
+      "o4_identifier": 0,
+      "o5_natural_ruc": 0,
+      "o6_long_number": 0,
+      "o7_health": 0,
+      "o8_lowercase_plate": 0,
+      "o9_accusation_stem": 0
+    },
+    "boundary_refusals": 0,
+    "rarer_name_pair_candidates": 0,
+    "hit_locations": []
   }
 }

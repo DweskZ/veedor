@@ -184,7 +184,7 @@ flowchart TD
     V -->|invalid| R422[422, never echoed]
     V --> I{intent}
     I -->|judgement, person, instruction, payload| F[fixed sentence]
-    I -->|answerable| P[evidence pack: dossier sentences + stored investigation + stored quotes]
+    I -->|answerable| P[evidence pack: dossier sentences + stored investigation + stored quotes, only when VEEDOR_QUOTES_ENABLED]
     P --> E[embed question; rank facts and quotes by cosine]
     E --> M{model configured and budget left?}
     M -->|no| T[top-k above the floor]

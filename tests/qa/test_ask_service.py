@@ -244,3 +244,31 @@ def test_the_audit_line_holds_a_salted_hash_that_differs_between_services(full_c
         make_service(full_context).ask(OCID, QUESTION)
     hashes = [r.getMessage().split("qhash=")[1].split()[0] for r in logs.records if "qhash=" in r.getMessage()]
     assert len(hashes) == 2 and hashes[0] != hashes[1]
+
+
+def test_the_api_loader_attaches_no_stored_quote_when_quotes_are_disabled(tmp_path):
+    """`VEEDOR_QUOTES_ENABLED=false` (the default): the loader neither reads the mart nor returns a quote."""
+    from veedor.domain.dossier.models import EvidencePack
+    from veedor.use_cases.queries.ask_context import ApiContextLoader
+
+    reads: list[str] = []
+
+    class Lake:
+        def data_version(self):
+            return "v1"
+
+        def has_table(self, name):
+            reads.append(name)
+            return False
+
+        def fetch(self, *a, **k):  # pragma: no cover - must not be reached
+            raise AssertionError("the quotes mart must not be read while quotes are disabled")
+
+    from pathlib import Path
+
+    fixtures = Path(__file__).resolve().parents[1] / "fixtures" / "dossier"
+    pack = EvidencePack.model_validate_json((fixtures / "pack_full.json").read_text())
+    off = ApiContextLoader(Lake(), lambda ocid: pack, lambda ocid: None, lambda: False).load("ocds-5wno2w-x")
+    assert off.quotes == [] and reads == []
+    on = ApiContextLoader(Lake(), lambda ocid: pack, lambda ocid: None, lambda: True).load("ocds-5wno2w-y")
+    assert on.quotes == [] and reads  # enabled: the mart is consulted (here it is missing, so no quotes)

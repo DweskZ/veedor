@@ -15,6 +15,8 @@ app = typer.Typer(no_args_is_help=True)
 
 SUMMARY_NAME = "process_quotes_build.json"
 EVAL_PATH = REPO_ROOT / "eval" / "quotes.json"
+# the numbers of the build before review 5
+EVAL_BEFORE_PATH = REPO_ROOT / "eval" / "quotes_before_review5.json"
 DOC_PATH = REPO_ROOT / "docs" / "QUOTES.md"
 
 
@@ -30,6 +32,8 @@ def report_to_dict(report: QuotesReport) -> dict:
         "repeated_passages_skipped": report.repeated,
         "embedded_texts": report.embedded_texts,
         "name_vocabulary_tokens": report.name_vocabulary,
+        "lexicon_capitalised_tokens": report.lexicon_capitalised,
+        "lexicon_lowercase_tokens": report.lexicon_lowercase,
         "exclusions_by_reason": dict(sorted(report.reasons.items())),
         "by_signal": {
             code: {
@@ -153,6 +157,10 @@ def show(ocid: Annotated[str, typer.Argument(help="Process identifier (ocds-5wno
             typer.echo(f"  -> [{pair_kind}] <{pair_source}> {pair}")
 
 
+def _before() -> dict | None:
+    return orjson.loads(EVAL_BEFORE_PATH.read_bytes()) if EVAL_BEFORE_PATH.is_file() else None
+
+
 @app.command("evaluate")
 def evaluate(
     out: Annotated[Path, typer.Option(help="JSON output (numbers only).")] = EVAL_PATH,
@@ -167,7 +175,7 @@ def evaluate(
     out.write_bytes(orjson.dumps(result["numbers"], option=orjson.OPT_INDENT_2))
     typer.echo(orjson.dumps(result["numbers"], option=orjson.OPT_INDENT_2).decode())
     typer.echo(f"Wrote {out}")
-    if evaluation.update_docs(doc, evaluation.render_markdown(result["numbers"])):
+    if evaluation.update_docs(doc, evaluation.render_markdown(result["numbers"], _before())):
         typer.echo(f"Refreshed the generated block in {doc}")
     typer.echo("\n--- rarer name-pair candidates (sample) ---")
     for item in result["name_candidates"]:

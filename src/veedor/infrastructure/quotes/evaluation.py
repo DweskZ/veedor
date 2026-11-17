@@ -26,7 +26,11 @@ import orjson
 from veedor.core.settings import Settings
 from veedor.domain.dossier.text import norm
 from veedor.domain.investigation.identifiers import document_has_personal_identifier
+from veedor.domain.quotes.gate import ALL_RULES, REVIEWER_RULES, rules_hit
+from veedor.domain.quotes.lexicon import Lexicon
 from veedor.domain.quotes.names import probable_person_name
+from veedor.domain.quotes.screen import check_passage
+from veedor.domain.quotes.strict import blank_protected
 from veedor.infrastructure.lake.connection import parquet_path, quote_literal
 from veedor.infrastructure.quotes.source import LakeQuoteSource
 from veedor.infrastructure.vectors.embedding import FastEmbedEmbedder
@@ -98,6 +102,8 @@ def run_evaluation(settings: Settings, *, sample: int = 30) -> dict[str, Any]:
         lake, marts, settings.texts_dir
     )  # parties only: faster, same eligibility to <0.1 %
     sweep_source = LakeQuoteSource(lake, marts, settings.texts_dir, raw_path=settings.ocds_bulk_path)
+    vocabulary, lexicon = source.name_vocabulary(), source.lexicon()  # one pass over the texts, cached
+    sweep_source._cached = source._cached
     rng = np.random.default_rng(SEED)
     summary = orjson.loads((marts / "process_quotes_build.json").read_bytes())
     calibration = [
@@ -110,9 +116,9 @@ def run_evaluation(settings: Settings, *, sample: int = 30) -> dict[str, Any]:
         "similarity_floor": summary["floor"],
         "build": _build_numbers(summary, marts, con),
         "coverage": _coverage(con),
-        "calibration": _calibration(source, embedder, calibration),
-        "retrieval_check": _retrieval_check(con, source, set(calibration), rng),
-        "privacy_sweep": _privacy_sweep(con, sweep_source),
+        "calibration": _calibration(source, embedder, calibration, vocabulary, lexicon),
+        "retrieval_check": _retrieval_check(con, source, set(calibration), rng, vocabulary, lexicon),
+        "privacy_sweep": _privacy_sweep(con, sweep_source, vocabulary, lexicon),
     }
     candidates = numbers["privacy_sweep"].pop("_candidate_sample")
     return {
@@ -185,8 +191,11 @@ def _coverage(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     return {"all_flagged": row(overall[0]), "by_signal": {v[0]: row(v) for v in by_signal}}
 
 
-def _eligible_items(bundle: bq.ProcessBundle) -> list[bq.Item]:
-    eligible = {(j.row.kind, j.row.seq): j.row for j in bq.judge_texts(bundle) if j.verdict.eligible}
+def _eligible_items(
+    bundle: bq.ProcessBundle, vocabulary: frozenset[str] = frozenset(), lexicon: Lexicon | None = None
+) -> list[bq.Item]:
+    judged = bq.judge_texts(bundle, vocabulary, lexicon)
+    eligible = {(j.row.kind, j.row.seq): j.row for j in judged if j.verdict.eligible}
     return bq._items(eligible, {key: (0.0, "") for key in eligible})
 
 
@@ -194,12 +203,20 @@ def _item_text(item: bq.Item) -> str:
     return norm(" ".join(m.text for m in item.members))
 
 
-def _calibration(source: LakeQuoteSource, embedder: FastEmbedEmbedder, ocids: list[str]) -> dict[str, Any]:
+def _calibration(
+    source: LakeQuoteSource,
+    embedder: FastEmbedEmbedder,
+    ocids: list[str],
+    vocabulary: frozenset[str],
+    lexicon: Lexicon,
+) -> dict[str, Any]:
     codes, topics = bq.topic_vectors(embedder)
     rows: list[tuple[str, float, str]] = []
     best_all: list[float] = []
     bundles = list(source.bundles(ocids=ocids))
-    judged = {b.ocid: [j for j in bq.judge_texts(b) if j.verdict.eligible] for b in bundles}
+    judged = {
+        b.ocid: [j for j in bq.judge_texts(b, vocabulary, lexicon) if j.verdict.eligible] for b in bundles
+    }
     unique = sorted({j.row.text[: bq.EMBED_MAX_CHARS] for items in judged.values() for j in items})
     vectors = dict(zip(unique, embedder.embed(unique), strict=True))
     for bundle in bundles:
@@ -238,7 +255,12 @@ def _calibration(source: LakeQuoteSource, embedder: FastEmbedEmbedder, ocids: li
 
 
 def _retrieval_check(
-    con: duckdb.DuckDBPyConnection, source: LakeQuoteSource, excluded: set[str], rng: np.random.Generator
+    con: duckdb.DuckDBPyConnection,
+    source: LakeQuoteSource,
+    excluded: set[str],
+    rng: np.random.Generator,
+    vocabulary: frozenset[str],
+    lexicon: Lexicon,
 ) -> dict[str, Any]:
     out: dict[str, Any] = {"evaluated_processes_exclude_calibration": True, "bootstrap_resamples": BOOTSTRAP}
     pyrandom = random.Random(SEED)
@@ -253,7 +275,7 @@ def _retrieval_check(
         selected_hit: list[bool] = []
         random_hit: list[bool] = []
         for bundle in source.bundles(ocids=sorted(selected)):
-            items = _eligible_items(bundle)
+            items = _eligible_items(bundle, vocabulary, lexicon)
             if not items:
                 continue
             selected_hit.append(bool(stem.search(selected[bundle.ocid])))
@@ -280,7 +302,13 @@ def _retrieval_check(
 # ------------------------------------------------------------------------------- privacy sweep
 
 
-def _privacy_sweep(con: duckdb.DuckDBPyConnection, source: LakeQuoteSource) -> dict[str, Any]:
+def _all_rule_names() -> list[str]:
+    return list(ALL_RULES)
+
+
+def _privacy_sweep(
+    con: duckdb.DuckDBPyConnection, source: LakeQuoteSource, vocabulary: frozenset[str], lexicon: Lexicon
+) -> dict[str, Any]:
     rows = con.execute(
         "SELECT ocid, rank, text, coalesce(pair_text, '') FROM quotes ORDER BY ocid, rank"
     ).fetchall()
@@ -309,6 +337,17 @@ def _privacy_sweep(con: duckdb.DuckDBPyConnection, source: LakeQuoteSource) -> d
                 "phone": bool(_PHONE.search(passage) or _PHONE_CUE.search(norm(passage))),
                 "senor_followed_by_a_name": bool(_SENOR_NAME.search(passage)),
             }
+            for rule in rules_hit(blank_protected(passage, protected.get(ocid, ()))):
+                counts[f"gate:{rule}"] += 1
+            verdict = check_passage(
+                passage,
+                person_names=sorted(names.get(ocid, ())),
+                protected_names=protected.get(ocid, ()),
+                name_vocabulary=vocabulary,
+                lexicon=lexicon,
+            )
+            if not verdict.eligible:
+                counts["boundary_refusals"] += 1
             if probable_person_name(passage, weak, protected.get(ocid, ())):
                 counts["rarer_name_pair_candidates"] += 1
                 candidates.append((ocid, passage))
@@ -325,6 +364,11 @@ def _privacy_sweep(con: duckdb.DuckDBPyConnection, source: LakeQuoteSource) -> d
             check: counts[check]
             for check in ("identifier_scan", "name_search", "email", "phone", "senor_followed_by_a_name")
         },
+        "gate_rule_hits": {
+            name: counts[f"gate:{name}"]
+            for name in (*REVIEWER_RULES, *sorted(set(_all_rule_names()) - set(REVIEWER_RULES)))
+        },
+        "boundary_refusals": counts["boundary_refusals"],
         "rarer_name_pair_candidates": counts["rarer_name_pair_candidates"],
         "hit_locations": hits[:200],
         "_candidate_sample": random.Random(SEED).sample(candidates, min(40, len(candidates))),
@@ -352,7 +396,7 @@ def _pct(value: float | None) -> str:
     return "n/a" if value is None else f"{value * 100:.1f} %"
 
 
-def render_markdown(numbers: dict[str, Any]) -> str:
+def render_markdown(numbers: dict[str, Any], before: dict[str, Any] | None = None) -> str:
     """The measured numbers of `eval/quotes.json` as the generated block of docs/QUOTES.md."""
     build, cover = numbers["build"], numbers["coverage"]
     calibration, check, sweep = numbers["calibration"], numbers["retrieval_check"], numbers["privacy_sweep"]
@@ -381,18 +425,25 @@ def render_markdown(numbers: dict[str, Any]) -> str:
         "**Coverage**: share of flagged processes with at least one quote, by signal. A process counts under "
         "every signal that fired on it.",
         "",
-        "| Signal | Flagged | With text | With a quote | Share of flagged |",
-        "|---|---|---|---|---|",
+        "| Signal | Flagged | With text | With a quote | Share of flagged | Share before review 5 |",
+        "|---|---|---|---|---|---|",
     ]
+    old = (before or {}).get("coverage", {})
+
+    def was(code: str) -> str:
+        row = old.get("all_flagged" if code == "ALL" else "by_signal", {})
+        row = row if code == "ALL" else row.get(code, {})
+        return _pct(row.get("share_with_quote")) if row else "n/a"
+
     for code, row in cover["by_signal"].items():
         lines.append(
             f"| `{code}` | {row['flagged']:,} | {row['with_text']:,} | {row['with_quote']:,} | "
-            f"{_pct(row['share_with_quote'])} |"
+            f"{_pct(row['share_with_quote'])} | {was(code)} |"
         )
     total = cover["all_flagged"]
     lines += [
         f"| **All flagged** | {total['flagged']:,} | {total['with_text']:,} | {total['with_quote']:,} | "
-        f"{_pct(total['share_with_quote'])} |",
+        f"{_pct(total['share_with_quote'])} | {was('ALL')} |",
         "",
         "**Exclusions** (text rows; an answer whose question was withheld is `question_excluded`):",
         "",
@@ -459,6 +510,15 @@ def render_markdown(numbers: dict[str, Any]) -> str:
         f"| «Señor/Señora» followed by a name | {hits['senor_followed_by_a_name']} |",
         f"| Passages with a pair of rarer given-name or surname tokens (candidates, mostly places and "
         f"institutions) | {sweep['rarer_name_pair_candidates']} |",
+        f"| Passages the deny-by-default boundary function refuses today (same function as the API) | "
+        f"{sweep['boundary_refusals']} |",
+        "",
+        "**Release-gate rules** (`scripts/check_quotes_privacy.py`; the first seven are the reviewer's "
+        "regular expressions, the rest are this project's; every one must be 0):",
+        "",
+        "| Rule | Hits |",
+        "|---|---|",
+        *[f"| `{name}` | {count} |" for name, count in sweep["gate_rule_hits"].items()],
         DOC_END,
     ]
     return "\n".join(lines)

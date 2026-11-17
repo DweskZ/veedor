@@ -13,8 +13,13 @@ Settings are read from environment variables prefixed `VEEDOR_` (and from a loca
 | `VEEDOR_LLM_API_KEY` | unset | API key for the provider. Never commit it. |
 | `VEEDOR_REVIEWS_ENABLED` | `false` | Master switch for human reviews. Off: `POST .../reviews` answers 403 `reviews_disabled` and `GET` returns an empty list. |
 | `VEEDOR_REVIEWS_TOKEN` | unset | Bearer token required by `POST .../reviews` (constant-time comparison). Unset means posting stays disabled even when the flag is on. Keep it secret; never commit it. |
+| `VEEDOR_QUOTES_ENABLED` | `false` | Verbatim quotes from a process's own published text. **Off by default.** Off: `GET /processes/{ocid}/quotes` answers 404 (the same as an unknown route), `POST /processes/{ocid}/ask` attaches no quote and `GET /meta` reports `quotes_enabled: false` (the web hides the block on that flag). On: the mart `process_quotes` and its `quote_lexicon` must be present or the route answers 503. Why it is off and what the screens do and do not guarantee: `docs/QUOTES.md`. In compose: `${VEEDOR_QUOTES_ENABLED:-false}`. |
+| `VEEDOR_ASK_ENABLED` | `false` | Switch for `POST /processes/{ocid}/ask` (404 when off). `GET /meta` reports `ask_enabled` and `ask_mode`. |
+| `VEEDOR_ASK_DAILY_BUDGET` | `300` | Model calls per UTC day (0 to 1,000,000). **Without `VEEDOR_ASK_USAGE_SHARED`** each worker counts its own share (`budget // VEEDOR_API_WORKERS`, at least 1) in memory: the workers together never exceed the budget, but every restart resets the count, and two API replicas each spend a full budget. **With it** one count in PostgreSQL for every worker and replica, kept across restarts. |
+| `VEEDOR_ASK_RATE_PER_MINUTE` / `VEEDOR_ASK_RATE_PER_HOUR` | `4` / `30` | Requests per client IP. **Without `VEEDOR_ASK_USAGE_SHARED`**: sliding windows in memory, per worker, reset on restart; with `VEEDOR_API_WORKERS` workers a client can make up to workers x the limit. **With it**: fixed one-minute and one-hour buckets per client (stored as a truncated hash of the IP) in PostgreSQL, one count for every worker. A 429 carries `Retry-After` (whole seconds); CORS exposes that header. |
+| `VEEDOR_ASK_USAGE_SHARED` | `false` (compose: `true`) | Keep the ask budget and the per-client counters in the `ask_usage` table (migration `0003`, atomic `INSERT ... ON CONFLICT DO UPDATE ... WHERE used < limit`). If the database is unreachable the in-memory counters apply for that request, so a database outage never switches a limit off. Rows older than two days are deleted. |
 | `VEEDOR_LAKE_THREADS` | `2` | DuckDB threads per API process (1-64). Total CPU use is roughly `VEEDOR_API_WORKERS` x this value. |
-| `VEEDOR_API_WORKERS` | `2` | uvicorn worker processes started by `veedor serve` and by the container (1-16). Each worker has its own DuckDB database, `/stats` cache and rate-limit counters. |
+| `VEEDOR_API_WORKERS` | `2` | uvicorn worker processes started by `veedor serve` and by the container (1-16). Each worker has its own DuckDB database, `/stats` cache and in-memory rate-limit counters (reviews, dossiers and, unless `VEEDOR_ASK_USAGE_SHARED` is on, `/ask`): the effective in-memory limit is the configured limit times the workers, and a restart resets it. |
 | `VEEDOR_DOCS_ENABLED` | `true` | Serves `/docs` (Swagger UI with pinned, integrity-checked assets) and `/openapi.json`. Set `false` in any shared deployment. |
 | `VEEDOR_GLOSSARY_PATH` | `<repo>/web/src/data/glossary.json` | JSON file served by `GET /glossary` (written by the web team; the API only reads it). In compose it is `/app/web/src/data/glossary.json` with `./web/src/data` mounted read-only. A missing or invalid file makes the route answer 503 `glossary_unavailable`. |
 | `VEEDOR_CORS_ORIGINS` | `["http://localhost:3000"]` | Allowed browser origins, as a JSON list. No other origin receives CORS headers. |
@@ -43,14 +48,18 @@ All three published ports (`db` 5433, `api` 8000, `web` 3000) are bound to `127.
 | Review note / reviewer length | 2000 / 120 characters | `veedor/schemas/reviews.py` |
 | Database connect timeout | 3 s | `veedor/infrastructure/db/session.py` |
 | `GET /processes?min_amount=&max_amount=` | finite numbers from 0 to 1e12; minimum above maximum is 422 | `veedor/api/params.py` |
-| Quotes per process / displayed length / similarity floor | 3 / 600 characters / 0.35 | `veedor/use_cases/build_quotes.py` |
+| Quotes per process / displayed length / similarity floor | 3 / 800 characters / 0.35 | `veedor/use_cases/build_quotes.py` |
+| Vocabulary of the quote screen | a capitalised word is institutional only if written capitalised in at least 40 processes of at least 10 buyers and far more often than it appears in natural-person names (ratio 20) | `veedor/domain/quotes/lexicon.py` |
+| Process identifier in a path | `ocds-5wno2w-` + 1 to 120 characters of a strict allow-list (letters, digits, `ÑÇÓ`, `. _ - , : + ( ) & º ° ·`, a space, the dashes `– — ‐ ‒ − －`; never a slash, quote, `%` or control character) | `veedor/domain/ocid.py` |
 | Stored process text | at most 2,000 characters per text, then cut at a word and flagged `truncated` | `veedor/infrastructure/ocds/texts.py` |
 
 ## Common commands
 
 ```
 veedor lake build-texts    # data/texts/process_texts.parquet (unmasked: never mounted into the API)
-veedor quotes build        # data/marts/process_quotes.parquet, process_quote_stats.parquet, person_name_tokens.parquet
+veedor quotes build        # data/marts/process_quotes, process_quote_stats, person_name_tokens, quote_lexicon (.parquet)
+uv run python scripts/check_quotes_privacy.py   # release gate over the quotes mart (exit 1 on any hit)
+scripts/build_data_bundle.sh [--with-quotes]    # quotes are shipped only with the flag, after the gate passes
 veedor quotes show <ocid>  # the stored quotes of one process
 veedor quotes evaluate     # eval/quotes.json
 make db-up         # start PostgreSQL (waits for the healthcheck)

@@ -106,6 +106,15 @@ def run_qa(
     except (FileNotFoundError, ValueError) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
+    previous = out_dir / "qa.json"
+    if not with_model and previous.is_file():
+        # Model mode is not rerun (cost): keep its stored numbers, marked as measured on the original
+        # (in-vocabulary) phrasings and the sample of that run.
+        old = _read_json(previous).get("model")
+        if old and old.get("status") == "ran":
+            old["measured_on"] = "in_vocabulary_phrasings"
+            old["carried_over"] = True
+            result["model"] = old
     _write_json(out_dir / "qa.json", result)
     render.update_docs(doc, render.render_markdown(result))
     adv = result["retrieval_only"]["adversarial"]

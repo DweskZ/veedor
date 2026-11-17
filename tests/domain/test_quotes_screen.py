@@ -25,7 +25,7 @@ def verdict(text: str, **kwargs):
         f"La empresa {COMPANY} presentó su oferta dentro del plazo.",
         f"La visita se realizará en el {ENTITY} el lunes.",
         "Estimado oferente, se aclara que la experiencia específica puede acreditarse con actas.",
-        "El presupuesto referencial es de USD 150.000,00 y el valor de la oferta no puede superarlo.",
+        "El presupuesto referencial es de 150.000,00 dólares y el valor de la oferta no puede superarlo.",
         "Se solicita indicar el código CPC correcto del objeto de contratación 2023-001.",
     ],
 )
@@ -214,13 +214,26 @@ def test_a_person_who_is_not_a_party_is_caught_by_the_vocabulary_or_the_honorifi
     "text",
     [
         "Estimado señor oferente, gracias",
-        "Señora Presidenta de la comisión técnica",
-        "carlos andrade escrito en minúsculas no es un nombre propio aquí",
-        "El plazo de entrega es de Luis (nombre solo) treinta días",
     ],
 )
 def test_roles_and_single_or_lowercase_tokens_do_not_trigger_the_name_net(text: str) -> None:
     assert check_passage(text, name_vocabulary=VOCAB).eligible, text
+
+
+@pytest.mark.parametrize(
+    ("text", "reason"),
+    [
+        ("Señora Presidenta de la comisión técnica", "strict_title_name"),
+        ("carlos andrade escrito en minúsculas no es un nombre propio aquí", "strict_name_token"),
+        ("El plazo de entrega es de Luis (nombre solo) treinta días", "strict_name_token"),
+        ("se requiere un Ingeniero Civil con experiencia de cinco años", "strict_title_name"),
+    ],
+)
+def test_deny_by_default_refuses_what_the_earlier_screen_let_through(text: str, reason: str) -> None:
+    """Review 5: the earlier screens accepted these (roles, single or lower-case name tokens, a title followed
+    by a capitalised word). Precision of privacy matters more than recall: they are refused now."""
+    result = check_passage(text, name_vocabulary=VOCAB)
+    assert (result.eligible, result.reason) == (False, reason), (text, result)
 
 
 def test_a_protected_entity_named_after_a_person_is_not_a_person() -> None:
@@ -257,7 +270,6 @@ def test_titles_with_names_address_lines_and_self_introductions_are_personal(tex
 
 def test_professional_titles_alone_and_ordinary_phrases_are_not_names() -> None:
     for text in (
-        "se requiere un Ingeniero Civil con experiencia de cinco años",
         "el ingeniero residente deberá estar en obra",
         "Yo creo que el plazo debe ampliarse, en mi opinión",
         "Señores miembros de la comisión técnica",

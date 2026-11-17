@@ -3,7 +3,12 @@
 # (see veedor/infrastructure/lake/reader.py and evidence_reader.py), plus a manifest with
 # file, bytes, sha256 and row count.
 #
-#   scripts/build_data_bundle.sh [OUT_DIR]      default OUT_DIR=dist
+#   scripts/build_data_bundle.sh [--with-quotes] [OUT_DIR]      default OUT_DIR=dist
+#
+# The quotes marts (process_quotes, process_quote_stats, quote_lexicon) are NOT shipped by default: quotes are
+# disabled by default (docs/QUOTES.md) and the screens that produce them are heuristics with a measured,
+# non-zero residual. `--with-quotes` first runs scripts/check_quotes_privacy.py over the mart; if that gate
+# fails (non-zero exit, missing mart or missing lexicon) the bundle is NOT built.
 #
 # Output: OUT_DIR/veedor-data-<UTC date>.tar.gz containing lake/*.parquet, marts/*.parquet and
 # manifest.json; the manifest is also written next to the tarball. Raw files, build_summary.json,
@@ -12,11 +17,31 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA="${VEEDOR_DATA_DIR:-$ROOT/data}"
-OUT="${1:-$ROOT/dist}"
+WITH_QUOTES=0
+OUT=""
+for arg in "$@"; do
+  case "$arg" in
+    --with-quotes) WITH_QUOTES=1 ;;
+    -*) echo "unknown option: $arg" >&2; exit 2 ;;
+    *) [[ -z "$OUT" ]] || { echo "only one OUT_DIR is accepted" >&2; exit 2; }; OUT="$arg" ;;
+  esac
+done
+OUT="${OUT:-$ROOT/dist}"
 STAMP="$(date -u +%Y%m%d)"
 LAKE_TABLES=(processes tenderers awards suppliers_sri ghost_companies companies_supercias company_financials)
 # person_name_tokens.parquet is deliberately not shipped (docs/SECURITY.md, "Name vocabulary").
-MART_TABLES=(process_signals process_scores supplier_profiles process_quotes process_quote_stats)
+MART_TABLES=(process_signals process_scores supplier_profiles)
+QUOTE_TABLES=(process_quotes process_quote_stats quote_lexicon)
+
+if [[ -n "${PYTHON:-}" ]]; then RUN=("$PYTHON"); else RUN=(uv run --project "$ROOT" python); fi
+if [[ $WITH_QUOTES -eq 1 ]]; then
+  echo "running the quotes privacy gate before building (--with-quotes)..." >&2
+  if ! "${RUN[@]}" "$ROOT/scripts/check_quotes_privacy.py" --marts "$DATA/marts" --lake "$DATA/lake" >&2; then
+    echo "REFUSED: the quotes privacy gate failed; no bundle was written" >&2
+    exit 1
+  fi
+  MART_TABLES+=("${QUOTE_TABLES[@]}")
+fi
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
@@ -31,7 +56,10 @@ for t in "${MART_TABLES[@]}"; do
   ln "$DATA/marts/$t.parquet" "$STAGE/marts/$t.parquet" 2>/dev/null || cp "$DATA/marts/$t.parquet" "$STAGE/marts/"
 done
 
-if [[ -n "${PYTHON:-}" ]]; then RUN=("$PYTHON"); else RUN=(uv run --project "$ROOT" python); fi
+# Whatever the flags, no quotes table may be staged without the flag.
+if [[ $WITH_QUOTES -eq 0 ]] && compgen -G "$STAGE/marts/process_quote*" >/dev/null; then
+  echo "REFUSED: a quotes table was staged without --with-quotes" >&2; exit 1
+fi
 "${RUN[@]}" - "$STAGE" <<'PY'
 import hashlib, json, sys
 from datetime import UTC, datetime

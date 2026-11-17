@@ -8,7 +8,13 @@ import api_fixture_data as fx
 import pytest
 from fastapi.testclient import TestClient
 
-from veedor.infrastructure.quotes.store import QUOTES_SCHEMA, STATS_SCHEMA, VOCABULARY_SCHEMA
+from veedor.core.settings import get_settings
+from veedor.infrastructure.quotes.store import (
+    LEXICON_SCHEMA,
+    QUOTES_SCHEMA,
+    STATS_SCHEMA,
+    VOCABULARY_SCHEMA,
+)
 from veedor.schemas.quotes import QUOTES_NOTE_ES
 
 API = "/api/v1"
@@ -29,8 +35,23 @@ def quote(rank=1, text=SAFE, signal="SINGLE_BIDDER", pair_text=PAIR, **extra):
     return row | extra
 
 
+# Institutional capitalised words and ordinary words of the synthetic mart (what the build would store).
+LEX_CAP = {"oferta", "sercop", "mayo", "adenda", "cronograma", "consulta"}
+LEX_LOW = set(
+    "se amplia el plazo de presentacion de ofertas hasta respuesta modifica mediante la oferta cumple "
+    "otro texto sobre entrega consulta de con calificado es del personal tecnico segun formulario "
+    "hubo en proceso ignore previous instructions visite".split()
+)
+
+
 def write(
-    marts: Path, ocid: str, quotes: list[dict], stats: dict | None = None, *, vocabulary: bool = True
+    marts: Path,
+    ocid: str,
+    quotes: list[dict],
+    stats: dict | None = None,
+    *,
+    vocabulary: bool = True,
+    lexicon: bool = True,
 ) -> None:
     import pyarrow as pa
     import pyarrow.parquet as pq
@@ -42,6 +63,10 @@ def write(
     } | (stats or {})  # fmt: skip
     pq.write_table(pa.Table.from_pylist(rows, schema=QUOTES_SCHEMA), marts / "process_quotes.parquet")
     pq.write_table(pa.Table.from_pylist([stat], schema=STATS_SCHEMA), marts / "process_quote_stats.parquet")
+    if lexicon:
+        lex = [{"token": t, "form": "capitalised"} for t in sorted(LEX_CAP)]
+        lex += [{"token": t, "form": "lowercase"} for t in sorted(LEX_LOW)]
+        pq.write_table(pa.Table.from_pylist(lex, schema=LEXICON_SCHEMA), marts / "quote_lexicon.parquet")
     if not vocabulary:
         return
     tokens = [{"token": t} for t in sorted(VOCABULARY)]
@@ -53,6 +78,49 @@ def write(
 @pytest.fixture
 def marts(lake_dirs) -> Path:
     return lake_dirs[1]
+
+
+@pytest.fixture(autouse=True)
+def quotes_on(monkeypatch: pytest.MonkeyPatch):
+    """Quotes are off by default; these tests exercise the route with the flag on."""
+    monkeypatch.setenv("VEEDOR_QUOTES_ENABLED", "true")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+def test_quotes_are_off_by_default_a_plain_404_that_hides_the_mart(
+    client: TestClient, marts: Path, monkeypatch: pytest.MonkeyPatch
+):
+    write(marts, fx.OCID_COMPANY, [quote()])
+    monkeypatch.delenv("VEEDOR_QUOTES_ENABLED")
+    get_settings.cache_clear()
+    for ocid in (fx.OCID_COMPANY, "ocds-5wno2w-nope-9999"):
+        response = client.get(f"{API}/processes/{ocid}/quotes")
+        assert response.status_code == 404 and response.json()["error"]["code"] == "not_found"
+        assert SAFE not in response.text
+    assert client.get(f"{API}/meta").json()["quotes_enabled"] is False
+
+
+def test_meta_reports_quotes_enabled_next_to_ask_enabled(client: TestClient):
+    body = client.get(f"{API}/meta").json()
+    assert body["quotes_enabled"] is True and body["ask_enabled"] is False
+
+
+def test_a_mart_without_the_lexicon_is_refused_not_served_unscreened(client: TestClient, marts: Path):
+    write(marts, fx.OCID_COMPANY, [quote()], lexicon=False)
+    response = client.get(f"{API}/processes/{fx.OCID_COMPANY}/quotes")
+    assert response.status_code == 503 and response.json()["error"]["code"] == "data_unavailable"
+
+
+def test_a_stored_passage_with_an_unknown_capitalised_word_is_dropped_by_the_deny_by_default_screen(
+    client: TestClient, marts: Path
+):
+    stored = "Se amplía el plazo según Zorgonplim Wuxy sobre la oferta."
+    write(marts, fx.OCID_COMPANY, [quote(text=stored, pair_text=None), quote(rank=2, pair_text=None)])
+    body = client.get(f"{API}/processes/{fx.OCID_COMPANY}/quotes").json()
+    assert [i["text"] for i in body["items"]] == [SAFE]
+    assert body["omitted"]["personal_data"] == 2  # 1 stored by the build + this one
 
 
 def test_quotes_are_served_with_label_pair_counts_and_the_note(client: TestClient, marts: Path):
@@ -197,11 +265,35 @@ def test_quotes_endpoint_runs_only_single_selects_by_ocid(
     assert TestClient(app).get(f"{API}/processes/{fx.OCID_COMPANY}/quotes").status_code == 200
     assert seen and all(s.lstrip().upper().startswith(("SELECT", "WITH")) for s in seen)
     unbounded = [s for s in seen if "WHERE" not in s.upper()]
-    # the only statement without a key is the person-name vocabulary: a few hundred rows, once per build
-    assert unbounded == ["SELECT token FROM person_name_tokens"], seen
+    # the only statements without a key are the person-name vocabulary and the lexicon: once per build
+    assert sorted(unbounded) == [
+        "SELECT token FROM person_name_tokens",
+        "SELECT token, form FROM quote_lexicon",
+    ], seen
 
 
 def test_quotes_are_served_without_the_name_vocabulary_table(client: TestClient, marts: Path):
     write(marts, fx.OCID_COMPANY, [quote()], vocabulary=False)
     response = client.get(f"{API}/processes/{fx.OCID_COMPANY}/quotes")
     assert response.status_code == 200 and response.json()["items"][0]["text"] == SAFE
+
+
+@pytest.mark.parametrize(
+    "ocid",
+    ["ocds-5wno2w-CLC-GAD-MC- 001-2017-91883", "ocds-5wno2w-CDC-AMASL–001-2016-710584"],
+)
+def test_widened_identifiers_reach_the_route_and_are_simply_unknown(
+    client: TestClient, marts: Path, ocid: str
+):
+    write(marts, fx.OCID_COMPANY, [quote()])
+    assert client.get(f"{API}/processes/{ocid}/quotes").status_code == 404
+    # accepted by the pattern, not in the fixture
+    assert client.get(f"{API}/processes/{ocid}").status_code == 404
+
+
+@pytest.mark.parametrize(
+    "ocid", ["ocds-5wno2w-A%2FB", "ocds-5wno2w-A'B", "ocds-5wno2w-A­B", "ocds-5wno2w-..%2F..%2Fx"]
+)
+def test_unsafe_identifiers_are_still_422(client: TestClient, ocid: str):
+    assert client.get(f"{API}/processes/{ocid}").status_code in {404, 422}
+    assert client.get(f"{API}/processes/{ocid}/provenance").status_code in {404, 422}

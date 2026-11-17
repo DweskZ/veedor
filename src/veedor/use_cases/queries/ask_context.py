@@ -22,7 +22,15 @@ InvestigationFacts = Callable[[str], object | None]  # ocid -> InvestigationFact
 
 
 class ApiContextLoader:
-    def __init__(self, lake: LakePort, load_pack: PackLoader, load_investigation: InvestigationFacts) -> None:
+    def __init__(
+        self,
+        lake: LakePort,
+        load_pack: PackLoader,
+        load_investigation: InvestigationFacts,
+        quotes_enabled: Callable[[], bool] = lambda: False,
+    ) -> None:
+        """`quotes_enabled` is read at every call: with it off no answer carries a stored quote."""
+        self._quotes_enabled = quotes_enabled
         self._lake = lake
         self._load_pack = load_pack
         self._load_investigation = load_investigation
@@ -35,16 +43,20 @@ class ApiContextLoader:
         facts = self._load_investigation(ocid)
         if facts is not None:
             pack = pack.model_copy(update={"investigation": facts})
-        return ProcessContext(pack, build_facts(pack), quotes, self._lake.data_version())
+        return ProcessContext(
+            pack, build_facts(pack), quotes if self._quotes_enabled() else [], self._lake.data_version()
+        )
 
     def _base(self, ocid: str) -> tuple[EvidencePack, list[StoredQuote]]:
         pack = self._load_pack(ocid)
         if pack is None:
             raise NotFoundError("process", ocid)
-        try:
-            stored = get_process_quotes(self._lake, ocid)["items"]
-        except Exception:  # noqa: BLE001 - quotes are optional context: without them the answer has none
-            stored = []
+        stored: list[dict] = []
+        if self._quotes_enabled():  # off by default: the mart is not even read
+            try:
+                stored = get_process_quotes(self._lake, ocid)["items"]
+            except Exception:  # noqa: BLE001 - quotes are optional context: without them the answer has none
+                stored = []
         return pack, _quotes(stored)
 
 

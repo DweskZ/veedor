@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-16T23:23:48+00:00",
+  "generated_at": "2026-11-17T00:23:32+00:00",
   "seed": 42,
   "sample": {
     "processes": 626,
@@ -14,7 +14,12 @@
     },
     "questions_tuning_half": 2581,
     "questions_reporting_half": 2585,
-    "distinct_attacks": 72
+    "distinct_attacks": 72,
+    "questions_unseen_phrasing": 2369,
+    "questions_unseen_phrasing_by_kind": {
+      "answerable": 1439,
+      "unanswerable": 930
+    }
   },
   "thresholds": {
     "floor": 0.575,
@@ -785,8 +790,8 @@
       },
       "outcomes": {
         "instruction": 84,
-        "judgement": 63,
-        "no_evidence": 24,
+        "judgement": 66,
+        "no_evidence": 21,
         "person": 33,
         "rejected_422": 12
       }
@@ -803,12 +808,173 @@
       }
     },
     "latency_ms": {
-      "mean": 1.0518476369698861,
-      "p50": 0.9647909901104867,
-      "p95": 2.384666004218161
+      "mean": 2.4581067139558437,
+      "p50": 1.2341249966993928,
+      "p95": 8.057457976974547
     },
     "mode_counts": {
       "retrieval": 2573
+    },
+    "model": null
+  },
+  "retrieval_only_unseen_phrasing": {
+    "questions": 2369,
+    "answerable": {
+      "recall": {
+        "n": 1439,
+        "mean": 0.14176511466296038,
+        "ci95": [
+          0.12439193884642112,
+          0.16052814454482278
+        ]
+      },
+      "precision": {
+        "n": 1439,
+        "mean": 0.14523974982626825,
+        "ci95": [
+          0.12786657400972898,
+          0.16402015288394708
+        ]
+      },
+      "hit_rate": {
+        "n": 1439,
+        "mean": 0.14523974982626825,
+        "ci95": [
+          0.12786657400972898,
+          0.16402015288394708
+        ]
+      },
+      "abstained_wrongly": {
+        "n": 1439,
+        "mean": 0.7567755385684504,
+        "ci95": [
+          0.73453787352328,
+          0.7790132036136206
+        ]
+      },
+      "recall_by_fact_type": {
+        "amounts": {
+          "n": 116,
+          "recall": 0.0
+        },
+        "award_dates": {
+          "n": 106,
+          "recall": 0.19811320754716982
+        },
+        "company_capital": {
+          "n": 1,
+          "recall": 0.0
+        },
+        "company_incorporation": {
+          "n": 2,
+          "recall": 0.0
+        },
+        "context_count": {
+          "n": 104,
+          "recall": 0.0
+        },
+        "context_single": {
+          "n": 103,
+          "recall": 0.0
+        },
+        "context_tenderers": {
+          "n": 86,
+          "recall": 0.0
+        },
+        "cpc": {
+          "n": 98,
+          "recall": 0.6122448979591837
+        },
+        "enquiries_timing": {
+          "n": 1,
+          "recall": 0.0
+        },
+        "entity": {
+          "n": 94,
+          "recall": 0.13829787234042554
+        },
+        "ghost": {
+          "n": 51,
+          "recall": 0.0
+        },
+        "history": {
+          "n": 42,
+          "recall": 0.11904761904761904
+        },
+        "object": {
+          "n": 96,
+          "recall": 0.0
+        },
+        "pair_others": {
+          "n": 2,
+          "recall": 0.0
+        },
+        "procedure": {
+          "n": 96,
+          "recall": 0.0
+        },
+        "registry_company": {
+          "n": 49,
+          "recall": 0.0
+        },
+        "registry_sri": {
+          "n": 45,
+          "recall": 0.0
+        },
+        "signal": {
+          "n": 81,
+          "recall": 1.0
+        },
+        "signals_all": {
+          "n": 118,
+          "recall": 0.0
+        },
+        "tenderers": {
+          "n": 100,
+          "recall": 0.24
+        },
+        "winner": {
+          "n": 48,
+          "recall": 0.0
+        }
+      }
+    },
+    "unanswerable": {
+      "abstention_rate": {
+        "n": 930,
+        "mean": 0.8795698924731182,
+        "ci95": [
+          0.8591397849462366,
+          0.9
+        ]
+      }
+    },
+    "adversarial": {
+      "questions": 0,
+      "distinct_attacks": 0,
+      "attack_success_count": 0,
+      "successes": [],
+      "questions_by_category": {},
+      "outcomes": {}
+    },
+    "grounding": {
+      "answers_checked": 462,
+      "pass_rate": {
+        "n": 462,
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "latency_ms": {
+      "mean": 1.5697195938658228,
+      "p50": 0.686249986756593,
+      "p95": 6.120167032349855
+    },
+    "mode_counts": {
+      "retrieval": 2369
     },
     "model": null
   },
@@ -1141,7 +1307,9 @@
         "retrieval": 168
       },
       "model": null
-    }
+    },
+    "measured_on": "in_vocabulary_phrasings",
+    "carried_over": true
   },
-  "wall_seconds": 189.7
+  "wall_seconds": 169.2
 }

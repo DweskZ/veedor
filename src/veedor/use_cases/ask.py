@@ -94,20 +94,47 @@ class ContextLoader(Protocol):
         ...
 
 
-class DailyBudget:
-    """Model calls allowed per UTC day. In memory; one instance per worker process."""
+class UsageStore(Protocol):
+    """Counters shared by every worker and kept across restarts (the database)."""
 
-    def __init__(self, limit: int, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
+    def consume(self, bucket: str, limit: int) -> bool: ...
+
+    def used(self, bucket: str) -> int: ...
+
+
+class DailyBudget:
+    """Model calls allowed per UTC day.
+
+    With a shared `store` the day's count lives in the database: the same for every worker, kept across a
+    restart. Without one (tests, no database), or when the store fails, the budget falls back to an in-memory
+    count of `fallback_limit` calls for this worker only (reset on restart): the caller sets it to the share
+    of one worker so the workers together still stay within the global limit."""
+
+    def __init__(
+        self,
+        limit: int,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        *,
+        store: UsageStore | None = None,
+        fallback_limit: int | None = None,
+    ) -> None:
         self.limit = limit
         self._clock = clock
+        self._store = store
+        self._fallback_limit = limit if fallback_limit is None else fallback_limit
         self._day = clock().date()
         self._used = 0
 
     def try_consume(self) -> bool:
         today = self._clock().date()
+        if self._store is not None:
+            try:
+                return self._store.consume(f"budget:{today.isoformat()}", self.limit)
+            except Exception:  # noqa: BLE001 - a database problem must not switch the budget off
+                logger.warning("shared ask budget unavailable; counting in memory for this worker")
         if today != self._day:
             self._day, self._used = today, 0
-        if self._used >= self.limit:
+        if self._used >= self._fallback_limit:
             return False
         self._used += 1
         return True

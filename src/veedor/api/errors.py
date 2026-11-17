@@ -92,7 +92,10 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(_: Request, exc: StarletteHTTPException) -> JSONResponse:
-        return _response(exc.status_code, "http_error", str(exc.detail))
+        response = _response(exc.status_code, "http_error", str(exc.detail))
+        if exc.status_code == 429 and exc.headers and "Retry-After" in exc.headers:
+            response.headers["Retry-After"] = exc.headers["Retry-After"]
+        return response
 
     @app.exception_handler(Exception)
     async def _unexpected(request: Request, exc: Exception) -> JSONResponse:

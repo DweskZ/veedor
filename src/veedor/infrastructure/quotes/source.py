@@ -7,20 +7,30 @@ from __future__ import annotations
 
 import itertools
 import shutil
+from collections import Counter
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
 import duckdb
 
-from veedor.domain.masking import NATURAL_PERSON, kind_from_ruc
-from veedor.domain.quotes.names import MIN_PERSONS, build_vocabulary, word_case_counts
+from veedor.domain.masking import NATURAL_PERSON, is_masked_party, kind_from_ruc
+from veedor.domain.quotes.lexicon import (
+    MIN_BUYERS,
+    MIN_PROCESSES,
+    FormCounts,
+    Lexicon,
+    build_lexicon,
+    build_name_vocabulary,
+    count_forms,
+    person_token_counts,
+)
+from veedor.domain.quotes.names import MIN_PERSONS
 from veedor.infrastructure.lake.connection import parquet_path, quote_literal
 from veedor.infrastructure.ocds.texts import asker_person_names
 from veedor.use_cases.build_quotes import ProcessBundle, TextRow, name_context
 
 FETCH_SIZE = 20_000
-VOCABULARY_SAMPLE = 200_000  # texts read to tell names from ordinary words
 TEXTS_TABLE = "process_texts"
 TMP_DIR = ".duckdb_tmp_quotes"  # spill folder of this reader only; removed when the reader closes
 
@@ -47,6 +57,8 @@ class LakeQuoteSource:
         *,
         raw_path: Path | None = None,
         memory_limit: str = "6GB",
+        lexicon_min_processes: int = MIN_PROCESSES,
+        lexicon_min_buyers: int = MIN_BUYERS,
     ) -> None:
         """`raw_path` is the OCDS bulk file: when given, the names of the natural-person enquiry askers are
         read from it (in memory only) and added to the names each passage of that process is checked
@@ -56,6 +68,8 @@ class LakeQuoteSource:
         self._lake_dir = lake_dir
         self._marts_dir = marts_dir
         self._memory_limit = memory_limit
+        self._lexicon_min = (lexicon_min_processes, lexicon_min_buyers)
+        self._cached: tuple[FormCounts, Counter[str]] | None = None
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
         needed = {
@@ -78,8 +92,11 @@ class LakeQuoteSource:
             con.execute(f'CREATE VIEW "{name}" AS SELECT * FROM read_parquet({quote_literal(str(path))})')
         return con
 
-    def name_vocabulary(self, min_persons: int = MIN_PERSONS) -> frozenset[str]:
-        """Person-name tokens: natural-person party names, minus words the texts use in lower case."""
+    def _forms(self) -> tuple[FormCounts, Counter[str]]:
+        """Token counts over every text and the person-name token counts, computed once per source (the pass
+        over 3.3 million texts takes minutes)."""
+        if self._cached is not None:
+            return self._cached
         con = self._connect()
         try:
             names = con.execute(
@@ -87,16 +104,41 @@ class LakeQuoteSource:
                 "SELECT supplier_ruc, supplier_name FROM tenderers "
                 "UNION SELECT supplier_ruc, supplier_name FROM awards) WHERE supplier_name IS NOT NULL"
             ).fetchall()
-            sample = con.execute(
-                "SELECT text FROM process_texts "
-                f"USING SAMPLE reservoir({VOCABULARY_SAMPLE} ROWS) REPEATABLE (42)"
-            ).fetchall()
+            persons = person_token_counts(
+                name
+                for ruc, name in names
+                if kind_from_ruc(ruc) == NATURAL_PERSON or is_masked_party(ruc, name)
+            )
+            cursor = con.cursor()
+            cursor.execute(
+                "SELECT t.ocid, coalesce(p.buyer_ruc, p.buyer_name, t.ocid), t.text FROM process_texts t "
+                "LEFT JOIN processes p USING (ocid) ORDER BY t.ocid"
+            )
+
+            def rows() -> Iterator[tuple[str, str, str]]:
+                while chunk := cursor.fetchmany(FETCH_SIZE):
+                    yield from chunk
+
+            counts = count_forms(rows())
         finally:
             con.close()
             self._clean()
-        persons = [name for ruc, name in names if ruc and kind_from_ruc(ruc) == NATURAL_PERSON]
-        lower, capital = word_case_counts(text for (text,) in sample)
-        return build_vocabulary(persons, lower, capital, min_persons=min_persons)
+        self._cached = (counts, persons)
+        return self._cached
+
+    def name_vocabulary(self, min_persons: int = MIN_PERSONS) -> frozenset[str]:
+        """Person-name tokens (see `domain.quotes.lexicon.build_name_vocabulary`)."""
+        counts, persons = self._forms()
+        return build_name_vocabulary(counts, persons, min_persons=min_persons)
+
+    def lexicon(self) -> Lexicon:
+        """Institutional and ordinary vocabulary read from every text of the lake (see
+        `domain.quotes.lexicon`): capitalised words that are not person names, and ordinary lower-case
+        words."""
+        counts, persons = self._forms()
+        return build_lexicon(
+            counts, persons, min_processes=self._lexicon_min[0], min_buyers=self._lexicon_min[1]
+        )
 
     def bundles(
         self, limit: int | None = None, ocids: Sequence[str] | None = None

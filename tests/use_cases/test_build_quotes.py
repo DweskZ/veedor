@@ -264,15 +264,19 @@ def test_an_answer_that_repeats_its_question_is_shown_once(topics):
     assert quote["pair_truncated"] is False
 
 
-def test_a_ten_digit_number_starting_with_zero_is_a_phone_only_when_it_has_a_phone_shape():
+def test_every_run_of_seven_digits_is_refused_unless_it_is_an_amount_or_a_company_ruc():
+    """Review 5 replaced the earlier "only phone-shaped numbers" rule (part numbers and page numbers were let
+    through) by deny by default: a run of 7+ digits is refused, whatever it is."""
     from veedor.domain.quotes.screen import check_passage
 
-    for harmless in (
+    for refused in (
         "se aceptan los números de parte 174126090 o 0174120140",
         "véase la página 0000000091 del pliego",
         "facturas No. 00004240 -0000004419",
     ):
-        assert check_passage(harmless).eligible, harmless
+        assert not check_passage(refused).eligible, refused
+    for amount in ("el valor es de 1.250.000,00 dólares", "RUC 1790012345001 de la empresa"):
+        assert check_passage(amount).eligible, amount
     for phone in ("llame al 0991234567", "convencional 022345678", "escriba o llame al 0 9 9 1 2 3 4 5 6 7"):
         assert not check_passage(phone).eligible, phone
 
@@ -342,7 +346,10 @@ def lake(tmp_path: Path):
         )
         + _texts(
             "ocds-5wno2w-B",
-            [("enquiry_question", 0, f"{ON_TOPIC}?", False), ("enquiry_answer", 0, "Se amplía.", False)],
+            [
+                ("enquiry_question", 0, f"{ON_TOPIC}?", False),
+                ("enquiry_answer", 0, "se amplía el plazo.", False),
+            ],
         )
         + _texts("ocds-5wno2w-C", [("enquiry_question", 0, OFF_TOPIC, False)])
         + _texts("ocds-5wno2w-X", [("enquiry_question", 0, ON_TOPIC, False)]),  # no signal: not flagged
@@ -395,14 +402,20 @@ def test_build_writes_both_marts_and_is_idempotent(lake, tmp_path: Path):
 
     def run():
         sink = ParquetQuoteSink(out)
-        report = build_quotes(LakeQuoteSource(*lake), FakeEmbedder(), sink, floor=FLOOR, batch_size=2)
+        report = build_quotes(
+            LakeQuoteSource(*lake, lexicon_min_processes=1, lexicon_min_buyers=1),
+            FakeEmbedder(),
+            sink,
+            floor=FLOOR,
+            batch_size=2,
+        )
         return report
 
     first = run()
     quotes = pq.read_table(out / "process_quotes.parquet")
     stats = pq.read_table(out / "process_quote_stats.parquet")
     assert quotes.schema.equals(QUOTES_SCHEMA) and stats.schema.equals(STATS_SCHEMA)
-    assert (out / "person_name_tokens.parquet").is_file()
+    assert (out / "person_name_tokens.parquet").is_file() and (out / "quote_lexicon.parquet").is_file()
     by_ocid = {r["ocid"]: r for r in stats.to_pylist()}
     assert set(by_ocid) == {"ocds-5wno2w-A", "ocds-5wno2w-B", "ocds-5wno2w-C"}
     assert by_ocid["ocds-5wno2w-A"]["excluded_personal"] == 1 and by_ocid["ocds-5wno2w-A"]["n_quotes"] == 1

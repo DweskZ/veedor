@@ -23,7 +23,8 @@ WEB = os.environ.get("WEB_URL", "http://localhost:3000").rstrip("/")
 EXPECTED = int(os.environ.get("EXPECTED_PROCESSES", "2251027"))
 
 # The API accepts only identifiers with this shape (see src/veedor/api/params.py).
-API_OCID = re.compile(r"ocds-5wno2w-[A-Za-z0-9._\-]{1,120}")
+_OCID_FIRST = r"A-Za-z0-9ÑÇÓ._\-,:+()&º°·–—‐‒−－"
+API_OCID = re.compile(rf"ocds-5wno2w-[{_OCID_FIRST}][{_OCID_FIRST} ]{{0,119}}")
 
 results: list[tuple[bool, str]] = []
 
@@ -241,7 +242,22 @@ def check_ask(ocid: str) -> None:
 
 def check_quotes_and_provenance(ocid: str) -> None:
     """Quotes from the process's own text, provenance of every fact, and the awarded-amount filter."""
+    status_meta, meta = get_json("/meta")
+    check(
+        "api /meta reports the feature flags",
+        status_meta == 200
+        and isinstance(meta.get("ask_enabled"), bool)
+        and isinstance(meta.get("quotes_enabled"), bool)
+        and isinstance(meta.get("reviews_enabled"), bool),
+        f"ask_enabled={meta.get('ask_enabled')} quotes_enabled={meta.get('quotes_enabled')}",
+    )
     status, quotes = get_json(f"/processes/{ocid}/quotes")
+    if meta.get("quotes_enabled") is not True:
+        check("api quotes are off by default (404)", status == 404, f"http {status}")
+        status, _ = get_json("/processes/ocds-5wno2w-NO-EXISTE-0001/quotes")
+        check("api quotes off: unknown process is also 404", status == 404, f"http {status}")
+        check_provenance_and_amounts(ocid)
+        return
     items = quotes.get("items", [])
     omitted = quotes.get("omitted", {})
     check(
@@ -256,7 +272,10 @@ def check_quotes_and_provenance(ocid: str) -> None:
     )
     status, _ = get_json("/processes/ocds-5wno2w-NO-EXISTE-0001/quotes")
     check("api quotes: unknown process is 404", status == 404, f"http {status}")
+    check_provenance_and_amounts(ocid)
 
+
+def check_provenance_and_amounts(ocid: str) -> None:
     status, provenance = get_json(f"/processes/{ocid}/provenance")
     facts = provenance.get("facts", [])
     keys = {fact.get("key") for fact in facts}

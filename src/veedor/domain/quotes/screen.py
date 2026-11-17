@@ -12,9 +12,13 @@ in this order:
 4. stricter personal-data cues that the masking heuristic does not cover: an honorific followed by any
    word in any case ("ing. juan"), a salutation or a closing that is followed by a name, an e-mail
    address, a telephone number;
-5. the unsafe-text screen of the dossier layer (`is_unsafe_text`: accusation and inference wording,
-   links, markup, instruction-like text, hidden or look-alike characters) plus an obfuscation pass
-   (digit and symbol look-alikes, letters separated by spaces, dots or hyphens).
+5. the deny-by-default screen of `domain.quotes.strict`: nothing that could be a person may remain
+   (sign-offs, first-person identification, titles, credentials, plates, long numbers, any capitalised word
+   the data does not show to be institutional vocabulary, person-name tokens in any case);
+6. the unsafe-text screen of the dossier layer (`is_unsafe_text`: accusation and inference wording,
+   links, markup, instruction-like text, hidden or look-alike characters), the third-party allegation
+   stems of `domain.quotes.allegation` and an obfuscation pass (digit and symbol look-alikes, letters
+   separated by spaces, dots or hyphens).
 
 A passage is never rewritten: it is shown exactly as published or not at all. When masking would have
 to replace anything the whole passage is dropped, so no quote ever contains a placeholder.
@@ -33,8 +37,12 @@ from veedor.domain.dossier.safety import is_unsafe_text
 from veedor.domain.dossier.text import canonical
 from veedor.domain.investigation.identifiers import document_has_personal_identifier
 from veedor.domain.masking import MASKED_NAME, TEXT_PLACEHOLDER, UNIDENTIFIED_NAME, safe_free_text
+from veedor.domain.quotes.allegation import has_allegation_wording
 from veedor.domain.quotes.deny import is_denied
+from veedor.domain.quotes.gate import rules_hit
+from veedor.domain.quotes.lexicon import Lexicon
 from veedor.domain.quotes.names import probable_person_name
+from veedor.domain.quotes.strict import blank_protected, strict_reason
 
 PERSONAL = "personal"
 UNSAFE = "unsafe"
@@ -197,6 +205,8 @@ def has_accusation_wording(text: str) -> bool:
     leet = canon.translate(_LEET)
     if _EXTRA_FORBIDDEN.search(canon) or _EXTRA_FORBIDDEN.search(leet):
         return True
+    if has_allegation_wording(text) or has_allegation_wording(text.translate(_LEET)):
+        return True
     if any(p.search(form) for p in (FORBIDDEN_PATTERN, INFERENCE_PATTERN) for form in (canon, leet)):
         return True
     compact = _SEPARATORS.sub("", leet)
@@ -222,6 +232,7 @@ def check_passage(
     protected_names: Iterable[str] = (),
     asker_is_person: bool = False,
     name_vocabulary: frozenset[str] = frozenset(),
+    lexicon: Lexicon | None = None,
 ) -> Verdict:
     """Run the whole pipeline over one passage (see the module docstring for the order)."""
     names = list(person_names)
@@ -241,8 +252,19 @@ def check_passage(
         return _drop(PERSONAL, cue)
     if probable_person_name(text, name_vocabulary, protected):
         return _drop(PERSONAL, "probable_person_name")
+    if has_allegation_wording(text):
+        return _drop(UNSAFE, "allegation_wording")
     if is_unsafe_text(text):
         return _drop(UNSAFE, "unsafe_text")
     if has_obfuscated_wording(text):
         return _drop(UNSAFE, "obfuscated_wording")
+    if reason := strict_reason(
+        text, lexicon=lexicon, protected_names=protected, name_vocabulary=name_vocabulary
+    ):
+        return _drop(PERSONAL, f"strict_{reason}")
+    # The release gate (`domain.quotes.gate`: the reviewer's seven rules and the project's own) is part of the
+    # screen, so a mart built by this function cannot fail the gate by construction; the gate script then
+    # checks it independently.
+    if hits := [r for r in rules_hit(blank_protected(text, protected)) if r != "o9_accusation_stem"]:
+        return _drop(PERSONAL, f"gate_{hits[0]}")
     return ELIGIBLE

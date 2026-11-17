@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from veedor.domain.masking import PartyFields, mask_free_text, safe_free_text
+from veedor.domain.ocid import is_openable
 from veedor.schemas.common import MaskedModel, Party
 from veedor.schemas.profile import SupplierProfile
 
@@ -40,6 +41,18 @@ class ProcessSummary(MaskedModel):
     winner_ruc: str | None = None
     winner_name: str | None = None
     winner_kind: str | None = None
+    detail_available: bool = Field(
+        True,
+        description="False when the identifier cannot travel in a URL path (it holds a slash or another "
+        "character the API refuses): the process is listed but its page cannot be linked.",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _openable(cls, data: Any) -> Any:
+        if isinstance(data, dict) and isinstance(data.get("ocid"), str):
+            return {**data, "detail_available": is_openable(data["ocid"])}
+        return data
 
     @field_validator("signal_codes", "context_signal_codes", mode="before")
     @classmethod

@@ -32,10 +32,22 @@ register_vocabulary(
 
 
 def per_worker_budget(settings: Settings) -> int:
-    """The daily budget is global; each worker process counts its own share so the total never exceeds it."""
+    """The daily budget is global; without the shared counter each worker process counts its own share, so the
+    total never exceeds it (and a restart resets the count). With the shared counter this is only the fallback
+    used while the database is unreachable."""
     if settings.ask_daily_budget <= 0:
         return 0
     return max(settings.ask_daily_budget // settings.api_workers, 1)
+
+
+def usage_store(settings: Settings):  # noqa: ANN201
+    """The shared counters in the API database, or None when `VEEDOR_ASK_USAGE_SHARED` is off."""
+    if not settings.ask_usage_shared:
+        return None
+    from veedor.infrastructure.db.session import get_engine
+    from veedor.infrastructure.db.usage import AskUsageStore
+
+    return AskUsageStore(get_engine())
 
 
 def _embedder() -> object:
@@ -54,6 +66,13 @@ def settings_model_name() -> str:
     return get_settings().llm_model or "other"
 
 
+def _budget(settings: Settings) -> DailyBudget:
+    store = usage_store(settings)
+    if store is None:
+        return DailyBudget(per_worker_budget(settings))
+    return DailyBudget(settings.ask_daily_budget, store=store, fallback_limit=per_worker_budget(settings))
+
+
 def build_service(settings: Settings, lake) -> AskService:  # noqa: ANN001
     reader = EvidenceReader(settings.lake_dir, settings.marts_dir)
     store = InvestigationStore(settings.data_dir / "investigations")
@@ -67,11 +86,11 @@ def build_service(settings: Settings, lake) -> AskService:  # noqa: ANN001
 
     model = build_structured_model(settings)
     return AskService(
-        loader=ApiContextLoader(lake, reader.load, stored_facts),
+        loader=ApiContextLoader(lake, reader.load, stored_facts, lambda: get_settings().quotes_enabled),
         embedder=CachedEmbedder(_embedder),  # type: ignore[arg-type]
         selector=ModelSelector(model) if model is not None else None,
         thresholds=DEFAULT_THRESHOLDS,
-        budget=DailyBudget(per_worker_budget(settings)),
+        budget=_budget(settings),
         observer=_observe,
     )
 

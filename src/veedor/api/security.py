@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 from collections import defaultdict, deque
 from threading import Lock
@@ -109,6 +110,23 @@ class SlidingWindowRateLimiter:
     def reset(self) -> None:
         with self._lock:
             self._hits.clear()
+
+    def is_full(self, key: str) -> bool:
+        now = time.monotonic()
+        with self._lock:
+            hits = self._hits.get(key)
+            if not hits:
+                return False
+            return sum(1 for h in hits if now - h <= self.window) >= self.limit
+
+    def retry_after(self, key: str) -> int:
+        """Whole seconds (at least 1) until the oldest hit of `key` leaves the window."""
+        now = time.monotonic()
+        with self._lock:
+            hits = self._hits.get(key)
+            if not hits:
+                return 1
+            return max(1, math.ceil(self.window - (now - hits[0])))
 
     def allow(self, key: str) -> bool:
         now = time.monotonic()

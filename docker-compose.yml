@@ -64,7 +64,14 @@ services:
       # Question answering (docs/SECURITY.md): off unless VEEDOR_ASK_ENABLED is set. The model variables are
       # passed only while it is set; without a key the route answers by retrieval.
       VEEDOR_ASK_ENABLED: ${VEEDOR_ASK_ENABLED:-}
+      # Verbatim quotes from the process's own text (docs/QUOTES.md): OFF by default. With false,
+      # /processes/{ocid}/quotes is a 404 and /ask attaches no quotes. Switch on only after reading the measured
+      # residual of the privacy screens in docs/QUOTES.md.
+      VEEDOR_QUOTES_ENABLED: ${VEEDOR_QUOTES_ENABLED:-false}
       VEEDOR_ASK_DAILY_BUDGET: ${VEEDOR_ASK_DAILY_BUDGET:-}
+      # The ask budget and per-client counters live in PostgreSQL (table ask_usage, migration 0003): one count for
+      # every worker, kept across restarts. Falls back to per-worker memory if the database is unreachable.
+      VEEDOR_ASK_USAGE_SHARED: "true"
       VEEDOR_LLM_PROVIDER: ${VEEDOR_ASK_ENABLED:+${VEEDOR_LLM_PROVIDER:-}}
       VEEDOR_LLM_MODEL: ${VEEDOR_ASK_ENABLED:+${VEEDOR_LLM_MODEL:-}}
       VEEDOR_LLM_API_KEY: ${VEEDOR_ASK_ENABLED:+${VEEDOR_LLM_API_KEY:-}}

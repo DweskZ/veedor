@@ -1,5 +1,10 @@
 """A name-like pair of words in a passage, from a vocabulary of person-name tokens (pure).
 
+NOTE (review 5): the production vocabulary is now built by `domain.quotes.lexicon.build_name_vocabulary`
+(relative to how many natural-person names carry a token, and applied in any case by `domain.quotes.strict`).
+`build_vocabulary` below drops every token that is ever typed in lower case more than 2 % of the time, which
+removed the commonest given names and surnames; it is kept for its tests and for `probable_person_name`.
+
 The masking heuristic only knows the names of the parties of a process. A passage can also name a person
 who is not a party (a technician proposed by a bidder, an official). Such a person usually appears with
 two or more consecutive capitalised words that are given names or surnames ("HECTOR IVAN BAQUERIZO").
