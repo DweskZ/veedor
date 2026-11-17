@@ -204,6 +204,7 @@ dd {
   display: flex;
   flex-direction: column;
   margin-right: auto;
+  flex-shrink: 0; /* Firefox otherwise squeezes it and wraps the byline onto three lines */
   line-height: 1.1;
 }
 .brandline .wm {
@@ -212,6 +213,7 @@ dd {
   align-items: center; /* as in the Ruray header */
 }
 .brandline__by {
+  white-space: nowrap;
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: -0.005em;
@@ -362,6 +364,14 @@ dd {
 }
 .btn:active {
   transform: translateY(1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition-property: background-color, color;
+  }
+  .btn:active {
+    transform: none;
+  }
 }
 .actions {
   display: flex;
@@ -724,8 +734,12 @@ dd {
     font-size: clamp(1.8rem, 2.9vw, 2.4rem);
   }
 }
-.fig__hint {
+/* A second <dd> of the same term; it must not pick up the big-figure styles of ".fig dd". */
+.fig dd.fig__hint {
   order: 3;
+  letter-spacing: normal;
+  line-height: inherit;
+  font-variant-numeric: normal;
   margin-top: 6px;
   font-size: 0.9375rem;
   color: var(--muted);
@@ -737,7 +751,7 @@ dd {
 .sec--ink .fig {
   border-top-color: var(--ice);
 }
-.sec--ink .fig__hint {
+.sec--ink .fig dd.fig__hint {
   color: var(--ice-deep);
 }
 

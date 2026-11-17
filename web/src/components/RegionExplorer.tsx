@@ -178,21 +178,23 @@ export function RegionExplorer({ rows, national, notes = [], compact = false }: 
       {compact ? null : (
         <fieldset className="seg">
           <legend className="seg__legend">Qué mostrar</legend>
-          {(Object.keys(METRICS) as Metric[]).map((m) => (
-            <label key={m} className={`seg__opt ${metric === m ? "seg__opt--on" : ""}`}>
-              <input
-                type="radio"
-                name={`${groupId}-metric`}
-                value={m}
-                checked={metric === m}
-                onChange={() => {
-                  setMetric(m);
-                  setSort(null);
-                }}
-              />
-              <span>{METRICS[m].label}</span>
-            </label>
-          ))}
+          <div className="seg__opts">
+            {(Object.keys(METRICS) as Metric[]).map((m) => (
+              <label key={m} className={`seg__opt ${metric === m ? "seg__opt--on" : ""}`}>
+                <input
+                  type="radio"
+                  name={`${groupId}-metric`}
+                  value={m}
+                  checked={metric === m}
+                  onChange={() => {
+                    setMetric(m);
+                    setSort(null);
+                  }}
+                />
+                <span>{METRICS[m].label}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
       )}
       <p className="small muted map__def">{METRIC_DEFINITION[metric]}</p>

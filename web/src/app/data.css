@@ -653,6 +653,9 @@ dialog.spanel::backdrop {
   .results {
     transition: none;
   }
+  .toggle__sw::after {
+    transition: none;
+  }
 }
 
 /* ---------- Search shortcut hint ---------- */

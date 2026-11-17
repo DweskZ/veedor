@@ -43,3 +43,7 @@ next-env.d.ts
 
 /art-src/
 /geo-src/
+
+# Playwright
+/test-results/
+/playwright-report/

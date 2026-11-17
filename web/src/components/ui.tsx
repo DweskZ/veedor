@@ -73,7 +73,7 @@ export function Fig({ label, value, hint, medium = false }: { label: string; val
     <div className="fig">
       <dt>{label}</dt>
       <dd className={medium ? "fig__m" : undefined}>{value}</dd>
-      {hint ? <p className="fig__hint">{hint}</p> : null}
+      {hint ? <dd className="fig__hint">{hint}</dd> : null}
     </div>
   );
 }

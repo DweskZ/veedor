@@ -335,10 +335,14 @@
 .callout b {
   font-weight: 800;
 }
+/* A block fieldset with a floated legend: WebKit ignores "float" on a legend inside a flex fieldset and puts it on its own line. */
 .seg {
   border: 0;
   padding: 0;
   margin: 24px 0 0;
+  min-width: 0;
+}
+.seg__opts {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -346,6 +350,9 @@
 }
 .seg__legend {
   float: left;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0;
   margin-right: 12px;
   font-weight: 800;
