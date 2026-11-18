@@ -24,9 +24,28 @@ src/veedor/
 `domain` imports nothing from the other layers (no module under `domain/` imports `infrastructure`,
 `use_cases` or `api`). `use_cases` depend on `domain` and on ports declared beside them
 (`use_cases/queries/ports.py`); `infrastructure` implements the ports; `api` and `cli` call use cases.
-Known deviation: `use_cases/build_dossier.py` wires concrete infrastructure (`EvidenceReader`, the LLM
-factory) in `default_service()`, and `use_cases/queries/dossier.py` imports it lazily; the collaborators
-are injectable, so tests use fakes.
+Known deviations from that rule (counted on 2026-11-17 with `rg "from veedor.infrastructure"` over
+`use_cases/` and `api/v1/`; the rule holds for `domain` and for the query use cases, not everywhere):
+
+- **Use cases that wire concrete infrastructure.** `use_cases/build_dossier.py` (`EvidenceReader`, the LLM
+  factory, in `default_service()`; `use_cases/queries/dossier.py` imports it lazily),
+  `use_cases/investigate.py` (the investigation store, the tool backends, the evidence reader, the LLM
+  factory and the MCP session), `use_cases/similar_processes.py` (`PgVectorStore` and the buyer-name
+  helper, imported inside the default factory) and `use_cases/build_vectors.py` (the `VectorRow` type of
+  the pgvector adapter). The collaborators are injectable, so tests use fakes, but the default wiring
+  lives in the use case instead of a composition root.
+- **Ports declared on the wrong side.** `ChatModelPort` and `ToolBackend` are declared under
+  `infrastructure/llm/port.py` and `infrastructure/mcp/port.py`, and `use_cases` import them from there.
+  A port belongs beside the code that needs it (as in `use_cases/queries/ports.py`), so here the
+  dependency points outwards.
+- **Routers that skip the use-case layer.** `api/v1/similar.py` imports the database session, the
+  pgvector repository and a vectors helper; `api/v1/investigations.py` imports the investigation store;
+  `api/v1/ask.py` imports the telemetry span helper. `api/deps.py`, `api/ask_wiring.py` and `api/main.py`
+  also import infrastructure, which is their job: they are the composition root of the HTTP process.
+
+None of these is fixed yet. The intended fix is to move the two ports next to the use cases, move the
+default wiring into the composition roots (`api/deps.py` and the CLI), and give the three routers a use
+case to call.
 
 ## Component diagram
 

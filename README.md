@@ -110,7 +110,7 @@ flowchart LR
 - `infrastructure/`: implements the ports (lake, registries, db, llm, mcp, vectors, telemetry).
 - `agents/`: the LangGraph dossier graph and the investigation supervisor and specialists.
 - `api/` and `schemas/`: FastAPI routers and Pydantic response models; `cli/`: Typer commands. Both only call use cases.
-- The HTTP API serves stored records and never starts an investigation; the only route that can call an LLM is the question box (`POST /processes/{ocid}/ask`), where the model only selects stored fact ids. One known deviation from the layer rule is in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- The HTTP API serves stored records and never starts an investigation; the only route that can call an LLM is the question box (`POST /processes/{ocid}/ask`), where the model only selects stored fact ids. The layer rule holds for `domain` and the query use cases; the places where it does not (four use cases that wire infrastructure, two ports declared on the infrastructure side, three routers that skip the use-case layer) are listed in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Run it locally
 
