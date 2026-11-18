@@ -4,7 +4,7 @@ An open procurement risk radar for Ecuador: it reads the open data of public pro
 
 ![licence: MIT](https://img.shields.io/badge/licence-MIT-green) ![python 3.12](https://img.shields.io/badge/python-3.12-blue) ![CI: GitHub Actions](https://img.shields.io/badge/CI-GitHub%20Actions-lightgrey)
 
-Live demo: not deployed yet
+Live demo: <https://veedor.ruraytech.com>
 
 | Home | A process dossier |
 |---|---|
@@ -82,7 +82,7 @@ The dossier also states that about half of the processes of that method and year
 | Playwright + axe (Chromium, Firefox, WebKit, phone viewport) | `web/e2e/` (run locally with `pnpm test:e2e`; not in CI) |
 | Docker Compose | `docker-compose.yml`, `deploy/` |
 | GitHub Actions CI | `.github/workflows/ci.yml` (ruff, migrations, pytest), `deploy.yml` (manual deploy) |
-| Terraform (AWS EC2, IAM OIDC, SSM) | `infra/terraform/`, [DEPLOYMENT_AWS.md](docs/DEPLOYMENT_AWS.md) (written, not verified on a live account) |
+| Terraform (AWS EC2, IAM OIDC, SSM) | `infra/terraform/`, [DEPLOYMENT_AWS.md](docs/DEPLOYMENT_AWS.md) (applied once to a live project on 2026-11-17; the GitHub OIDC deploy role was not created there, see the first-deployment note) |
 | Caddy | `deploy/Caddyfile` |
 
 ## Architecture
@@ -157,7 +157,7 @@ Limits, in plain words: the score is weakly associated with lower savings for th
 
 ## Resumen en español
 
-Veedor es un radar abierto de riesgo en la contratación pública del Ecuador. Lee los datos abiertos del SERCOP (OCDS): 2.251.027 procesos entre 2015 y 2026. Calcula 10 indicadores de riesgo con reglas documentadas y muestra, para cada proceso, el valor, el umbral y el campo de origen. Un conjunto de agentes con modelos de lenguaje reúne evidencia adicional de fuentes públicas, y una caja de preguntas responde solo con hechos almacenados. Veedor no acusa ni detecta corrupción: un indicador solo señala que un dato es atípico según una regla. No muestra personas naturales. Se probó contra dos referencias. La lista de empresas fantasma del SRI (9 empresas adjudicatarias) no permite concluir nada: la prueba solo detectaría un AUC de 0,77 o más y el resultado fue 0,447. En una prueba preregistrada contra el ahorro (explorada en 2015-2021, confirmada en 2022-2026), los procesos con un solo oferente ahorran unos 8,3 puntos del presupuesto menos; es una asociación débil, en parte por definición, y no dice que haya algo indebido. Funciona en local con Docker Compose y aún no está desplegado. Los datos no están en el repositorio; la guía para construirlos está en este archivo y en `docs/DEPLOYMENT.md`.
+Veedor es un radar abierto de riesgo en la contratación pública del Ecuador. Lee los datos abiertos del SERCOP (OCDS): 2.251.027 procesos entre 2015 y 2026. Calcula 10 indicadores de riesgo con reglas documentadas y muestra, para cada proceso, el valor, el umbral y el campo de origen. Un conjunto de agentes con modelos de lenguaje reúne evidencia adicional de fuentes públicas, y una caja de preguntas responde solo con hechos almacenados. Veedor no acusa ni detecta corrupción: un indicador solo señala que un dato es atípico según una regla. No muestra personas naturales. Se probó contra dos referencias. La lista de empresas fantasma del SRI (9 empresas adjudicatarias) no permite concluir nada: la prueba solo detectaría un AUC de 0,77 o más y el resultado fue 0,447. En una prueba preregistrada contra el ahorro (explorada en 2015-2021, confirmada en 2022-2026), los procesos con un solo oferente ahorran unos 8,3 puntos del presupuesto menos; es una asociación débil, en parte por definición, y no dice que haya algo indebido. Funciona en local con Docker Compose y tiene una demo pública en <https://veedor.ruraytech.com>. Los datos no están en el repositorio; la guía para construirlos está en este archivo y en `docs/DEPLOYMENT.md`.
 
 ## Data sources and licences
 

@@ -98,7 +98,7 @@ confirm the budget e-mail subscription, buy a domain if you want one, create the
 
 1. **Account.** Create the account, pick the plan, add a card. In Billing, check the credit balance.
 2. **Variables.** `cd infra/terraform && cp terraform.tfvars.example terraform.tfvars` and set at least
-   `budget_alert_email`. Keep `instance_type = "t4g.small"` unless you will run observability.
+   `budget_alert_emails` (a list, up to 10 addresses). Keep `instance_type = "t4g.small"` unless you will run observability.
 3. **Create the infrastructure.** `tofu init && tofu plan` (read it), then `tofu apply`. Note the outputs
    `public_ip`, `instance_id`, `session_manager_command`, `release_bucket`. Open the e-mail AWS sends and
    confirm it if it asks. Wait about 3 minutes; first-boot log: `/var/log/veedor-init.log` on the server.
@@ -342,6 +342,22 @@ Everything was removed afterwards with `down -v`, the throw-away folders, the VM
 - Not tested locally: TLS issuance, the Terraform apply, the SSM document (SSM validation of `allowedPattern`, `ENV_VAR` interpolation on the real agent), Session Manager, S3,
   the GitHub workflow and environment approval, a real 2 GiB instance, the ask route, the observability stack (the compose merge and the required-password check were validated with `compose config` only),
   encryption of the volume.
+
+## First live deployment (2026-11-17)
+
+The kit was applied once, to an AWS project created with the new sign-up experience (free plan, 100 USD of credits), in `us-east-2`, with OpenTofu 1.13. The site answers at <https://veedor.ruraytech.com> with a Let's Encrypt certificate obtained by Caddy; the A record is at the domain registrar, not in Route 53. What differed from the steps above:
+
+- **No GitHub OIDC.** The managed service control policy of that kind of project denies `iam:*Provider*`, so the OIDC identity provider cannot be created or even listed. `github_repository` was left empty and none of the resources in `oidc.tf` exist. `deploy.yml` has therefore never run. The release was built on the owner's machine and installed by hand.
+- **Prerequisites.** That kind of project has no root-user or IAM Identity Center step: credentials come from `aws login`, and the steps in "Prerequisites" that describe a classic account do not apply.
+- **Region.** The project allows a single Region, so `region` had to be set to `us-east-2`; the default in `variables.tf` is still `us-east-1` and the cost table above uses `us-east-1` prices.
+- **Server commands.** Steps 6 to 8 were run through `ssm send-command` with `AWS-RunShellScript` instead of an interactive Session Manager shell. `aws s3 sync` does not keep the executable bit, so the installer was started with `bash`.
+- **Two defects found by the first real run, both fixed:** a policy statement in `oidc.tf` had its `actions` line joined to the end of a comment, and the web image did not build with a relative `NEXT_PUBLIC_API_URL` because prerendering `/metodologia` waited on a URL the server cannot fetch (`web/src/lib/api.ts` now fails at once on the server when the API URL is not absolute, and the page renders on request).
+- **Measured:** 18 resources created; release 1,011 MiB in 20 objects; `server-install.sh` took 490 s on `t4g.small`, of which about 405 s were the database restore with the HNSW index rebuild.
+- **Settings.** The question route was set to `VEEDOR_ASK_ENABLED=false` (the template default is `true`); the release was built without `--with-ask-model` and without `--with-quotes`.
+- **Checked from outside:** the home page, `/metodologia`, a process page, `/api/v1/health`, `/api/v1/stats` and the similar-process route answer 200; `/docs`, the quotes route and the ask route answer 404; ports 8000 and 5432 do not answer.
+- **Not checked:** the read rate limit and its exemption for the web container under real traffic, any load figure on the instance, the backup timer, `server-update.sh`, and the budget e-mail confirmation.
+
+Terraform state for that deployment is a local file; it is not in the repository.
 
 ## Sources (all read 2026-11-16)
 

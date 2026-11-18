@@ -234,7 +234,7 @@ The API answers cacheable `GET` routes with a weak `ETag` and a `Cache-Control` 
 There is no Redis or other cache service, deliberately:
 
 - The data changes only when the lake is rebuilt (monthly). The data build signature is the cache key, so an in-process cache is never stale and needs no invalidation protocol.
-- One small server runs two workers. Each worker's aggregate cache is rebuilt in about 0.4 s in total; there is nothing to share that is worth a network hop and a service to operate and secure.
+- One small server runs one worker (two were stopped for lack of memory at the 768 MiB limit, see `deploy/compose.prod.yml`). Its aggregate cache is rebuilt in about 0.4 s in total; there is nothing to share that is worth a network hop and a service to operate and secure.
 - The only state that must be shared between workers or restarts (the per-client and daily ask counters) already lives in PostgreSQL (`VEEDOR_ASK_USAGE_SHARED`).
 - Caddy runs without plugins; browsers do the per-user caching.
 
