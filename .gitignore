@@ -14,3 +14,6 @@ out/
 .DS_Store
 dist/
 web/.screenshots/
+
+# Local skill-registry cache written by agent tooling
+.atl/
