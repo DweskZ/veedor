@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { RurayMark, Wordmark } from "./Logo";
 
-export const RURAY_URL = "https://www.instagram.com/ruray.tech/";
+export const RURAY_URL = "https://ruraytech.com";
+const RURAY_INSTAGRAM_URL = "https://www.instagram.com/ruray.tech/";
 
 export function Footer() {
   return (
@@ -49,14 +50,14 @@ export function Footer() {
           <div className="footer__credit">
             <span className="footer__made">
               Hecho por
-              <a href={RURAY_URL} rel="noopener" target="_blank" aria-label="Ruray en Instagram (se abre en una pestaña nueva)">
+              <a href={RURAY_URL} rel="noopener" target="_blank" aria-label="Ruray, sitio web (se abre en una pestaña nueva)">
                 <RurayMark />
               </a>
             </span>
             <span className="footer__author">Luis Figueroa, fundador de Ruray.</span>
             <span className="footer__author">
               Avisos (por ejemplo, un dato personal que ves en un texto):{" "}
-              <a href={RURAY_URL} rel="noopener" target="_blank" className="inline-link">
+              <a href={RURAY_INSTAGRAM_URL} rel="noopener" target="_blank" className="inline-link">
                 Instagram @ruray.tech<span className="sr-only"> (se abre en una pestaña nueva)</span>
               </a>
               .
