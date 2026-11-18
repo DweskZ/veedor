@@ -155,7 +155,10 @@ one API replica makes the review rate limiter per replica, so put a shared limit
       them requires the flag and a bearer token (`VEEDOR_REVIEWS_TOKEN`); there are no per-reviewer accounts,
       so treat the token as a shared secret and rotate it.
 - [ ] **Rate limiter is per process** and keyed by client IP (the proxy's IP unless forwarded headers are
-      trusted). Add a gateway-level limit; read endpoints are not limited at all and `q` scans can be expensive.
+      trusted). The read routes are limited per client IP by the API (`VEEDOR_READ_RATE_PER_MINUTE` and
+      `VEEDOR_READ_SEARCH_RATE_PER_MINUTE`; the code defaults are off, so set them for a public deployment,
+      as `deploy/compose.prod.yml` does), in memory, per worker, reset on restart. Add a gateway-level limit
+      for anything shared or distributed; `q` scans can still be expensive within the limit.
 - [ ] **TLS** terminated at the proxy; HTTP redirected to HTTPS; the API and `db` ports not exposed publicly.
 - [ ] **CORS**: `VEEDOR_CORS_ORIGINS` lists only the real public origins; web built with the final `NEXT_PUBLIC_*` values.
 - [ ] **Secrets**: non-default `POSTGRES_PASSWORD`; LLM key only in the host's secret mechanism.
