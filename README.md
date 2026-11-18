@@ -17,7 +17,7 @@ SERCOP publishes the data; Veedor says what to look at and why. Every alert come
 ## What this project demonstrates
 
 - **Data engineering.** 2.25 million records from a bulk open-data file into a Parquet lake, with set-based SQL indicators in DuckDB.
-- **LLM agents with guardrails.** A LangGraph supervisor and five specialists that use read-only tools, including an MCP server. The model selects fact ids, code renders the text, and a grounding verifier checks it.
+- **LLM agents with guardrails.** A LangGraph supervisor and five specialists that use read-only tools, including [EcuDataMCP](https://github.com/DweskZ/EcuDataMCP), an MCP server for Ecuadorian open data by the same author. The model selects fact ids, code renders the text, and a grounding verifier checks it.
 - **Measurement that states its limits.** Held-out sets frozen by hash, a pre-registered validation, and the limits written next to each result.
 - **Full stack and operations.** FastAPI, PostgreSQL with pgvector, Next.js, Docker Compose, GitHub Actions CI and Terraform.
 
@@ -28,7 +28,7 @@ Details and code paths are in [Engineering highlights](#engineering-highlights) 
 - Reads **2,251,027 procurement processes** (2015 to 2026) from SERCOP's open contracting data into a Parquet lake queried with DuckDB (`data/marts/build_summary.json`, `eval/coverage.json`).
 - Defines **10 risk indicators and 2 zero-weight context indicators** (`src/veedor/domain/signals/definitions.py`). In the data, 9 of the 10 fire at least once (`GHOST_COMPANY_LIST` never does) and both context indicators do; 87,217 processes (3.9 %) fire at least one risk indicator (`eval/coverage.json`).
 - Writes a **dossier per process**: for each fired indicator, the value, the threshold and the source field, next to the typical value for the same method and year, and how close the budget sits to the procedure threshold of that year (context only; it changes no score).
-- Runs a **supervisor and five specialist agents** (LangGraph) that add registry, history, audit and question-and-answer facts for a flagged process through read-only tools, including the author's own MCP server, EcuDataMCP. The fifth runs only when the process has stored texts.
+- Runs a **supervisor and five specialist agents** (LangGraph) that add registry, history, audit and question-and-answer facts for a flagged process through read-only tools, including the author's own MCP server, [EcuDataMCP](https://github.com/DweskZ/EcuDataMCP). The fifth runs only when the process has stored texts.
 - Serves a **Next.js dashboard** (process page with tabs, province map, trends, a validation section) with similar-process search (365,864 processes in a pgvector index) and a question box that answers only from stored facts (off by default).
 
 One real dossier, with names withheld (a 2018 works contract; full text in [REFERENCE.md](docs/REFERENCE.md#a-real-example)):
@@ -169,4 +169,4 @@ Veedor muestra indicadores de riesgo calculados sobre datos públicos. No consti
 
 Code: MIT, see [LICENSE](LICENSE). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Luis Figueroa ([github.com/DweskZ](https://github.com/DweskZ)), creator of EcuDataMCP.
+Luis Figueroa ([github.com/DweskZ](https://github.com/DweskZ)), creator of [EcuDataMCP](https://github.com/DweskZ/EcuDataMCP).

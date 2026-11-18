@@ -17,3 +17,6 @@ web/.screenshots/
 
 # Local skill-registry cache written by agent tooling
 .atl/
+
+# Personal launch drafts (LinkedIn post, interview pitch); kept locally, not published
+docs/launch/
