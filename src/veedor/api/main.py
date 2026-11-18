@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -16,6 +18,8 @@ from veedor.api.v1.similar import router as similar_router
 from veedor.api.warmup import warm_caches_on_start
 from veedor.core.settings import get_settings
 from veedor.infrastructure.telemetry import instrument_app, setup_telemetry
+
+logger = logging.getLogger(__name__)
 
 DESCRIPTION = """
 Radar abierto de riesgo en la contratación pública del Ecuador.
@@ -74,11 +78,19 @@ def create_app(*, warm_up: bool = False) -> FastAPI:
         app.add_api_route("/docs", lambda: HTMLResponse(DOCS_HTML), include_in_schema=False)
     app.add_middleware(HttpCacheMiddleware)  # innermost: CORS and the security headers wrap its output
     settings = get_settings()
+    if settings.read_rate_per_minute == 0 or settings.read_search_rate_per_minute == 0:
+        logger.warning(
+            "read rate limit is OFF (general=%s/min, search=%s/min; 0 = off). Fine for local development; "
+            "a public deployment sets VEEDOR_READ_RATE_PER_MINUTE and VEEDOR_READ_SEARCH_RATE_PER_MINUTE.",
+            settings.read_rate_per_minute,
+            settings.read_search_rate_per_minute,
+        )
     app.add_middleware(  # inside CORS and the security headers, so a 429 carries both
         ReadRateLimitMiddleware,
         per_minute=settings.read_rate_per_minute,
         search_per_minute=settings.read_search_rate_per_minute,
         exempt=settings.read_rate_exempt,
+        max_keys=settings.read_rate_max_keys,
     )
     app.add_middleware(
         CORSMiddleware,

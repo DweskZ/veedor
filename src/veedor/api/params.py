@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Annotated
 
 from fastapi import Path, Query
+from pydantic import BeforeValidator
 
 from veedor.domain.ocid import OCID_PATTERN
 from veedor.domain.regions import REGION_KEYS
@@ -46,8 +47,24 @@ RegionQuery = Annotated[
         "SIN_REGION para entidades sin provincia registrada."
     ),
 ]
+
+
+def trim_query_text(value: str) -> str:
+    """The search text as the API runs it: surrounding Unicode whitespace (space, NBSP, tab, ...) removed.
+
+    The rate limiter calls this too, so "is a search" means exactly "the API will run a search".
+    """
+    return value.strip()
+
+
+def _trim(value: object) -> object:
+    return trim_query_text(value) if isinstance(value, str) else value
+
+
+# Trimmed first, then checked: a `q` that is empty after trimming is a 422 (min_length), never a search.
 QueryText = Annotated[
     str | None,
+    BeforeValidator(_trim),
     Query(min_length=1, max_length=MAX_QUERY_LENGTH, description="Texto en código, entidad o descripción."),
 ]
 SortQuery = Annotated[

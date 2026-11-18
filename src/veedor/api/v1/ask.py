@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from veedor.api.ask_wiring import get_ask_service, usage_store
 from veedor.api.deps import Lake
 from veedor.api.params import OcidPath
-from veedor.api.security import SlidingWindowRateLimiter
+from veedor.api.security import SlidingWindowRateLimiter, request_client_key
 from veedor.api.v1._responses import NOT_FOUND, UNAVAILABLE
 from veedor.core.settings import get_settings
 from veedor.domain.masking import mask_payload
@@ -131,7 +131,7 @@ def require_ask_enabled() -> None:
 
 
 def limit_questions(request: Request, service: Annotated[AskService, Depends(get_ask_service)]) -> None:
-    client = request.client.host if request.client else "unknown"
+    client = request_client_key(request)
     limits = get_ask_limits(model_mode=model_may_be_called(service))
     if not limits.allow(client):
         raise HTTPException(

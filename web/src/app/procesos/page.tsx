@@ -32,7 +32,9 @@ function pick(sp: Record<string, string | string[] | undefined>): ProcessQuery {
   for (const k of KEYS) {
     const v = sp[k];
     const s = Array.isArray(v) ? v[0] : v;
-    if (s) out[k] = s;
+    // Surrounding whitespace is never part of a search; a blank value is no filter (the API rejects a blank `q`).
+    const value = k === "q" ? s?.trim() : s;
+    if (value) out[k] = value;
   }
   return out;
 }
@@ -96,12 +98,18 @@ async function Explorer({ searchParams }: { searchParams: PageProps<"/procesos">
   const years = Array.from({ length: Math.max(1, last - firstY + 1) }, (_, i) => String(last - i));
   const sort = q.sort || "-risk_score";
 
+  // Each text search (`q`) scans the lake and counts against the visitor's search limit. One page render must cost one
+  // search, not a handful: while a search is active the count badges (three signal chips, "more than USD 1 million") are
+  // not computed and the chips show no count. Without `q` the counts are ordinary filtered reads and stay.
+  const searching = Boolean(q.q);
   const counts = await Promise.all(
     QUICK.map((c) =>
-      getProcesses({ ...q, signal: c.signal, page: undefined, page_size: "1" }).then(
-        (r) => r.total,
-        () => null,
-      ),
+      searching
+        ? Promise.resolve(null)
+        : getProcesses({ ...q, signal: c.signal, page: undefined, page_size: "1" }).then(
+            (r) => r.total,
+            () => null,
+          ),
     ),
   );
   const chips: QuickChip[] = QUICK.map((c, i) => {
@@ -128,7 +136,7 @@ async function Explorer({ searchParams }: { searchParams: PageProps<"/procesos">
     id: "million",
     label: "Más de USD 1 millón",
     on: millionOn,
-    count: await millionCount(q),
+    count: searching ? null : await millionCount(q),
     href: href(q, { min_amount: millionOn ? undefined : "1000000", page: undefined }),
   });
   const bigOn = sort === "-award_total";
@@ -184,7 +192,10 @@ async function Results({ q, signals, regionLabel }: { q: ProcessQuery; signals: 
 
   if (page.items.length === 0) {
     // Which single filter, once removed, brings results back? Ask the API for each.
-    const keys = (["year", "method", "region", "signal", "min_score", "min_amount", "max_amount", "q"] as const).filter((k) => q[k]);
+    // While a text search is active only the search itself is probed (a probe without `q`, which is not a search): probing
+    // the other filters would repeat the search once per filter and each repetition counts against the search limit.
+    const candidates = q.q ? (["q"] as const) : (["year", "method", "region", "signal", "min_score", "min_amount", "max_amount"] as const);
+    const keys = candidates.filter((k) => q[k]);
     const probes = await Promise.all(
       keys.map((k) =>
         getProcesses({ ...q, [k]: undefined, page: undefined, page_size: "1" }).then(

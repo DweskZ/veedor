@@ -106,7 +106,7 @@ def _where(lake: LakePort, f: ProcessFilters) -> tuple[str, list[Any], tuple[str
         clauses.append(clause)
         params += region_params
         tables.append("processes")
-    if f.q:
+    if f.q and f.q.strip():  # blank text is no search (the API rejects it earlier; direct callers too)
         pattern = _like_pattern(f.q.strip())
         # Never the description or any party name: a caller must not find a process by a person's name.
         # Natural-person buyers are masked in responses, so their raw name is not searchable either.

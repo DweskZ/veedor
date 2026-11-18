@@ -10,7 +10,7 @@ The route mix is the same for every run, so two runs are comparable.
 
 Notes: the dossier route is rate limited by the API (30 per minute per client IP), so it answers
 429 once that budget is spent; those are counted under their own status, not hidden.
-`--stage3` sends only the stage-3 read routes (they are not rate limited, so every request counts).
+`--stage3` sends only the stage-3 read routes. They fall under the API read limit only when one is set (off by default, 240 per minute per client IP in production), so against a limited API many requests answer 429, counted under their own status.
 Environment: API_URL (default http://localhost:8000/api/v1).
 """
 

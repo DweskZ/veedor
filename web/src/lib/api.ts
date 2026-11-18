@@ -1,7 +1,10 @@
+import { headers as requestHeaders } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 import { revalidateSeconds } from "./cache-policy";
 import { normalizeInvestigation } from "./investigation";
 import { normalizeContext, normalizeProcessThreshold, normalizeRegions, normalizeThresholds, normalizeYears } from "./normalize";
 import * as mocks from "./mocks";
+import { internalUrlProblem, isFetchableServerUrl, visitorHeaders, warnOnce } from "./server-api";
 import { normalizeProvenance, normalizeQuotes, type Provenance, type Quotes } from "./provenance";
 import type {
   BuyerDetail,
@@ -32,6 +35,13 @@ export const API_URL =
     : PUBLIC_API_URL;
 export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "1";
 
+// A malformed API_INTERNAL_URL (for example without "http://") makes every server-side call fail the same way
+// the missing-URL guard below does; say so once in the server log instead of failing silently for every visitor.
+if (typeof window === "undefined") {
+  const problem = internalUrlProblem(process.env.API_INTERNAL_URL);
+  if (problem) warnOnce(problem);
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -43,17 +53,34 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Headers that identify the visitor a server-side render is for: the address Caddy put in `X-Forwarded-For` on the
+ * incoming request. The API counts the call against that address (it trusts the header only from this container).
+ * Empty without a request in scope (a build, background revalidation) and in the browser.
+ * Note: headers are part of Next.js's fetch cache key, so cached reads are shared per visitor address, not globally.
+ */
+async function visitorContext(): Promise<Record<string, string>> {
+  if (typeof window !== "undefined") return {};
+  try {
+    return visitorHeaders((await requestHeaders()).get("x-forwarded-for"));
+  } catch (e) {
+    unstable_rethrow(e); // a prerender bail-out must reach the framework
+    return {}; // no request in scope
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // A relative API URL only resolves in a browser. On the server it means no API is reachable (an image build
   // without API_INTERNAL_URL), so fail at once instead of handing the framework a URL it cannot fetch.
-  if (typeof window === "undefined" && !/^https?:\/\//.test(API_URL)) {
+  if (typeof window === "undefined" && !isFetchableServerUrl(API_URL)) {
     throw new ApiError("No se pudo conectar con el servicio de datos.", null);
   }
+  const visitor = await visitorContext(); // outside the try below: a framework bail-out must not become an ApiError
   let res: Response;
   try {
     const ttl = revalidateSeconds(path);
     const cache: RequestInit = ttl === null ? { cache: "no-store" } : ({ next: { revalidate: ttl } } as RequestInit);
-    res = await fetch(`${API_URL}${path}`, { ...cache, ...init });
+    res = await fetch(`${API_URL}${path}`, { ...cache, ...init, headers: { ...visitor, ...(init?.headers as Record<string, string> | undefined) } });
   } catch {
     throw new ApiError("No se pudo conectar con el servicio de datos.", null);
   }

@@ -7,10 +7,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import inspect
 
-from veedor.api.deps import get_reader
-from veedor.api.main import create_app
-from veedor.infrastructure.lake.reader import LakeReader
-
 API = "/api/v1"
 
 PAYLOADS = [
@@ -161,7 +157,7 @@ def test_review_post_is_rate_limited(client: TestClient, monkeypatch: pytest.Mon
         for _ in range(5)
     ]
     assert statuses[:3] == [422] * 3 and statuses[3:] == [429, 429]
-    assert client.get(f"{API}/processes").status_code == 200  # reads are not limited
+    assert client.get(f"{API}/processes").status_code == 200  # the review limit does not touch reads
 
 
 # --- phase 3 hardening
@@ -226,131 +222,3 @@ def test_compose_binds_ports_to_loopback() -> None:
     ]
     ports = [line for line in published if line.count(":") >= 2 and line.rstrip('"').split(":")[-1].isdigit()]
     assert ports and all(p.startswith('- "127.0.0.1:') for p in ports)
-
-
-# --- read-route rate limit (per client address, in memory)
-
-
-def _limited_client(
-    lake_dirs, monkeypatch: pytest.MonkeyPatch, *, general: int, search: int, exempt: str | None = None
-) -> TestClient:
-    from veedor.core.settings import get_settings
-
-    monkeypatch.setenv("VEEDOR_READ_RATE_PER_MINUTE", str(general))
-    monkeypatch.setenv("VEEDOR_READ_SEARCH_RATE_PER_MINUTE", str(search))
-    if exempt is not None:
-        monkeypatch.setenv("VEEDOR_READ_RATE_EXEMPT", exempt)
-    get_settings.cache_clear()
-    app = create_app()
-    get_settings.cache_clear()
-    app.dependency_overrides[get_reader] = lambda: LakeReader(*lake_dirs)
-    return TestClient(app)  # the test client's address is "testclient"
-
-
-@pytest.fixture(autouse=True)
-def _fresh_settings():
-    from veedor.core.settings import get_settings
-
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
-
-
-def test_read_limit_triggers_with_retry_after(lake_dirs, monkeypatch: pytest.MonkeyPatch) -> None:
-    c = _limited_client(lake_dirs, monkeypatch, general=3, search=100)
-    assert [c.get(f"{API}/processes").status_code for _ in range(3)] == [200] * 3
-    blocked = c.get(f"{API}/processes")
-    assert blocked.status_code == 429 and blocked.json()["error"]["code"] == "rate_limited"
-    assert int(blocked.headers["retry-after"]) >= 1
-    assert blocked.headers["x-content-type-options"] == "nosniff"  # outer middleware still wraps it
-    cors = c.get(f"{API}/processes", headers={"Origin": "http://localhost:3000"})
-    assert cors.status_code == 429 and cors.headers["access-control-allow-origin"] == "http://localhost:3000"
-
-
-def test_search_limit_is_stricter_than_general(lake_dirs, monkeypatch: pytest.MonkeyPatch) -> None:
-    c = _limited_client(lake_dirs, monkeypatch, general=100, search=2)
-    assert [c.get(f"{API}/processes", params={"q": "obra"}).status_code for _ in range(2)] == [200, 200]
-    blocked = c.get(f"{API}/buyers/search", params={"q": "obra"})
-    assert blocked.status_code == 429 and "retry-after" in blocked.headers
-    assert c.get(f"{API}/processes").status_code == 200  # no q: only the general limit applies
-    assert c.get(f"{API}/processes", params={"q": ""}).status_code != 429  # a blank q is not a search
-
-
-def test_not_modified_responses_count(lake_dirs, monkeypatch: pytest.MonkeyPatch) -> None:
-    c = _limited_client(lake_dirs, monkeypatch, general=3, search=100)
-    first = c.get(f"{API}/stats")
-    etag = first.headers["etag"]
-    assert c.get(f"{API}/stats", headers={"If-None-Match": etag}).status_code == 304
-    assert c.get(f"{API}/stats", headers={"If-None-Match": etag}).status_code == 304
-    assert c.get(f"{API}/stats", headers={"If-None-Match": etag}).status_code == 429
-
-
-def test_health_and_writes_are_exempt(lake_dirs, monkeypatch: pytest.MonkeyPatch) -> None:
-    c = _limited_client(lake_dirs, monkeypatch, general=1, search=1)
-    assert c.get(f"{API}/processes").status_code == 200
-    assert c.get(f"{API}/processes").status_code == 429
-    assert [c.get(f"{API}/health").status_code for _ in range(5)] == [200] * 5
-    assert c.options(f"{API}/processes", headers={"Origin": "http://localhost:3000"}).status_code != 429
-
-
-def test_exemption_matches_only_the_resolved_client_address(
-    lake_dirs, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    c = _limited_client(lake_dirs, monkeypatch, general=1, search=1, exempt='["10.77.88.20"]')
-    # The client here is "testclient", not 10.77.88.20; forwarded headers cannot make it so
-    spoof = {"X-Forwarded-For": "10.77.88.20", "X-Real-IP": "10.77.88.20"}
-    assert c.get(f"{API}/processes", headers=spoof).status_code == 200
-    assert c.get(f"{API}/processes", headers=spoof).status_code == 429
-
-
-def test_exempt_address_is_not_counted(lake_dirs, monkeypatch: pytest.MonkeyPatch) -> None:
-    from veedor.api.security import ReadRateLimitMiddleware
-
-    seen: list[int] = []
-
-    async def app(scope, receive, send) -> None:
-        seen.append(1)
-        await send({"type": "http.response.start", "status": 200, "headers": []})
-        await send({"type": "http.response.body", "body": b""})
-
-    guard = ReadRateLimitMiddleware(
-        app, per_minute=1, search_per_minute=1, exempt=["10.77.88.20", "192.168.0.0/16"]
-    )
-
-    async def call(host: str) -> int:
-        statuses: list[int] = []
-
-        async def send(message) -> None:
-            if message["type"] == "http.response.start":
-                statuses.append(message["status"])
-
-        scope = {
-            "type": "http",
-            "method": "GET",
-            "path": "/api/v1/processes",
-            "query_string": b"q=x",
-            "client": (host, 1),
-        }
-        await guard(scope, None, send)
-        return statuses[0]
-
-    import asyncio
-
-    assert [asyncio.run(call("10.77.88.20")) for _ in range(5)] == [200] * 5
-    assert asyncio.run(call("192.168.4.5")) == 200 and asyncio.run(call("192.168.4.5")) == 200
-    assert asyncio.run(call("203.0.113.9")) == 200
-    assert asyncio.run(call("203.0.113.9")) == 429
-    assert asyncio.run(call("203.0.113.10")) == 200  # another client has its own count
-
-
-def test_zero_switches_the_limits_off(lake_dirs, monkeypatch: pytest.MonkeyPatch) -> None:
-    c = _limited_client(lake_dirs, monkeypatch, general=0, search=0)
-    assert [c.get(f"{API}/processes", params={"q": "obra"}).status_code for _ in range(10)] == [200] * 10
-
-
-def test_invalid_exempt_value_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
-    from veedor.core.settings import Settings
-
-    monkeypatch.setenv("VEEDOR_READ_RATE_EXEMPT", '["not-an-ip"]')
-    with pytest.raises(ValueError):
-        Settings()

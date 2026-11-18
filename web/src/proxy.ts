@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { connectOrigin, internalUrlProblem, visitorHeaders, warnOnce } from "@/lib/server-api";
 
 const RUC = /^\d{13}$/;
 // OCDS identifiers are "ocds-<publisher>-<process>"; "sample-ocid-" is the mock fixture prefix.
@@ -6,13 +7,10 @@ const OCID = /^(?:ocds-[a-z0-9]+|sample-ocid)-[A-Za-z0-9._-]{1,100}$/;
 const API = (process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace(/\/$/, "");
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "1";
 const IS_DEV = process.env.NODE_ENV === "development";
-const API_ORIGIN = (() => {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").origin;
-  } catch {
-    return "http://localhost:8000";
-  }
-})();
+// Origin the browser may call besides 'self': none for a relative (same-origin) public API URL.
+const API_ORIGIN = connectOrigin(process.env.NEXT_PUBLIC_API_URL);
+const URL_PROBLEM = internalUrlProblem(process.env.API_INTERNAL_URL);
+if (URL_PROBLEM) warnOnce(URL_PROBLEM);
 
 /**
  * Content Security Policy with a per-request nonce (node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
@@ -26,7 +24,7 @@ function policy(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    `connect-src 'self' ${API_ORIGIN}${IS_DEV ? " ws:" : ""}`,
+    `connect-src 'self'${API_ORIGIN ? ` ${API_ORIGIN}` : ""}${IS_DEV ? " ws:" : ""}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -78,7 +76,9 @@ export async function proxy(request: NextRequest) {
   if (!path) return notFound(request);
   if (USE_MOCKS) return withPolicy(request);
   try {
-    const res = await fetch(`${API}/${path}`, { method: "GET", cache: "no-store", signal: AbortSignal.timeout(4000) });
+    // The visitor's address (set by Caddy) goes along so the API counts this call against the visitor.
+    const headers = visitorHeaders(request.headers.get("x-forwarded-for"));
+    const res = await fetch(`${API}/${path}`, { method: "GET", headers, cache: "no-store", signal: AbortSignal.timeout(4000) });
     if (res.status === 404) return notFound(request);
     if (res.ok && section === "proveedores") {
       // Supplier pages exist only for identified companies and public entities.

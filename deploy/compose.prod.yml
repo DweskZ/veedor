@@ -106,19 +106,25 @@ services:
       # Client address for the per-IP limiters. The API takes request.client.host, and uvicorn (0.54,
       # --proxy-headers is on by default) rewrites it from X-Forwarded-For ONLY when the TCP peer is in
       # FORWARDED_ALLOW_IPS. "*" trusted every peer and let a forged header win (confirmed by review), so
-      # the list is exactly Caddy's fixed address on the pinned network below. Caddy itself discards any
-      # client-supplied X-Forwarded-For (deploy/Caddyfile), so the value uvicorn reads is the real peer.
-      # web (Next.js server side) also reaches the api but is not trusted: its requests count as web's address
-      # (10.77.88.20), which the read rate limit below exempts.
-      FORWARDED_ALLOW_IPS: "10.77.88.10"
+      # the list is exactly two fixed addresses on the pinned network below:
+      #   - Caddy (10.77.88.10): it discards any client-supplied X-Forwarded-For and sets the visitor's
+      #     address itself (deploy/Caddyfile), so the value uvicorn reads is the real peer.
+      #   - web (10.77.88.20): its server-side renders call the api directly and forward the visitor's
+      #     address, which web read from the header Caddy set (web/src/lib/server-api.ts). Without a
+      #     visitor (no request in scope) web sends no header and the call counts as web's own address.
+      # Both containers are reachable only from this private network; nothing outside it can be a peer.
+      # tests/api/test_read_rate_limit.py checks this list against the pinned addresses below.
+      FORWARDED_ALLOW_IPS: "10.77.88.10,10.77.88.20"
       # Per-IP limits on anonymous GET routes (in memory, per worker, reset on restart; docs/SECURITY.md).
-      # Normal browsing stays well below them; 0 switches one off. web's server-side renders reach the api
-      # directly from web's fixed address (below), so that address is exempt: without it every page render
-      # would count against one IP. The exemption is matched on the resolved client address only: a request
-      # through Caddy always carries the visitor's address, never web's.
+      # Normal browsing stays well below them; 0 switches one off. The code defaults are OFF (local
+      # development), so production states its values here. Nothing is exempt: web's server-side calls
+      # count against the visitor they serve. VEEDOR_READ_RATE_EXEMPT stays available (JSON list of
+      # canonical addresses or networks, never a catch-all) for an operator who needs it.
       VEEDOR_READ_RATE_PER_MINUTE: ${VEEDOR_READ_RATE_PER_MINUTE:-240}
       VEEDOR_READ_SEARCH_RATE_PER_MINUTE: ${VEEDOR_READ_SEARCH_RATE_PER_MINUTE:-60}
-      VEEDOR_READ_RATE_EXEMPT: '["10.77.88.20"]'
+      VEEDOR_READ_RATE_EXEMPT: "[]"
+      # Most client addresses each read limiter tracks (memory bound; least recently active evicted first).
+      VEEDOR_READ_RATE_MAX_KEYS: ${VEEDOR_READ_RATE_MAX_KEYS:-5000}
       # Third-party quotes: off unless the owner decides otherwise. Do not enable in production until the
       # privacy gate and the disclosure are in place (docs/DEPLOYMENT_AWS.md, pre-publication checklist).
       VEEDOR_QUOTES_ENABLED: ${VEEDOR_QUOTES_ENABLED:-false}
@@ -167,7 +173,7 @@ services:
       NODE_OPTIONS: --max-old-space-size=${WEB_HEAP_MB:-192}
     networks:
       internal:
-        ipv4_address: 10.77.88.20 # fixed: the api exempts this address from the read rate limit
+        ipv4_address: 10.77.88.20 # fixed: the api trusts X-Forwarded-For from this address too (FORWARDED_ALLOW_IPS)
     mem_limit: ${WEB_MEM_LIMIT:-320m}
     cpus: ${WEB_CPUS:-1}
     healthcheck:
@@ -202,7 +208,7 @@ services:
       - caddy_config:/config
     networks:
       internal:
-        ipv4_address: 10.77.88.10 # fixed: the api trusts X-Forwarded-For from this address only
+        ipv4_address: 10.77.88.10 # fixed: the api trusts X-Forwarded-For from this address (FORWARDED_ALLOW_IPS)
     mem_limit: 128m
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/healthz"]
