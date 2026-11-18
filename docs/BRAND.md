@@ -112,7 +112,7 @@ Subjects:
 |---|---|---|
 | `hero` | a small public square: a modest town hall with columns, a construction site with a crane, a delivery truck on a road. "What the State buys: works, goods and services." Terracotta only on the truck and the crane | Home hero |
 | `datos` | an archive building cut away to show rows of filing shelves with boxes and binders, a loading ramp and stacked boxes outside. "Open public data" | Step 1, "Elige un proceso" |
-| `investigacion` | a desk office with a central round table and four distinct work stations (papers and magnifying glass; laptop and chart; filing cabinet; map and pinboard), no people | "Investiga con agentes" |
+| `investigacion` | an office in three stepped levels: one larger desk on a raised platform, a row of exactly five booths (filing cabinet with binders; adding machine and ledger; stack of folders and boxes; magnifying glass, bound report and stamp; pinboard with blank cards and speech bubbles) and a wall of archive drawers at the front, with one faceless figure at each of the six desks. Replaced the first version on 2026-11-17 (see the note below) | "Investiga con agentes" |
 | `verificacion` | a public registry office with a service counter, glass partition, stamp, rope stanchions and filing drawers, no people, no writing | Step 3, "Verifica en la fuente oficial" |
 | `vacio` | an empty fenced lot with a bare tree, a blank sign post and a few stones | Empty states and the 404 |
 
@@ -120,7 +120,9 @@ All five came back at 1254 × 1254 with a real alpha channel on the first attemp
 
 No image contains or implies a real entity, person or brand. The one UI mockup on the home page (the sample "Oferente único" card) is drawn in HTML and CSS, as the Ruray guide asks for mockups, and carries the label "Ejemplo ilustrativo, no es un proceso real."
 
-Rules to keep: ink outlines and white fills only, terracotta on a few elements, no people or faces, no text in the image (text is always HTML), upper third empty, one scale across the set. Always look at an image before using it and reject anything that reads as a toy or does not match the references.
+The `investigacion` image was redone on 2026-11-17. The first version asked for four stations and no figures, so it could not show one supervisor and five specialists and had to be cropped on the home page so that nobody counted the desks. The founder chose a version with six faceless figures because an empty office did not read as agents at work. The figures stand for software agents, not for people, and the `alt` text says so. This is the only illustration with figures.
+
+Rules to keep: ink outlines and white fills only, terracotta on a few elements, no faces, no figures except the faceless ones in `investigacion`, no text in the image (text is always HTML), upper third empty, one scale across the set. Always look at an image before using it and reject anything that reads as a toy or does not match the references.
 
 ## Voice
 
@@ -139,7 +141,7 @@ Rules to keep: ink outlines and white fills only, terracotta on a few elements, 
 | Monospace for codes and labels | Rejected by the founder as the "dark tech" look. Tabular figures in Plus Jakarta Sans instead. |
 | Gradients, glows, grid backgrounds, shadows with colour | Rejected outright by the founder. |
 | Hues outside ice, ink and terracotta (red/amber/green traffic lights, a teal accent) | Not in the palette. A traffic-light scale would also read as a verdict, against the contract. The scale goes from ice-deep to ink and keeps terracotta for the top band. |
-| Mascots, characters, robots, people in illustrations | Rejected by the founder (Ruray guide, "Rejected directions"). The specialists are drawn as work stations, not as figures. |
+| Mascots, characters, robots, people in illustrations | Rejected by the founder (Ruray guide, "Rejected directions"). One exception since 2026-11-17: the faceless figures in `investigacion`, chosen by the founder. No mascots, robots or faces anywhere. |
 | Stock images, other image generators | The brand method is Codex with the Ruray maquetas as references. |
 | Screenshots of Ruray apps or client work | Not Veedor's to show. |
 | Chart libraries | Bars are plain HTML lists with the value as text. |

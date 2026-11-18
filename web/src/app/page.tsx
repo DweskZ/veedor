@@ -265,7 +265,7 @@ function Agents() {
           </div>
         </div>
         <div className="agents__panel reveal" style={{ "--d": "0.1s" } as React.CSSProperties}>
-          <Art name="investigacion" crop sizes="(min-width: 900px) 55vw, 90vw" alt="Dibujo isométrico de una oficina, sin personas: una mesa redonda con sillas y un escritorio con un portátil, donde se consultan las fuentes." />
+          <Art name="investigacion" sizes="(min-width: 900px) 55vw, 90vw" alt="Dibujo isométrico de una oficina en tres niveles: arriba, una figura sin rostro en el escritorio del supervisor; en medio, cinco figuras sin rostro, cada una en su puesto con archivos, libros, carpetas, un sello y un tablero; abajo, una pared de archivos. Las figuras representan a los agentes de software, no a personas." />
           <div className="mini" role="img" aria-label={`Un supervisor envía a cinco especialistas a consultar fuentes oficiales: ${names.join(", ")}.`}>
             <div className="mini__sup" aria-hidden="true">Supervisor</div>
             <div className="mini__line" aria-hidden="true" />
