@@ -51,9 +51,14 @@ variable "budget_amount_usd" {
   default     = 20
 }
 
-variable "budget_alert_email" {
-  description = "E-mail that receives the budget alerts. No default on purpose. AWS sends a confirmation message you may need to accept."
-  type        = string
+variable "budget_alert_emails" {
+  description = "E-mail addresses that receive the budget alerts (1 to 10, the AWS Budgets limit per notification). No default on purpose. AWS sends a confirmation message you may need to accept."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.budget_alert_emails) >= 1 && length(var.budget_alert_emails) <= 10
+    error_message = "Give between 1 and 10 e-mail addresses."
+  }
 }
 
 variable "budget_include_credits" {

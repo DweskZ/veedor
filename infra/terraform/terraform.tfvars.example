@@ -4,8 +4,8 @@ region        = "us-east-1"
 instance_type = "t4g.small" # t4g.medium if you turn on the observability profile
 
 # Required: where the 50 / 80 / 100 percent budget alerts go.
-budget_alert_email = "you@example.org"
-budget_amount_usd  = 20
+budget_alert_emails = ["you@example.org"] # up to 10 addresses
+budget_amount_usd   = 20
 
 # Optional: a domain you already own, and an EXISTING Route 53 hosted zone for it.
 # Leave both empty to use the Elastic IP over plain HTTP (temporary mode) or to create the DNS record by hand.
