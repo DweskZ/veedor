@@ -61,6 +61,10 @@ services:
       VEEDOR_REVIEWS_TOKEN: ${VEEDOR_REVIEWS_TOKEN:-}
       VEEDOR_DOCS_ENABLED: ${VEEDOR_DOCS_ENABLED:-true}
       VEEDOR_GLOSSARY_PATH: /app/web/src/data/glossary.json
+      # Read rate limit: off for local development (the web container's address is not pinned here, so its
+      # server-side renders would count as one client). Production sets it in deploy/compose.prod.yml.
+      VEEDOR_READ_RATE_PER_MINUTE: ${VEEDOR_READ_RATE_PER_MINUTE:-0}
+      VEEDOR_READ_SEARCH_RATE_PER_MINUTE: ${VEEDOR_READ_SEARCH_RATE_PER_MINUTE:-0}
       # Question answering (docs/SECURITY.md): off unless VEEDOR_ASK_ENABLED is set. The model variables are
       # passed only while it is set; without a key the route answers by retrieval.
       VEEDOR_ASK_ENABLED: ${VEEDOR_ASK_ENABLED:-}

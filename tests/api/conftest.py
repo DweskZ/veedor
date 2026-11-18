@@ -71,6 +71,18 @@ def empty_client(tmp_path: Path) -> Iterator[TestClient]:
 
 
 @pytest.fixture(autouse=True)
+def _read_limits_off(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Tests make hundreds of reads from one address; the read limit has its own tests (test_api_security)."""
+    from veedor.core.settings import get_settings
+
+    monkeypatch.setenv("VEEDOR_READ_RATE_PER_MINUTE", "0")
+    monkeypatch.setenv("VEEDOR_READ_SEARCH_RATE_PER_MINUTE", "0")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
 def _reset_rate_limiter() -> None:
     from veedor.api.security import review_rate_limiter
     from veedor.use_cases.queries._cache import clear_all_caches

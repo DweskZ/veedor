@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from ipaddress import ip_network
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -52,6 +53,15 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # Per client IP and worker limit on anonymous GET routes under /api/v1 (never /health). The general limit
+    # counts every read; the search limit also counts requests carrying `q` (a text search over the lake).
+    # 0 switches that limit off. In memory, per worker process, reset on restart (docs/SECURITY.md).
+    read_rate_per_minute: int = Field(default=240, ge=0, le=100_000)
+    read_search_rate_per_minute: int = Field(default=60, ge=0, le=100_000)
+    # Client addresses or networks never counted (the web container's server-side calls). Empty by default;
+    # matched against the client address the API resolves, never against a request header.
+    read_rate_exempt: list[str] = []
+
     # Glossary served by `GET /glossary`: one JSON file written by the web team (content owner).
     glossary_path: Path = REPO_ROOT / "web" / "src" / "data" / "glossary.json"
 
@@ -68,6 +78,13 @@ class Settings(BaseSettings):
     # OpenTelemetry is off unless an OTLP/HTTP base URL is set (e.g. http://localhost:4318).
     otel_endpoint: str | None = None
     otel_service_name: str = "veedor-api"
+
+    @field_validator("read_rate_exempt")
+    @classmethod
+    def _valid_networks(cls, values: list[str]) -> list[str]:
+        for value in values:
+            ip_network(value, strict=False)  # raises ValueError: a typo must not silently exempt nothing
+        return values
 
     @property
     def model_configured(self) -> bool:

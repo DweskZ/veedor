@@ -108,8 +108,17 @@ services:
       # FORWARDED_ALLOW_IPS. "*" trusted every peer and let a forged header win (confirmed by review), so
       # the list is exactly Caddy's fixed address on the pinned network below. Caddy itself discards any
       # client-supplied X-Forwarded-For (deploy/Caddyfile), so the value uvicorn reads is the real peer.
-      # web (Next.js server side) also reaches the api but is not trusted: its requests count as web's address.
+      # web (Next.js server side) also reaches the api but is not trusted: its requests count as web's address
+      # (10.77.88.20), which the read rate limit below exempts.
       FORWARDED_ALLOW_IPS: "10.77.88.10"
+      # Per-IP limits on anonymous GET routes (in memory, per worker, reset on restart; docs/SECURITY.md).
+      # Normal browsing stays well below them; 0 switches one off. web's server-side renders reach the api
+      # directly from web's fixed address (below), so that address is exempt: without it every page render
+      # would count against one IP. The exemption is matched on the resolved client address only: a request
+      # through Caddy always carries the visitor's address, never web's.
+      VEEDOR_READ_RATE_PER_MINUTE: ${VEEDOR_READ_RATE_PER_MINUTE:-240}
+      VEEDOR_READ_SEARCH_RATE_PER_MINUTE: ${VEEDOR_READ_SEARCH_RATE_PER_MINUTE:-60}
+      VEEDOR_READ_RATE_EXEMPT: '["10.77.88.20"]'
       # Third-party quotes: off unless the owner decides otherwise. Do not enable in production until the
       # privacy gate and the disclosure are in place (docs/DEPLOYMENT_AWS.md, pre-publication checklist).
       VEEDOR_QUOTES_ENABLED: ${VEEDOR_QUOTES_ENABLED:-false}
@@ -156,7 +165,9 @@ services:
     environment:
       API_INTERNAL_URL: http://api:8000/api/v1
       NODE_OPTIONS: --max-old-space-size=${WEB_HEAP_MB:-192}
-    networks: [internal]
+    networks:
+      internal:
+        ipv4_address: 10.77.88.20 # fixed: the api exempts this address from the read rate limit
     mem_limit: ${WEB_MEM_LIMIT:-320m}
     cpus: ${WEB_CPUS:-1}
     healthcheck:

@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from veedor.api.errors import register_error_handlers
 from veedor.api.http_cache import HttpCacheMiddleware
 from veedor.api.meta import VERSION
-from veedor.api.security import BodySizeLimitMiddleware, SecurityHeadersMiddleware
+from veedor.api.security import BodySizeLimitMiddleware, ReadRateLimitMiddleware, SecurityHeadersMiddleware
 from veedor.api.v1 import router as v1_router
 from veedor.api.v1.investigations import router as investigations_router
 from veedor.api.v1.similar import router as similar_router
@@ -73,6 +73,13 @@ def create_app(*, warm_up: bool = False) -> FastAPI:
     if docs_enabled:
         app.add_api_route("/docs", lambda: HTMLResponse(DOCS_HTML), include_in_schema=False)
     app.add_middleware(HttpCacheMiddleware)  # innermost: CORS and the security headers wrap its output
+    settings = get_settings()
+    app.add_middleware(  # inside CORS and the security headers, so a 429 carries both
+        ReadRateLimitMiddleware,
+        per_minute=settings.read_rate_per_minute,
+        search_per_minute=settings.read_search_rate_per_minute,
+        exempt=settings.read_rate_exempt,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_settings().cors_origins,

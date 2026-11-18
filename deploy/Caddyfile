@@ -17,7 +17,7 @@
 # Do not add `header -ETag` or a Cache-Control override here.
 #
 # Not possible without a plugin: request rate limiting (third-party module caddy-ratelimit; needs a
-# custom Caddy build). Read endpoints are not rate limited by the API either (docs/SECURITY.md).
+# custom Caddy build). The API limits anonymous reads per client IP in memory (docs/SECURITY.md).
 
 {
 	admin off

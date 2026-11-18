@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import ipaddress
 import math
 import time
 from collections import defaultdict, deque
 from threading import Lock
+from urllib.parse import parse_qsl
 
 from fastapi import HTTPException, Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -124,6 +126,7 @@ class SlidingWindowRateLimiter:
         self.window = window_seconds
         self._hits: dict[str, deque[float]] = defaultdict(deque)
         self._lock = Lock()
+        self._calls = 0
 
     def reset(self) -> None:
         with self._lock:
@@ -149,6 +152,10 @@ class SlidingWindowRateLimiter:
     def allow(self, key: str) -> bool:
         now = time.monotonic()
         with self._lock:
+            self._calls += 1
+            if self._calls % 1024 == 0:  # drop keys whose hits all expired, so idle clients do not accumulate
+                for stale in [k for k, h in self._hits.items() if not h or now - h[-1] > self.window]:
+                    del self._hits[stale]
             hits = self._hits[key]
             while hits and now - hits[0] > self.window:
                 hits.popleft()
@@ -179,3 +186,91 @@ def limit_review_writes(request: Request) -> None:
     client = request.client.host if request.client else "unknown"
     if not review_rate_limiter.allow(client):
         raise HTTPException(status_code=429, detail="Demasiadas revisiones recientes. Intente más tarde.")
+
+
+READ_PREFIX = "/api/v1/"
+READ_EXEMPT_PATHS = frozenset({"/api/v1/health"})
+
+
+class ReadRateLimitMiddleware:
+    """Per-client limit on anonymous GET routes: a general one and a stricter one for requests carrying `q`.
+
+    In memory, per worker process, reset on restart. The client is `scope["client"]`, which uvicorn rewrites
+    from `X-Forwarded-For` only when the TCP peer is in `FORWARDED_ALLOW_IPS`. Addresses in `exempt` (the web
+    container's server-side calls) are never counted; the check uses that resolved address, not a header.
+    A request is counted before the HTTP cache runs, so a conditional request answered with 304 counts too.
+    A limit of 0 switches that limit off.
+    """
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        per_minute: int,
+        search_per_minute: int,
+        exempt: list[str] | tuple[str, ...] = (),
+        window_seconds: float = 60.0,
+    ) -> None:
+        self.app = app
+        self.general = SlidingWindowRateLimiter(per_minute, window_seconds) if per_minute > 0 else None
+        self.search = (
+            SlidingWindowRateLimiter(search_per_minute, window_seconds) if search_per_minute > 0 else None
+        )
+        self.exempt = tuple(ipaddress.ip_network(value, strict=False) for value in exempt)
+
+    def _is_exempt(self, client: str) -> bool:
+        try:
+            address = ipaddress.ip_address(client)
+        except ValueError:
+            return False
+        return any(address in network for network in self.exempt if network.version == address.version)
+
+    @staticmethod
+    def _has_query_text(raw: bytes) -> bool:
+        pairs = parse_qsl(raw.decode("latin-1"), keep_blank_values=True)
+        return any(key == "q" and value.strip() for key, value in pairs)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        path = scope.get("path", "")
+        if (
+            scope["type"] != "http"
+            or scope["method"] not in {"GET", "HEAD"}
+            or not path.startswith(READ_PREFIX)
+            or path in READ_EXEMPT_PATHS
+            or (self.general is None and self.search is None)
+        ):
+            await self.app(scope, receive, send)
+            return
+        client_info = scope.get("client")
+        client = client_info[0] if client_info else "unknown"
+        if self._is_exempt(client):
+            await self.app(scope, receive, send)
+            return
+        retry_after = self._check(client, search=self._has_query_text(scope.get("query_string", b"")))
+        if retry_after is None:
+            await self.app(scope, receive, send)
+            return
+        body = (
+            b'{"error":{"code":"rate_limited",'
+            b'"message":"Demasiadas solicitudes recientes. Intente m\xc3\xa1s tarde."}}'
+        )
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 429,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode()),
+                    (b"retry-after", str(retry_after).encode()),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": body})
+
+    def _check(self, client: str, *, search: bool) -> int | None:
+        """None when allowed, otherwise the whole seconds to wait."""
+        if self.general is not None and not self.general.allow(client):
+            return self.general.retry_after(client)
+        if search and self.search is not None and not self.search.allow(client):
+            return self.search.retry_after(client)
+        return None
