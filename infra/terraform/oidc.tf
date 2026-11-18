@@ -77,7 +77,8 @@ data "aws_iam_policy_document" "github_deploy" {
   statement {
     sid = "ReadCommandResult"
     # AWS Service Authorization Reference: these two actions support no resource types and no condition
-    # keys, so "*" is the only possible resource. They only read command results.    actions   = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations"]
+    # keys, so "*" is the only possible resource. They only read command results.
+    actions   = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations"]
     resources = ["*"]
   }
 }
