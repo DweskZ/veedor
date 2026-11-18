@@ -1,0 +1,319 @@
+{
+  "items": [
+    {
+      "term": "oferente",
+      "aliases": [
+        "oferentes",
+        "oferta",
+        "ofertas",
+        "coofertante",
+        "coofertantes"
+      ],
+      "definition_es": "Empresa o persona que presenta una oferta para ganar un proceso de compra. Cuantos más oferentes hay, más opciones tuvo la entidad para elegir.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "adjudicación",
+      "aliases": [
+        "adjudicado",
+        "adjudicada",
+        "adjudicados",
+        "adjudicatario",
+        "adjudicataria",
+        "monto adjudicado",
+        "adjudicaciones"
+      ],
+      "definition_es": "Decisión con la que la entidad elige a quién le compra y por cuánto. El monto adjudicado es lo que se acordó pagar, que puede ser distinto del presupuesto referencial.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "subasta inversa electrónica",
+      "aliases": [
+        "subasta inversa",
+        "subastas inversas electrónicas",
+        "subastas inversas"
+      ],
+      "definition_es": "Método para comprar bienes y servicios de uso común. Los proveedores ofertan por internet y gana, en general, el precio más bajo entre quienes cumplen los requisitos.",
+      "source": "Descripción general del tipo de proceso; el detalle legal está en la normativa vigente."
+    },
+    {
+      "term": "menor cuantía",
+      "aliases": [
+        "menor cuantia"
+      ],
+      "definition_es": "Método para compras de valor relativamente bajo, con trámites y plazos más simples que los de una licitación.",
+      "source": "Descripción general del tipo de proceso; el detalle legal está en la normativa vigente."
+    },
+    {
+      "term": "cotización",
+      "aliases": [
+        "cotizacion",
+        "cotizaciones"
+      ],
+      "definition_es": "Método para compras de valor intermedio: más que una menor cuantía y menos que una licitación.",
+      "source": "Descripción general del tipo de proceso; el detalle legal está en la normativa vigente."
+    },
+    {
+      "term": "licitación",
+      "aliases": [
+        "licitacion",
+        "licitaciones"
+      ],
+      "definition_es": "Método para las compras de mayor valor. Se convoca públicamente y tiene reglas y plazos más estrictos que los otros métodos competitivos.",
+      "source": "Descripción general del tipo de proceso; el detalle legal está en la normativa vigente."
+    },
+    {
+      "term": "contratación directa",
+      "aliases": [
+        "adjudicación directa",
+        "adjudicaciones directas",
+        "compras directas",
+        "método directo"
+      ],
+      "definition_es": "Compra en la que la entidad escoge al proveedor sin recibir ofertas de varios competidores. La normativa la permite en situaciones específicas, así que por sí sola no indica un problema.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "proceso competitivo",
+      "aliases": [
+        "procesos competitivos",
+        "competitivo",
+        "competitivos"
+      ],
+      "definition_es": "Proceso en el que varias empresas pueden presentar oferta: subasta inversa electrónica, menor cuantía, cotización y licitación. Las señales de Veedor se calculan sobre estos procesos.",
+      "source": "Agrupación usada por Veedor sobre el método publicado en los datos abiertos."
+    },
+    {
+      "term": "presupuesto referencial",
+      "aliases": [
+        "presupuesto"
+      ],
+      "definition_es": "Valor estimado que la entidad publica para una compra. Sirve de referencia para las ofertas; no es lo que finalmente se paga.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "catálogo electrónico",
+      "aliases": [
+        "catalogo electronico",
+        "catálogo",
+        "compras por catálogo"
+      ],
+      "definition_es": "Lista de bienes y servicios con precios convenidos de antemano, a la que las entidades compran sin hacer un nuevo proceso de competencia. Veedor no calcula señales sobre estas compras.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "entidad contratante",
+      "aliases": [
+        "entidad",
+        "entidades",
+        "entidad compradora",
+        "entidades contratantes"
+      ],
+      "definition_es": "Organismo público que hace la compra y paga el contrato. En el mapa, la provincia es la de la entidad contratante, no la del proveedor.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "proveedor",
+      "aliases": [
+        "proveedores"
+      ],
+      "definition_es": "Empresa o persona que vende bienes, servicios u obras al Estado. Las personas naturales aparecen como «Persona natural», con el RUC tapado.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "persona natural",
+      "aliases": [
+        "personas naturales"
+      ],
+      "definition_es": "Una persona individual, a diferencia de una empresa. Veedor no muestra sus nombres: aparecen como «Persona natural» y con el RUC tapado.",
+      "source": "Regla de privacidad de Veedor."
+    },
+    {
+      "term": "RUC",
+      "aliases": [
+        "ruc"
+      ],
+      "definition_es": "Registro Único de Contribuyentes: número de 13 dígitos con el que el SRI identifica a empresas y personas que tributan.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "CPC",
+      "aliases": [
+        "cpc"
+      ],
+      "definition_es": "Clasificador Central de Productos: un código que indica qué tipo de bien o servicio se compró.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "SERCOP",
+      "aliases": [
+        "sercop"
+      ],
+      "definition_es": "Servicio Nacional de Contratación Pública: la institución que administra el sistema de compras públicas y publica sus datos abiertos.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "SRI",
+      "aliases": [
+        "sri"
+      ],
+      "definition_es": "Servicio de Rentas Internas: la administración tributaria del Ecuador. Veedor consulta su registro de contribuyentes.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "OCDS",
+      "aliases": [
+        "ocds",
+        "identificador ocds"
+      ],
+      "definition_es": "Estándar internacional para publicar datos de contratación pública. El SERCOP publica sus procesos en este formato y cada uno tiene un identificador único.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "señal de riesgo",
+      "aliases": [
+        "señales de riesgo",
+        "señal",
+        "señales",
+        "señales atípicas",
+        "señal atípica"
+      ],
+      "definition_es": "Un patrón atípico que una regla pública marca en los datos de un proceso. No es una acusación: indica que conviene mirar con más atención, y casi siempre tiene explicaciones normales.",
+      "source": "Definición de Veedor; ver Metodología."
+    },
+    {
+      "term": "señal de contexto",
+      "aliases": [
+        "señales de contexto"
+      ],
+      "definition_es": "Un dato del registro del proveedor que se muestra para dar contexto. No suma puntos al puntaje.",
+      "source": "Definición de Veedor; ver Metodología."
+    },
+    {
+      "term": "puntaje",
+      "aliases": [
+        "puntaje de riesgo",
+        "puntajes"
+      ],
+      "definition_es": "Número de 0 a 100 que suma los pesos de las señales de un proceso. Sirve para decidir qué mirar primero; no mide la responsabilidad de nadie.",
+      "source": "Definición de Veedor; ver Metodología."
+    },
+    {
+      "term": "percentil",
+      "aliases": [
+        "percentiles"
+      ],
+      "definition_es": "Posición de un valor entre muchos. Estar en el percentil 5 significa que solo el 5 % de los casos tiene un valor menor.",
+      "source": "Término estadístico general."
+    },
+    {
+      "term": "mediana",
+      "aliases": [],
+      "definition_es": "El valor del medio: la mitad de los casos está por debajo y la otra mitad por encima.",
+      "source": "Término estadístico general."
+    },
+    {
+      "term": "AUC",
+      "aliases": [
+        "auc"
+      ],
+      "definition_es": "Medida de 0 a 1 de qué tan bien un puntaje separa dos grupos. 0,5 equivale a tirar una moneda; 1 sería acertar siempre.",
+      "source": "Término estadístico general."
+    },
+    {
+      "term": "intervalo de confianza",
+      "aliases": [
+        "intervalo"
+      ],
+      "definition_es": "Rango en el que probablemente está la cifra real. Cuanto más ancho, menos precisa es la medición.",
+      "source": "Término estadístico general."
+    },
+    {
+      "term": "muestra pequeña",
+      "aliases": [
+        "muestras pequeñas"
+      ],
+      "definition_es": "Un porcentaje calculado con pocos procesos, que cambia mucho con que se sume o se reste uno. En el mapa se marca cuando la provincia tiene menos de 500 procesos competitivos.",
+      "source": "Criterio de Veedor."
+    },
+    {
+      "term": "plazo de ofertas",
+      "aliases": [
+        "periodo de ofertas",
+        "período de ofertas"
+      ],
+      "definition_es": "Días que transcurren entre que se abre y se cierra la recepción de ofertas de un proceso.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "listado de empresas fantasmas del SRI",
+      "aliases": [
+        "empresas fantasmas",
+        "listado del SRI",
+        "listado de empresas fantasmas"
+      ],
+      "definition_es": "Listado publicado por el SRI de contribuyentes que la propia institución señala. Figurar en él es un dato del registro, no una sentencia ni una conclusión de Veedor.",
+      "source": "Descripción general del término; redacción de Veedor."
+    },
+    {
+      "term": "señal «oferente único»",
+      "aliases": [
+        "oferente único",
+        "señal de oferente único",
+        "SINGLE_BIDDER"
+      ],
+      "definition_es": "Señal de riesgo que se activa en un proceso competitivo cuando se presentó una sola oferta, salvo en los procedimientos donde un solo oferente es normal por diseño. Es lo que cuenta el mapa y el filtro «Con la señal «oferente único»» de los procesos.",
+      "source": "Definición de Veedor; ver Metodología."
+    },
+    {
+      "term": "subastas inversas con un solo oferente",
+      "aliases": [
+        "subasta con un solo oferente"
+      ],
+      "definition_es": "Conteo directo, en la página de tendencias, de las subastas inversas electrónicas con exactamente un oferente, sobre las que tienen el número de oferentes conocido. No aplica la excepción de la señal «oferente único», por eso sus cifras no coinciden con las del mapa.",
+      "source": "Definición de Veedor; ver Metodología."
+    },
+    {
+      "term": "umbral de contratación",
+      "aliases": [
+        "umbral",
+        "umbrales",
+        "umbrales de contratación",
+        "monto que cambia el procedimiento",
+        "montos de contratación"
+      ],
+      "definition_es": "Monto de presupuesto a partir del cual la ley obliga a usar un procedimiento de compra más exigente. Hasta mediados de 2025 se calculaba cada año como una fracción fija del presupuesto inicial del Estado; desde la reforma se fijó en 10.000 dólares para varios procedimientos. Es un dato de contexto: no es una señal de riesgo y no cambia el puntaje.",
+      "source": "Publicaciones oficiales del SERCOP; ver docs/THRESHOLDS.md."
+    },
+    {
+      "term": "ínfima cuantía",
+      "aliases": [
+        "infima cuantia",
+        "ínfima cuantia",
+        "compras de ínfima cuantía"
+      ],
+      "definition_es": "Compras de valor muy pequeño, por debajo del primer umbral, que se hacen con un trámite directo y simple. No están en los datos abiertos que usa Veedor, así que aquí solo se ve lo que queda justo por encima de ese monto.",
+      "source": "Descripción general del tipo de proceso; el detalle legal está en la normativa vigente."
+    },
+    {
+      "term": "presupuesto inicial del Estado (PIE)",
+      "aliases": [
+        "PIE",
+        "presupuesto inicial del Estado",
+        "presupuesto general del Estado"
+      ],
+      "definition_es": "Presupuesto con el que el Estado ecuatoriano comienza cada año. Hasta mediados de 2025 los montos que cambian el procedimiento de contratación se calculaban como una fracción fija de este número, por eso variaban de un año a otro.",
+      "source": "Publicaciones oficiales del SERCOP; ver docs/THRESHOLDS.md."
+    },
+    {
+      "term": "ahorro frente al presupuesto",
+      "aliases": [
+        "ahorro",
+        "ahorro frente al presupuesto referencial",
+        "saving"
+      ],
+      "definition_es": "Cuánto menos que el presupuesto referencial terminó pagando el Estado: 1 menos el monto adjudicado dividido por el presupuesto. Un ahorro de 0 significa que se pagó exactamente el presupuesto. Solo se calcula en procesos competitivos. Ahorrar menos no es una irregularidad: depende de cuánta competencia hubo y de cómo se fijó el presupuesto.",
+      "source": "Definición de Veedor; ver docs/VALIDATION.md."
+    }
+  ]
+}
