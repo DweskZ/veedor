@@ -44,6 +44,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // A relative API URL only resolves in a browser. On the server it means no API is reachable (an image build
+  // without API_INTERNAL_URL), so fail at once instead of handing the framework a URL it cannot fetch.
+  if (typeof window === "undefined" && !/^https?:\/\//.test(API_URL)) {
+    throw new ApiError("No se pudo conectar con el servicio de datos.", null);
+  }
   let res: Response;
   try {
     const ttl = revalidateSeconds(path);
